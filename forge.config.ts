@@ -26,10 +26,12 @@ const config: ForgeConfig = {
     },
     rebuildConfig: { extraModules: ["@electron/remote"] },
     makers: [
-        new MakerSquirrel({
+        new MakerSquirrel((arch: string) => ({
             setupIcon: "resources/icon.ico",
+            setupExe: `ore-ui-customizer-app_${arch}_${(require("./package.json") as typeof import("./package.json")).version} Setup.exe`,
+            // setupMsi: `ore-ui-customizer-app_${arch}_${(require("./package.json") as typeof import("./package.json")).version} Setup.msi`,
             iconUrl: "https://raw.githubusercontent.com/8Crafter-Studios/Ore-UI-Customizer-App/refs/heads/main/resources/icon.ico",
-        }),
+        })),
         new MakerZIP({}, ["darwin"]),
         new MakerRpm({
             options: {
@@ -128,7 +130,7 @@ const config: ForgeConfig = {
 
                 npm.on("error", reject);
             });
-        },/* 
+        } /* 
         postMake: async (forgeConfig: ResolvedForgeConfig, results: ForgeMakeResult[]): Promise<void> => {
             const version = require("./package.json").version;
 
@@ -149,7 +151,7 @@ const config: ForgeConfig = {
                         }
                 }
             }
-        }, */
+        }, */,
     },
 };
 
