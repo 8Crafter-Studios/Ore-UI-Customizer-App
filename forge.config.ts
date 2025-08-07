@@ -1,4 +1,4 @@
-import type { ForgeConfig, ResolvedForgeConfig } from "@electron-forge/shared-types";
+import type { ForgeConfig, ForgeMakeResult, ResolvedForgeConfig } from "@electron-forge/shared-types";
 import { MakerSquirrel } from "@electron-forge/maker-squirrel";
 import { MakerZIP } from "@electron-forge/maker-zip";
 import { MakerDeb } from "@electron-forge/maker-deb";
@@ -128,7 +128,28 @@ const config: ForgeConfig = {
 
                 npm.on("error", reject);
             });
-        },
+        },/* 
+        postMake: async (forgeConfig: ResolvedForgeConfig, results: ForgeMakeResult[]): Promise<void> => {
+            const version = require("./package.json").version;
+
+            for (const result of results) {
+                if (result.arch && result.platform === "win32") {
+                    const arch = result.arch;
+                    const outputPath = result.artifacts;
+                    console.log(`Arch: ${arch}`, `Output Path: ${outputPath}`);
+                      for (const file of result.artifacts) {
+                        if (file.includes('Setup') || file.includes('full.nupkg')) {
+                          const oldPath = path.join(outputPath, file);
+                          const ext = path.extname(file);
+                          const base = path.basename(file, ext);
+                          const newName = `${base}-${arch}-${version}${ext}`;
+                          const newPath = path.join(outputPath, newName);
+                          fs.renameSync(oldPath, newPath);
+                          console.log(`Renamed ${file} → ${newName}`);
+                        }
+                }
+            }
+        }, */
     },
 };
 

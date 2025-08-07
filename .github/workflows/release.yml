@@ -24,11 +24,11 @@ jobs:
                     # - os: macos-latest
                     #   arch: ia32
                     - os: windows-latest
-                      arch: x64
-                    - os: windows-latest
-                      arch: arm64
-                    - os: windows-latest
-                      arch: ia32
+                      arch: x64,arm64,ia32
+                    # - os: windows-latest
+                    #   arch: arm64
+                    # - os: windows-latest
+                    #   arch: ia32
         runs-on: ${{ matrix.os }}
         name: Build ${{ matrix.os }} (${{ matrix.arch }})
         permissions: write-all
@@ -44,10 +44,11 @@ jobs:
             - name: Install dependencies
               run: npm install
 
-            #   - name: Make distributables
-            #     run: npm run make # -- --arch=${{ matrix.arch }}
-
-            - name: Publish to GitHub Releases
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              run: npm run publish -- --arch=${{ matrix.arch }}
+            - name: Make distributables
+              run: npm run make -- --dry-run --arch="${{ matrix.arch }}"
+    publish:
+        - name: Publish to GitHub Releases
+          permissions: write-all
+          env:
+              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          run: npm run publish --from-dry-run
