@@ -1,0 +1,201 @@
+{
+    "$schema": "https://json-schema.org/draft-07/schema#",
+    "$id": "https://www.8crafter.com/schemas/8crafters-ore-ui-customizer-app-routes.schema.json",
+    "title": "8Crafter's Ore UI Customizer App routes.json Schema",
+
+    "default": {
+        "routes": [
+            {
+                "fileName": "/index.html",
+                "defaultRoute": "",
+                "supportedRoutes": [
+                    {
+                        "route": "/play/servers/add",
+                        "modes": [],
+                        "regexp": "^\\/play\\/servers\\/add(?:\\/)?$",
+                        "params": [],
+                        "transition": "RouteSlideTransition"
+                    },
+                    {
+                        "route": "/play/:tab/:id?/:type?",
+                        "modes": [],
+                        "regexp": "^\\/play\\/([^\\/]+?)(?:\\/([^\\/]+?))?(?:\\/([^\\/]+?))?(?:\\/)?$",
+                        "params": [
+                            { "name": "tab", "prefix": "/", "delimiter": "/", "optional": false, "repeat": false, "pattern": "[^\\/]+?" },
+                            { "name": "id", "prefix": "/", "delimiter": "/", "optional": true, "repeat": false, "pattern": "[^\\/]+?" },
+                            { "name": "type", "prefix": "/", "delimiter": "/", "optional": true, "repeat": false, "pattern": "[^\\/]+?" }
+                        ],
+                        "transition": "RouteSlideTransition"
+                    }
+                ]
+            }
+        ]
+    },
+    "type": "object",
+    "required": ["routes"],
+    "properties": {
+        "routes": {
+            "description": "The routes for the router.",
+            "type": "array",
+            "default": [],
+            "uniqueItems": true,
+            "items": {
+                "description": "A route.",
+                "required": ["fileName", "defaultRoute", "supportedRoutes"],
+                "type": "object",
+                "examples": [
+                    {
+                        "fileName": "/index.html",
+                        "defaultRoute": "",
+                        "supportedRoutes": [
+                            {
+                                "route": "/example/route/:param1/:param2?",
+                                "modes": [],
+                                "regexp": "^\\/example\\/route(?:\\/([^\\/]+?))?(?:\\/([^\\/]+?))?(?:\\/)?$",
+                                "params": [],
+                                "transition": "RouteSlideTransition"
+                            }
+                        ]
+                    }
+                ],
+                "properties": {
+                    "fileName": {
+                        "description": "The file name for the route.",
+                        "type": "string",
+                        "examples": ["/index.html"]
+                    },
+                    "defaultRoute": {
+                        "description": "The default route for the route.",
+                        "type": "string",
+                        "default": "",
+                        "examples": ["", "/example/route/param1value", "/example/route/param1value/param2value"]
+                    },
+                    "supportedRoutes": {
+                        "description": "The routes for the router.",
+                        "type": "array",
+                        "default": [],
+                        "uniqueItems": true,
+                        "examples": [
+                            [
+                                {
+                                    "route": "/example/route/:param1/:param2?",
+                                    "modes": [],
+                                    "regexp": "^\\/example\\/route(?:\\/([^\\/]+?))?(?:\\/([^\\/]+?))?(?:\\/)?$",
+                                    "params": [],
+                                    "transition": "RouteSlideTransition"
+                                }
+                            ]
+                        ],
+                        "items": {
+                            "description": "A route.",
+                            "required": ["route", "modes", "regexp", "params", "transition"],
+                            "type": "object",
+                            "examples": [
+                                {
+                                    "route": "/example/route/:param1/:param2?",
+                                    "modes": [],
+                                    "regexp": "^\\/example\\/route(?:\\/([^\\/]+?))?(?:\\/([^\\/]+?))?(?:\\/)?$",
+                                    "params": [],
+                                    "transition": "RouteSlideTransition"
+                                }
+                            ],
+                            "properties": {
+                                "route": {
+                                    "description": "The route ID.",
+                                    "type": "string",
+                                    "examples": ["/example/route"]
+                                },
+                                "modes": {
+                                    "description": "The modes for the route.",
+                                    "type": "array",
+                                    "default": [],
+                                    "uniqueItems": true,
+                                    "items": {
+                                        "description": "The mode for the route.",
+                                        "type": "string",
+                                        "enum": ["overlay", "grab-mouse", "left-sidebar", "close-overlay-on-background-click", "close-overlay-on-escape", "blocking-background"]
+                                    }
+                                },
+                                "regexp": {
+                                    "description": "The regular expression for the route.",
+                                    "type": "string",
+                                    "examples": ["^\\/example\\/route(?:\\/)?$"]
+                                },
+                                "params": {
+                                    "description": "The parameters for the route.",
+                                    "type": "array",
+                                    "default": [],
+                                    "uniqueItems": true,
+                                    "items": {
+                                        "description": "A parameter for the route.",
+                                        "required": ["name", "prefix", "delimiter", "optional", "repeat", "pattern"],
+                                        "type": "object",
+                                        "properties": {
+                                            "name": {
+                                                "description": "The name of the parameter.",
+                                                "type": "string",
+                                                "default": "id"
+                                            },
+                                            "prefix": {
+                                                "description": "The prefix of the parameter.",
+                                                "type": "string",
+                                                "default": "/"
+                                            },
+                                            "delimiter": {
+                                                "description": "The delimiter of the parameter.",
+                                                "type": "string",
+                                                "default": "/"
+                                            },
+                                            "optional": {
+                                                "description": "Whether the parameter is optional.",
+                                                "type": "boolean",
+                                                "default": false
+                                            },
+                                            "repeat": {
+                                                "description": "Whether the parameter is repeated.",
+                                                "type": "boolean",
+                                                "default": false
+                                            },
+                                            "pattern": {
+                                                "description": "The pattern of the parameter.",
+                                                "type": "string",
+                                                "default": "[^\\/]+?"
+                                            }
+                                        }
+                                    }
+                                },
+                                "transition": {
+                                    "description": "The transition for the route.",
+                                    "type": "string",
+                                    "default": "RouteSlideTransition",
+                                    "enum": [
+                                        "",
+                                        "RouteSlideTransition",
+                                        "RouteInstantTransition",
+                                        "RouteSlideVerticalTransition",
+                                        "RouteFadeTransition",
+                                        "RouteRotateXTransition",
+                                        "RouteRotateYTransition",
+                                        "RouteRotateZTransition"
+                                    ]
+                                },
+                                "data": {
+                                    "description": "The data for the route.",
+                                    "type": "object",
+                                    "default": {},
+                                    "properties": {
+                                        "sidebarButtonID": {
+                                            "description": "The ID of the sidebar button that should be active.\nOnly applies to routes with the left-sidebar mode.",
+                                            "type": "string",
+                                            "default": ""
+                                        }
+                                    }                    
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+	<dict>
+		<key>CFBundleDocumentTypes</key>
+		<array>
+			<dict>
+				<key>CFBundleTypeExtensions</key>
+				<array>
+					<string>mcouicplugin</string>
+					<string>MCOUICPLUGIN</string>
+					<string>ouicplugin</string>
+					<string>OUICPLUGIN</string>
+				</array>
+				<key>CFBundleTypeIconFile</key>
+				<string>resources/icon.ico</string>
+				<key>CFBundleTypeName</key>
+				<string>Ore UI Customizer Plugin</string>
+				<key>CFBundleTypeRole</key>
+				<string>Viewer</string>
+				<key>LSHandlerRank</key>
+				<string>Default</string>
+			</dict>
+			<dict>
+				<key>CFBundleTypeExtensions</key>
+				<array>
+					<string>mcouictheme</string>
+					<string>MCOUICTHEME</string>
+					<string>ouictheme</string>
+					<string>OUICTHEME</string>
+				</array>
+				<key>CFBundleTypeIconFile</key>
+				<string>resources/icon.ico</string>
+				<key>CFBundleTypeName</key>
+				<string>Ore UI Customizer Theme</string>
+				<key>CFBundleTypeRole</key>
+				<string>Viewer</string>
+				<key>LSHandlerRank</key>
+				<string>Default</string>
+			</dict>
+		</array>
+	</dict>
+</plist>
