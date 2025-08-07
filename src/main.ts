@@ -864,7 +864,8 @@ if (!startup && !started) {
         }
     });
 
-    var lastFocusedMainWindows: BrowserWindow[] = [];
+    // eslint-disable-next-line prefer-const
+    let lastFocusedMainWindows: BrowserWindow[] = [];
 
     app.on("browser-window-focus", (_event: Electron.Event, window: BrowserWindow): void => {
         if (mainWindowIDs.includes(window.id)) {

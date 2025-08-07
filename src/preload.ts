@@ -44,12 +44,12 @@ export function onThemeChange(value: typeof config.theme): void {
 function changeTheme(theme: typeof config.actualTheme): void {
     forEachRuleCallback((rule: CSSStyleDeclaration, _ruleName: string, _styleSheet: CSSStyleSheet): void => {
         if (
-            !!rule?.cssText?.match(
-                /(?<=(?:[\n\s;\{]|^)---theme-var-switcher--[a-zA-Z0-9\-_]+[\n\s]*:[\n\s]*var\([\n\s]*--[a-zA-Z0-9\-_]*)(?:light|dark|blue-theme)(?=[a-zA-Z0-9\-_]*[\n\s]*\)[\n\s]*;?)/
+            rule?.cssText?.match(
+                /(?<=(?:[\n\s;{]|^)---theme-var-switcher--[a-zA-Z0-9\-_]+[\n\s]*:[\n\s]*var\([\n\s]*--[a-zA-Z0-9\-_]*)(?:light|dark|blue-theme)(?=[a-zA-Z0-9\-_]*[\n\s]*\)[\n\s]*;?)/
             )
         ) {
             rule.cssText = rule.cssText.replaceAll(
-                /(?<=(?:[\n\s;\{]|^)---theme-var-switcher--[a-zA-Z0-9\-_]+[\n\s]*:[\n\s]*var\([\n\s]*--[a-zA-Z0-9\-_]*)(?:light|dark|blue-theme)(?=[a-zA-Z0-9\-_]*[\n\s]*\)[\n\s]*;?)/g,
+                /(?<=(?:[\n\s;{]|^)---theme-var-switcher--[a-zA-Z0-9\-_]+[\n\s]*:[\n\s]*var\([\n\s]*--[a-zA-Z0-9\-_]*)(?:light|dark|blue-theme)(?=[a-zA-Z0-9\-_]*[\n\s]*\)[\n\s]*;?)/g,
                 theme === "blue" ? "blue-theme" : theme
             );
         }

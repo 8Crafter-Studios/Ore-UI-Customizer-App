@@ -363,7 +363,7 @@ declare global {
      * @author jcalz <https://stackoverflow.com/users/2887218/jcalz>
      */
     type RequiredKeys<T> = {
-        [K in keyof T]-?: {} extends { [P in K]: T[K] } ? never : K;
+        [K in keyof T]-?: NonNullable<unknown> extends { [P in K]: T[K] } ? never : K;
     }[keyof T];
 
     /**
@@ -372,7 +372,7 @@ declare global {
      * @author jcalz <https://stackoverflow.com/users/2887218/jcalz>
      */
     type OptionalKeys<T> = {
-        [K in keyof T]-?: {} extends { [P in K]: T[K] } ? K : never;
+        [K in keyof T]-?: NonNullable<unknown> extends { [P in K]: T[K] } ? K : never;
     }[keyof T];
 
     /**

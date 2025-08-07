@@ -1089,7 +1089,7 @@ export default function ConfigEditorPage(): JSX.SpecificElement<"center"> {
                         aria-autocomplete="none"
                         onInput={(event: JSX.TargetedEvent<HTMLInputElement, Event>): void => {
                             let id: string = event.currentTarget.value;
-                            if (!/^[a-zA-Z_\-\.]+$/.test(id)) {
+                            if (!/^[a-zA-Z_\-.]+$/.test(id)) {
                                 event.currentTarget.style.color = "orange";
                                 const errorMessageDisplayElement: HTMLDivElement = event.currentTarget.parentElement!.querySelector(
                                     "#metadata-id-text-box-error-message"
@@ -1287,12 +1287,12 @@ export default function ConfigEditorPage(): JSX.SpecificElement<"center"> {
             if (updatedConfig !== config) return;
             reloadSettings();
         }
-        ConfigManager.on("configEdited", configUpdatedCallback)
-        ConfigManager.on("configRefreshed", configUpdatedCallback)
+        ConfigManager.on("configEdited", configUpdatedCallback);
+        ConfigManager.on("configRefreshed", configUpdatedCallback);
         return (): void => {
-            ConfigManager.off("configEdited", configUpdatedCallback)
-            ConfigManager.off("configRefreshed", configUpdatedCallback)
-        }
+            ConfigManager.off("configEdited", configUpdatedCallback);
+            ConfigManager.off("configRefreshed", configUpdatedCallback);
+        };
     }, []);
 
     return (

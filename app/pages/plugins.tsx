@@ -607,12 +607,12 @@ export function PluginsListItem(props: PluginListItemProps): JSX.SpecificElement
                     onMouseOver={(event: JSX.TargetedMouseEvent<HTMLImageElement>): void => {
                         const imageElement: HTMLImageElement = event.currentTarget.children[0] as HTMLImageElement;
                         if (imageElement.src === "resource://images/ui/misc/loading_bar.gif") return;
-                        if (!imageElement.src.includes("_hover")) imageElement.src = imageElement.src.replace(/(?=\.[^\.]+$)/, "_hover");
+                        if (!imageElement.src.includes("_hover")) imageElement.src = imageElement.src.replace(/(?=\.[^.]+$)/, "_hover");
                     }}
                     onMouseOut={(event: JSX.TargetedMouseEvent<HTMLImageElement>): void => {
                         const imageElement: HTMLImageElement = event.currentTarget.children[0] as HTMLImageElement;
                         if (imageElement.src === "resource://images/ui/misc/loading_bar.gif") return;
-                        if (imageElement.src.includes("_hover")) imageElement.src = imageElement.src.replace(/_hover(?=\.[^\.]+$)/, "");
+                        if (imageElement.src.includes("_hover")) imageElement.src = imageElement.src.replace(/_hover(?=\.[^.]+$)/, "");
                     }}
                     style={{
                         width: "calc(14px * var(--gui-scale))",

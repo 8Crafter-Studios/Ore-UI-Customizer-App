@@ -228,7 +228,7 @@ export function reloadAppContents(): void {
 export function getMainPageContentPathID(): string {
     const searchParams: URLSearchParams = router.history.location.searchParams;
     const page: [LooseAutocomplete<`${CustomizerAppPage}`>?, ...LooseAutocomplete<`${CustomizerAppPage}`>[]] = Array.from(
-        router.history.location.pathname.matchAll(/\/([^\/]+)/g)
+        router.history.location.pathname.matchAll(/\/([^/]+)/g)
     ).map((match: RegExpExecArray): string | undefined => match[1] ?? "") as [
         LooseAutocomplete<`${CustomizerAppPage}`>?,
         ...LooseAutocomplete<`${CustomizerAppPage}`>[]

@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-escape */
 import semver from "semver";
 import "./zip.js";
 

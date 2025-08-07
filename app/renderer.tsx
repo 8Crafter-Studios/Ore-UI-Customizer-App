@@ -1,3 +1,4 @@
+/* eslint-disable import/no-unresolved */
 // @ts-expect-error This is a valid import.
 import "./index.css";
 // @ts-expect-error This is a valid import.

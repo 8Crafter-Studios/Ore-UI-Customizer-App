@@ -224,7 +224,7 @@ namespace exports {
         }
     }
     export class RouterHistory<Context extends any = null> {
-        public static readonly ROUTER_BASE_URL: "app://router/" = "app://router/";
+        public static readonly ROUTER_BASE_URL: "app://router/" = "app://router/" as const;
         public readonly router: Router<Context>;
         public readonly list: RouterHistoryLocation<Context>[] = [];
         public location: RouterHistoryLocation<Context>;
