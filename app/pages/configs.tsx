@@ -517,7 +517,7 @@ export function ConfigsListItem(props: ConfigListItemProps): JSX.SpecificElement
                         class="piximg nsel ndrg"
                         src={
                             props.config instanceof OreUICustomizerConfig
-                                ? props.config.icon ?? "resource://images/ui/glyphs/Source.png"
+                                ? props.config.icon ?? "resource://images/ui/glyphs/icon-settings.png"
                                 : "resource://images/ui/misc/missing_pack_icon.png"
                         }
                         style={{ width: "calc(34px * var(--gui-scale))", height: "calc(34px * var(--gui-scale))" }}

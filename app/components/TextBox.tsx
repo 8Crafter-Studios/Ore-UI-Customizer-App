@@ -110,6 +110,7 @@ export default function TextBox(props: TextBoxProps): JSX.SpecificElement<"div">
             ) : (
                 props.description
             )}
+            <div class="text-box-error-message" style={{ display: "none", color: "red", fontFamily: "Monocraft" }}></div>
         </label>
     );
 }

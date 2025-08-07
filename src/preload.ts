@@ -5,7 +5,6 @@ import "./init/JSONB.ts";
 import "./init/getCurrentWindow.ts";
 import "./init/Router.ts";
 import "./init/SoundEffects.ts";
-import "./api/preload.ts";
 import "./utils/ProgressBar.ts";
 import "./utils/config.ts";
 import "./utils/version.ts";

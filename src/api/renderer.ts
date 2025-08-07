@@ -1,4 +1,5 @@
-import { ipcRenderer, type IpcRendererEvent } from "electron";
+import type { IpcRendererEvent } from "electron";
+const { ipcRenderer } = require("electron") as typeof import("electron");
 import { dialog } from "@electron/remote";
 import { CustomizerAppPage } from "../utils/pageList";
 import { ThemeManager } from "../utils/ThemeManager";
@@ -50,6 +51,7 @@ ipcRenderer.on("console-action", function <
 ipcRenderer.on(
     "import-from-file",
     async function (_event: IpcRendererEvent, path: string, type: "config" | "plugin" | "theme" | "add-on" | "unknown"): Promise<void> {
+        getCurrentWindow().focus();
         switch (type) {
             case "config":
                 try {
@@ -135,6 +137,7 @@ ipcRenderer.on(
 ipcRenderer.on(
     "import-from-url",
     async function (_event: IpcRendererEvent, url: string, type: "config" | "plugin" | "theme" | "add-on" | "unknown"): Promise<void> {
+        getCurrentWindow().focus();
         switch (type) {
             case "config":
                 try {
@@ -220,6 +223,7 @@ ipcRenderer.on(
 ipcRenderer.on(
     "import-from-data",
     async function (_event: IpcRendererEvent, data: string, type: "config" | "plugin" | "theme" | "add-on" | "unknown"): Promise<void> {
+        getCurrentWindow().focus();
         switch (type) {
             case "config":
                 try {

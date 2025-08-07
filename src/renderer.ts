@@ -29,6 +29,7 @@
 // import type { MessageBoxReturnValue } from "electron";
 // import { reloadMainPageContents } from "../app/app.tsx";
 import "../app/renderer.tsx";
+import "./api/renderer.ts";
 // import { CustomizerAppPage, pageSpecificSearchParams, type SearchParamTypes } from "./utils/pageList.ts";
 // const { dialog } = require("@electron/remote") as typeof import("@electron/remote");
 import "./globalify_renderer.ts";

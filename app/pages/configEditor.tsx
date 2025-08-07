@@ -884,9 +884,26 @@ export default function ConfigEditorPage(): JSX.SpecificElement<"center"> {
         );
     }
     function MetadataSectionOptions(): JSX.Element {
+        useEffect((): (() => void) => {
+            function onDescriptionChange(this: HTMLTextAreaElement, _event: Event): void {
+                if (this.value) {
+                    config!.metadata.description = this.value;
+                } else {
+                    delete config!.metadata.description;
+                }
+            }
+            if (metadataSectionInputRefs.description.current) {
+                metadataSectionInputRefs.description.current.addEventListener("change", onDescriptionChange);
+            }
+            return (): void => {
+                if (metadataSectionInputRefs.description.current) {
+                    metadataSectionInputRefs.description.current.removeEventListener("change", onDescriptionChange);
+                }
+            };
+        });
         return (
             <>
-                <label style={{ display: "block", marginBottom: "calc(5px * var(--gui-scale))" }}>
+                {/* <label style={{ display: "block", marginBottom: "calc(5px * var(--gui-scale))" }}>
                     <span class="nsel ndrg">Name</span>
                     <br />
                     <input
@@ -906,109 +923,106 @@ export default function ConfigEditorPage(): JSX.SpecificElement<"center"> {
                         required
                         aria-autocomplete="none"
                     />
-                </label>
-                <label style={{ display: "block", marginBottom: "calc(5px * var(--gui-scale))" }}>
-                    <span class="nsel ndrg">Authors</span>
-                    <br />
-                    <input
-                        title="The authors of the config as a JSON array."
-                        type="text"
-                        class="form-control"
-                        style={{
-                            width: "-webkit-fill-available",
-                        }}
-                        ref={metadataSectionInputRefs.authors}
-                        value={JSON.stringify(config!.metadata.authors ?? [])}
-                        autoCapitalize="off"
-                        autoComplete="off"
-                        autoCorrect="off"
-                        spellcheck={false}
-                        inputMode="text"
-                        required
-                        aria-autocomplete="none"
-                        onInput={(event: JSX.TargetedEvent<HTMLInputElement, Event>): void => {
-                            let authors: string[] | undefined;
-                            try {
-                                authors = JSON.parse(event.currentTarget.value);
-                                event.currentTarget.style.color = "";
-                                const errorMessageDisplayElement: HTMLDivElement = event.currentTarget.parentElement!.querySelector(
-                                    "#metadata-authors-text-box-error-message"
-                                ) as HTMLDivElement;
-                                errorMessageDisplayElement.style.display = "none";
-                                errorMessageDisplayElement.textContent = "";
-                            } catch (e: any) {
-                                event.currentTarget.style.color = "red";
-                                const errorMessageDisplayElement: HTMLDivElement = event.currentTarget.parentElement!.querySelector(
-                                    "#metadata-authors-text-box-error-message"
-                                ) as HTMLDivElement;
-                                errorMessageDisplayElement.style.color = "red";
-                                errorMessageDisplayElement.textContent = e;
-                                errorMessageDisplayElement.style.display = "block";
-                            }
-                            if (authors) {
-                                if (!(authors instanceof Array)) {
-                                    event.currentTarget.style.color = "orange";
-                                    const errorMessageDisplayElement: HTMLDivElement = event.currentTarget.parentElement!.querySelector(
-                                        "#metadata-authors-text-box-error-message"
-                                    ) as HTMLDivElement;
-                                    errorMessageDisplayElement.style.color = "orange";
-                                    errorMessageDisplayElement.textContent = "Authors must be a JSON array.";
-                                    errorMessageDisplayElement.style.display = "block";
-                                } else if (authors.length > 0 && !authors.every((author: string): author is string => typeof author === "string")) {
-                                    event.currentTarget.style.color = "orange";
-                                    const errorMessageDisplayElement: HTMLDivElement = event.currentTarget.parentElement!.querySelector(
-                                        "#metadata-authors-text-box-error-message"
-                                    ) as HTMLDivElement;
-                                    errorMessageDisplayElement.style.color = "orange";
-                                    errorMessageDisplayElement.textContent = "Authors must be a JSON array of strings.";
-                                    errorMessageDisplayElement.style.display = "block";
-                                }
-                            }
-                        }}
-                    />
-                    <div id="metadata-authors-text-box-error-message" style={{ display: "none", color: "red", fontFamily: "Monocraft" }}></div>
-                </label>
-                <label style={{ display: "block", marginBottom: "calc(5px * var(--gui-scale))" }}>
-                    <span class="nsel ndrg">Version</span>
-                    <br />
-                    <input
-                        title="The version of the config as a valid semantic version."
-                        type="text"
-                        class="form-control"
-                        style={{
-                            width: "-webkit-fill-available",
-                        }}
-                        ref={metadataSectionInputRefs.version}
-                        value={config!.metadata.version}
-                        autoCapitalize="off"
-                        autoComplete="off"
-                        autoCorrect="off"
-                        spellcheck={false}
-                        inputMode="text"
-                        required
-                        aria-autocomplete="none"
-                        onInput={(event: JSX.TargetedEvent<HTMLInputElement, Event>): void => {
-                            let version: string = event.currentTarget.value;
-                            if (!semver.valid(version)) {
+                </label> */}
+                <TextBox
+                    label="Name"
+                    title="The name of the config."
+                    inputRef={metadataSectionInputRefs.name}
+                    value={config!.metadata.name}
+                    required
+                    onChange={function onChange(this: HTMLInputElement, _event: Event): void {
+                        if (this.value) {
+                            config!.metadata.name = this.value;
+                        }
+                    }}
+                />
+                <TextBox
+                    label="Authors"
+                    title="The authors of the config as a JSON array."
+                    inputRef={metadataSectionInputRefs.authors}
+                    value={JSON.stringify(config!.metadata.authors ?? [])}
+                    required
+                    onInput={(event: JSX.TargetedEvent<HTMLInputElement, Event>): void => {
+                        let authors: string[] | undefined;
+                        try {
+                            authors = JSON.parse(event.currentTarget.value);
+                            event.currentTarget.style.color = "";
+                            const errorMessageDisplayElement: HTMLDivElement = event.currentTarget.parentElement!.querySelector(
+                                ".text-box-error-message"
+                            ) as HTMLDivElement;
+                            errorMessageDisplayElement.style.display = "none";
+                            errorMessageDisplayElement.textContent = "";
+                        } catch (e: any) {
+                            event.currentTarget.style.color = "red";
+                            const errorMessageDisplayElement: HTMLDivElement = event.currentTarget.parentElement!.querySelector(
+                                ".text-box-error-message"
+                            ) as HTMLDivElement;
+                            errorMessageDisplayElement.style.color = "red";
+                            errorMessageDisplayElement.textContent = e;
+                            errorMessageDisplayElement.style.display = "block";
+                        }
+                        if (authors) {
+                            if (!(authors instanceof Array)) {
                                 event.currentTarget.style.color = "orange";
                                 const errorMessageDisplayElement: HTMLDivElement = event.currentTarget.parentElement!.querySelector(
-                                    "#metadata-version-text-box-error-message"
+                                    ".text-box-error-message"
                                 ) as HTMLDivElement;
                                 errorMessageDisplayElement.style.color = "orange";
-                                errorMessageDisplayElement.textContent = "Version must be a valid semantic version.";
+                                errorMessageDisplayElement.textContent = "Authors must be a JSON array.";
                                 errorMessageDisplayElement.style.display = "block";
-                            } else {
-                                event.currentTarget.style.color = "";
+                            } else if (authors.length > 0 && !authors.every((author: string): author is string => typeof author === "string")) {
+                                event.currentTarget.style.color = "orange";
                                 const errorMessageDisplayElement: HTMLDivElement = event.currentTarget.parentElement!.querySelector(
-                                    "#metadata-version-text-box-error-message"
+                                    ".text-box-error-message"
                                 ) as HTMLDivElement;
-                                errorMessageDisplayElement.style.display = "none";
-                                errorMessageDisplayElement.textContent = "";
+                                errorMessageDisplayElement.style.color = "orange";
+                                errorMessageDisplayElement.textContent = "Authors must be a JSON array of strings.";
+                                errorMessageDisplayElement.style.display = "block";
                             }
-                        }}
-                    />
-                    <div id="metadata-version-text-box-error-message" style={{ display: "none", color: "red", fontFamily: "Monocraft" }}></div>
-                </label>
+                        }
+                    }}
+                    onChange={function onChange(this: HTMLInputElement, _event: Event): void {
+                        if (this.value) {
+                            try {
+                                const authors: string[] = JSON.parse(this.value) as string[];
+                                if (authors instanceof Array && authors.every((author: string): author is string => typeof author === "string")) {
+                                    config!.metadata.authors = authors;
+                                }
+                            } catch {}
+                        }
+                    }}
+                />
+                <TextBox
+                    label="Version"
+                    title="The version of the config as a valid semantic version."
+                    inputRef={metadataSectionInputRefs.version}
+                    value={config!.metadata.version}
+                    required
+                    onInput={(event: JSX.TargetedEvent<HTMLInputElement, Event>): void => {
+                        let version: string = event.currentTarget.value;
+                        if (!semver.valid(version)) {
+                            event.currentTarget.style.color = "orange";
+                            const errorMessageDisplayElement: HTMLDivElement = event.currentTarget.parentElement!.querySelector(
+                                ".text-box-error-message"
+                            ) as HTMLDivElement;
+                            errorMessageDisplayElement.style.color = "orange";
+                            errorMessageDisplayElement.textContent = "Version must be a valid semantic version.";
+                            errorMessageDisplayElement.style.display = "block";
+                        } else {
+                            event.currentTarget.style.color = "";
+                            const errorMessageDisplayElement: HTMLDivElement = event.currentTarget.parentElement!.querySelector(
+                                ".text-box-error-message"
+                            ) as HTMLDivElement;
+                            errorMessageDisplayElement.style.display = "none";
+                            errorMessageDisplayElement.textContent = "";
+                        }
+                    }}
+                    onChange={function onChange(this: HTMLInputElement, _event: Event): void {
+                        if (this.value && semver.valid(this.value)) {
+                            config!.metadata.version = this.value;
+                        }
+                    }}
+                />
                 <label style={{ display: "block", marginBottom: "calc(5px * var(--gui-scale))" }}>
                     <span class="nsel ndrg">Description</span>
                     <br />
@@ -1019,7 +1033,7 @@ export default function ConfigEditorPage(): JSX.SpecificElement<"center"> {
                             width: "-webkit-fill-available",
                         }}
                         ref={metadataSectionInputRefs.description}
-                        value={config!.metadata.description}
+                        value={config!.metadata.description ?? ""}
                         autoCapitalize="off"
                         autoComplete="off"
                         autoCorrect="off"
@@ -1029,126 +1043,100 @@ export default function ConfigEditorPage(): JSX.SpecificElement<"center"> {
                         aria-autocomplete="none"
                     />
                 </label>
-                <label style={{ display: "block", marginBottom: "calc(5px * var(--gui-scale))" }}>
-                    <span class="nsel ndrg">License</span>
-                    <br />
-                    <input
-                        title="The license of the config."
-                        type="text"
-                        class="form-control"
-                        style={{
-                            width: "-webkit-fill-available",
-                        }}
-                        ref={metadataSectionInputRefs.license}
-                        value={config!.metadata.license}
-                        autoCapitalize="off"
-                        autoComplete="off"
-                        autoCorrect="off"
-                        spellcheck={false}
-                        inputMode="text"
-                        aria-autocomplete="none"
-                    />
-                </label>
-                <label style={{ display: "block", marginBottom: "calc(5px * var(--gui-scale))" }}>
-                    <span class="nsel ndrg">URL</span>
-                    <br />
-                    <input
-                        title="The URL of the website for the config."
-                        type="text"
-                        class="form-control"
-                        style={{
-                            width: "-webkit-fill-available",
-                        }}
-                        ref={metadataSectionInputRefs.url}
-                        value={config!.metadata.url}
-                        autoCapitalize="off"
-                        autoComplete="off"
-                        autoCorrect="off"
-                        spellcheck={false}
-                        inputMode="url"
-                        aria-autocomplete="none"
-                    />
-                </label>
-                <label style={{ display: "block", marginBottom: "calc(5px * var(--gui-scale))" }}>
-                    <span class="nsel ndrg">ID</span>
-                    <br />
-                    <input
-                        title="The id of the config, this should be unique. This is required if the config is from the marketplace."
-                        type="text"
-                        class="form-control"
-                        style={{
-                            width: "-webkit-fill-available",
-                        }}
-                        ref={metadataSectionInputRefs.id}
-                        value={config!.metadata.id}
-                        autoCapitalize="off"
-                        autoComplete="off"
-                        autoCorrect="off"
-                        spellcheck={false}
-                        inputMode="text"
-                        aria-autocomplete="none"
-                        onInput={(event: JSX.TargetedEvent<HTMLInputElement, Event>): void => {
-                            let id: string = event.currentTarget.value;
-                            if (!/^[a-zA-Z_\-.]+$/.test(id)) {
-                                event.currentTarget.style.color = "orange";
-                                const errorMessageDisplayElement: HTMLDivElement = event.currentTarget.parentElement!.querySelector(
-                                    "#metadata-id-text-box-error-message"
-                                ) as HTMLDivElement;
-                                errorMessageDisplayElement.style.color = "orange";
-                                errorMessageDisplayElement.textContent = "ID must be match the following format: /^[a-zA-Z_-.]+$/";
-                                errorMessageDisplayElement.style.display = "block";
-                            } else {
-                                event.currentTarget.style.color = "";
-                                const errorMessageDisplayElement: HTMLDivElement = event.currentTarget.parentElement!.querySelector(
-                                    "#metadata-id-text-box-error-message"
-                                ) as HTMLDivElement;
-                                errorMessageDisplayElement.style.display = "none";
-                                errorMessageDisplayElement.textContent = "";
+                <TextBox
+                    label="License"
+                    title="The license of the config."
+                    inputRef={metadataSectionInputRefs.license}
+                    value={config!.metadata.license ?? ""}
+                    required
+                    onChange={function onChange(this: HTMLInputElement, _event: Event): void {
+                        if (this.value) {
+                            config!.metadata.license = this.value;
+                        } else {
+                            delete config!.metadata.license;
+                        }
+                    }}
+                />
+                <TextBox
+                    label="URL"
+                    title="The URL of the website for the config."
+                    inputProperties={{
+                        inputMode: "url",
+                    }}
+                    inputRef={metadataSectionInputRefs.url}
+                    value={config!.metadata.url ?? ""}
+                    onChange={function onChange(this: HTMLInputElement, _event: Event): void {
+                        if (this.value) {
+                            config!.metadata.url = this.value;
+                        } else {
+                            delete config!.metadata.url;
+                        }
+                    }}
+                />
+                <TextBox
+                    label="ID"
+                    title="The id of the config, this should be unique. This is required if the config is from the marketplace."
+                    inputRef={metadataSectionInputRefs.id}
+                    value={config!.metadata.id ?? ""}
+                    onInput={(event: JSX.TargetedEvent<HTMLInputElement, Event>): void => {
+                        let id: string = event.currentTarget.value;
+                        if (!/^[a-zA-Z_\-.]+$/.test(id)) {
+                            event.currentTarget.style.color = "orange";
+                            const errorMessageDisplayElement: HTMLDivElement = event.currentTarget.parentElement!.querySelector(
+                                ".text-box-error-message"
+                            ) as HTMLDivElement;
+                            errorMessageDisplayElement.style.color = "orange";
+                            errorMessageDisplayElement.textContent = "ID must be match the following format: /^[a-zA-Z_-.]+$/";
+                            errorMessageDisplayElement.style.display = "block";
+                        } else {
+                            event.currentTarget.style.color = "";
+                            const errorMessageDisplayElement: HTMLDivElement = event.currentTarget.parentElement!.querySelector(
+                                ".text-box-error-message"
+                            ) as HTMLDivElement;
+                            errorMessageDisplayElement.style.display = "none";
+                            errorMessageDisplayElement.textContent = "";
+                        }
+                    }}
+                    onChange={function onChange(this: HTMLInputElement, _event: Event): void {
+                        if (this.value) {
+                            if (/^[a-zA-Z_\-.]+$/.test(this.value)) {
+                                config!.metadata.id = this.value;
                             }
-                        }}
-                    />
-                    <div id="metadata-id-text-box-error-message" style={{ display: "none", color: "red", fontFamily: "Monocraft" }}></div>
-                </label>
-                <label style={{ display: "block", marginBottom: "calc(5px * var(--gui-scale))" }}>
-                    <span class="nsel ndrg">UUID</span>
-                    <br />
-                    <input
-                        title="The UUID of the config."
-                        type="text"
-                        class="form-control"
-                        style={{
-                            width: "-webkit-fill-available",
-                        }}
-                        ref={metadataSectionInputRefs.uuid}
-                        value={config!.metadata.uuid}
-                        autoCapitalize="off"
-                        autoComplete="off"
-                        autoCorrect="off"
-                        spellcheck={false}
-                        inputMode="text"
-                        aria-autocomplete="none"
-                        onInput={(event: JSX.TargetedEvent<HTMLInputElement, Event>): void => {
-                            let id: string = event.currentTarget.value;
-                            if (!/^[a-z,0-9]{8}-[a-z,0-9]{4}-4[a-z,0-9]{3}-[89AB][a-z,0-9]{3}-[a-z,0-9]{12}$/i.test(id)) {
-                                event.currentTarget.style.color = "orange";
-                                const errorMessageDisplayElement: HTMLDivElement = event.currentTarget.parentElement!.querySelector(
-                                    "#metadata-uuid-text-box-error-message"
-                                ) as HTMLDivElement;
-                                errorMessageDisplayElement.style.color = "orange";
-                                errorMessageDisplayElement.textContent = "UUID must be a valid UUID v4.";
-                                errorMessageDisplayElement.style.display = "block";
-                            } else {
-                                event.currentTarget.style.color = "";
-                                const errorMessageDisplayElement: HTMLDivElement = event.currentTarget.parentElement!.querySelector(
-                                    "#metadata-uuid-text-box-error-message"
-                                ) as HTMLDivElement;
-                                errorMessageDisplayElement.style.display = "none";
-                                errorMessageDisplayElement.textContent = "";
-                            }
-                        }}
-                    />
-                    <div id="metadata-uuid-text-box-error-message" style={{ display: "none", color: "red", fontFamily: "Monocraft" }}></div>
-                </label>
+                        } else {
+                            delete config!.metadata.id;
+                        }
+                    }}
+                />
+                <TextBox
+                    label="UUID"
+                    title="The UUID of the config."
+                    inputRef={metadataSectionInputRefs.uuid}
+                    value={config!.metadata.uuid}
+                    onInput={(event: JSX.TargetedEvent<HTMLInputElement, Event>): void => {
+                        let id: string = event.currentTarget.value;
+                        if (!/^[a-z,0-9]{8}-[a-z,0-9]{4}-4[a-z,0-9]{3}-[89AB][a-z,0-9]{3}-[a-z,0-9]{12}$/i.test(id)) {
+                            event.currentTarget.style.color = "orange";
+                            const errorMessageDisplayElement: HTMLDivElement = event.currentTarget.parentElement!.querySelector(
+                                ".text-box-error-message"
+                            ) as HTMLDivElement;
+                            errorMessageDisplayElement.style.color = "orange";
+                            errorMessageDisplayElement.textContent = "UUID must be a valid UUID v4.";
+                            errorMessageDisplayElement.style.display = "block";
+                        } else {
+                            event.currentTarget.style.color = "";
+                            const errorMessageDisplayElement: HTMLDivElement = event.currentTarget.parentElement!.querySelector(
+                                ".text-box-error-message"
+                            ) as HTMLDivElement;
+                            errorMessageDisplayElement.style.display = "none";
+                            errorMessageDisplayElement.textContent = "";
+                        }
+                    }}
+                    onChange={function onChange(this: HTMLInputElement, _event: Event): void {
+                        if (this.value && /^[a-z,0-9]{8}-[a-z,0-9]{4}-4[a-z,0-9]{3}-[89AB][a-z,0-9]{3}-[a-z,0-9]{12}$/i.test(this.value)) {
+                            config!.metadata.uuid = this.value;
+                        }
+                    }}
+                />
             </>
         );
     }
@@ -1277,10 +1265,30 @@ export default function ConfigEditorPage(): JSX.SpecificElement<"center"> {
         );
     }
     function reloadSettings(): void {
-        render(<GeneralSectionOptions />, sectionRefs.generalSectionRef.current!);
-        render(<ColorsSectionOptions />, sectionRefs.colorsSectionRef.current!);
-        render(<MetadataSectionOptions />, sectionRefs.metadataSectionRef.current!);
-        render(<RawConfigSectionOptions />, sectionRefs.rawConfigSectionRef.current!);
+        render(
+            <GeneralSectionOptions />,
+            Array.from($(sectionRefs.generalSectionRef.current!).find("> div")).find((element: Element): boolean =>
+                element.hasAttribute("data-overlayscrollbars-viewport")
+            )!
+        );
+        render(
+            <ColorsSectionOptions />,
+            Array.from($(sectionRefs.colorsSectionRef.current!).find("> div")).find((element: Element): boolean =>
+                element.hasAttribute("data-overlayscrollbars-viewport")
+            )!
+        );
+        render(
+            <MetadataSectionOptions />,
+            Array.from($(sectionRefs.metadataSectionRef.current!).find("> div")).find((element: Element): boolean =>
+                element.hasAttribute("data-overlayscrollbars-viewport")
+            )!
+        );
+        render(
+            <RawConfigSectionOptions />,
+            Array.from($(sectionRefs.rawConfigSectionRef.current!).find("> div")).find((element: Element): boolean =>
+                element.hasAttribute("data-overlayscrollbars-viewport")
+            )!
+        );
     }
     useEffect((): (() => void) => {
         function configUpdatedCallback(updatedConfig: OreUICustomizerConfig): void {
