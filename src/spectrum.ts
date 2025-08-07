@@ -1,3 +1,5 @@
+/* eslint-disable */
+// @ts-nocheck
 // Spectrum Colorpicker v1.8.1
 // https://github.com/bgrins/spectrum
 // Author: Brian Grinstead

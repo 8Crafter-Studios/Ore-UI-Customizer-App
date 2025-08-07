@@ -44,5 +44,4 @@ jobs:
             - name: Publish to GitHub Releases
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              run: npm run publish # -- --arch=${{ matrix.arch }}
-
+              run: npm run publish -- --arch=${{ matrix.arch }}

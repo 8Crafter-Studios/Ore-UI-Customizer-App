@@ -19,6 +19,7 @@ import * as CommentJSON from "comment-json";
 import { sanitizeFilename } from "./sanitize-filename.ts";
 import { deepMerge } from "./deepMerge.ts";
 import { createToast } from "../../app/components/Toast.tsx";
+import "./zip.js";
 
 export interface ConfigManagerEventMap {
     configCreated: [newConfig: OreUICustomizerConfig];

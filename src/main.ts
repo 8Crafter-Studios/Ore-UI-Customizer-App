@@ -329,6 +329,12 @@ if (!startup) {
     ]);
 }
 
+let webContentsStartedLoading: boolean = false;
+
+let webContentsLoaded: boolean = false;
+
+const onWebContentsLoadedCallbacks: (() => void)[] = [];
+
 function createWindow(): void {
     if (isSecondInstance) return;
     // Create the browser window.
@@ -665,6 +671,21 @@ function createWindow(): void {
 
     // Open the DevTools.
     if (isDev) mainWindow.webContents.openDevTools();
+
+    if (!webContentsLoaded && !webContentsStartedLoading) {
+        webContentsStartedLoading = true;
+        mainWindow.webContents.on("dom-ready", (): void => {
+            webContentsLoaded = true;
+            webContentsStartedLoading = false;
+            onWebContentsLoadedCallbacks.forEach((callback: () => void): void => {
+                try {
+                    callback();
+                } catch (e) {
+                    console.error(e);
+                }
+            });
+        });
+    }
 }
 
 if (!startup && !started) {
@@ -677,6 +698,11 @@ if (!startup && !started) {
         const parentWindow: BrowserWindow | null = BrowserWindow.fromId(parentWindowID);
         event.returnValue = openAboutWindow(parentWindow ?? undefined).id;
     });
+
+    let ready: boolean = false;
+
+    const onReadyCallbacks: (() => void)[] = [];
+
     // This method will be called when Electron has finished
     // initialization and is ready to create browser windows.
     // Some APIs can only be used after this event occurs.
@@ -752,6 +778,14 @@ if (!startup && !started) {
         }); */
         });
         createWindow();
+        ready = true;
+        onReadyCallbacks.forEach((callback: () => void): void => {
+            try {
+                callback();
+            } catch (e) {
+                console.error(e);
+            }
+        });
     });
 
     app.on("activate", (): void => {
@@ -944,7 +978,11 @@ if (!startup && !started) {
             detail: `${process.argv}`,
         }); */
         if (!filePath) return;
-        handleFileOpen(filePath);
+        if (webContentsLoaded) {
+            handleFileOpen(filePath);
+        } else {
+            onWebContentsLoadedCallbacks.push((): void => void handleFileOpen(filePath));
+        }
     });
     function handleArgv(originalArgv: string[]): void {
         const argv: string[] = originalArgv.slice(1 + +(originalArgv[1] === "--process-start-args"));
@@ -958,10 +996,19 @@ if (!startup && !started) {
             handleFileOpen(filePath, argv.includes("--edit") ? "edit" : argv.includes("--preview") ? "preview" : "open");
         }
     }
+    if (webContentsLoaded) {
+        handleArgv(process.argv);
+    } else {
+        onWebContentsLoadedCallbacks.push((): void => void handleArgv(process.argv));
+    }
     app.on("second-instance", (_event: Electron.Event, argv: string[], _workingDirectory: string, _additionalData: unknown): void => {
         // const dateISOString: string = new Date().toISOString().replaceAll(":", "_");
         // writeFileSync(path.join(APP_DATA_FOLDER_PATH, `STARTUP_${dateISOString}.LOG`), `[${new Date().toISOString()}] [LOG] ${argv}\n`);
-        handleArgv(argv);
+        if (webContentsLoaded) {
+            handleArgv(argv);
+        } else {
+            onWebContentsLoadedCallbacks.push((): void => void handleArgv(argv));
+        }
     });
 
     // Quit when all windows are closed, except on macOS. There, it's common
