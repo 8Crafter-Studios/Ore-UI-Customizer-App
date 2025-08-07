@@ -16,15 +16,15 @@ jobs:
                 # arch: [x64, ia32]
                 include:
                     - os: ubuntu-latest
-                    arch: x64
+                      arch: x64
                     - os: macos-latest
-                    arch: x64
+                      arch: x64
                     - os: macos-latest
-                    arch: ia32
+                      arch: ia32
                     - os: windows-latest
-                    arch: x64
+                      arch: x64
                     - os: windows-latest
-                    arch: ia32
+                      arch: ia32
         runs-on: ${{ matrix.os }}
         name: Build ${{ matrix.os }} (${{ matrix.arch }})
         permissions: write-all
@@ -47,3 +47,4 @@ jobs:
               env:
                   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
               run: npm run publish # -- --arch=${{ matrix.arch }}
+
