@@ -28,7 +28,7 @@ const config: ForgeConfig = {
     makers: [
         new MakerSquirrel({
             setupIcon: "resources/icon.ico",
-            iconUrl: "https://www.8crafter.com/favicon.ico",
+            iconUrl: "https://raw.githubusercontent.com/8Crafter-Studios/Ore-UI-Customizer-App/refs/heads/main/resources/icon.ico",
         }),
         new MakerZIP({}, ["darwin"]),
         new MakerRpm({
@@ -43,6 +43,20 @@ const config: ForgeConfig = {
                 mimeType: ["x-scheme-handler/ore-ui-customizer"],
             },
         }),
+    ],
+    publishers: [
+        {
+            name: "@electron-forge/publisher-github",
+            config: {
+                repository: {
+                    owner: "8Crafter-Studios",
+                    name: "Ore-UI-Customizer-App",
+                },
+                prerelease: true,
+                generateReleaseNotes: true,
+                draft: true,
+            },
+        },
     ],
     plugins: [
         new VitePlugin({

@@ -1,0 +1,154 @@
+version: 2.1
+
+orbs:
+    node: electronjs/node@2.3.1
+
+commands:
+    install:
+        parameters:
+            arch:
+                type: enum
+                enum: ["", "arm64", "x86_64"]
+                default: ""
+        steps:
+            - run: git config --global core.autocrlf input
+            - node/install:
+                  arch: << parameters.arch >>
+                  node-version: "22.17"
+            - checkout
+            - node/install-packages
+            # - run: yarn run contributors
+            # - run: yarn run electron-releases
+    # load-release-secrets:
+    #     steps:
+    #         - run: |
+    #               curl -X POST "$ORE-UI-CUSTOMIZER_SECRETS_SERVICE_ENDPOINT?format=shell" -H "Content-Type: application/json" -d '{"token":"'$CIRCLE_OIDC_TOKEN'"}' >> $BASH_ENV
+
+jobs:
+    mac-build:
+        parameters:
+            arch:
+                type: enum
+                enum: ["x64", "arm64"]
+        executor: node/macos
+        steps:
+            - when:
+                  condition:
+                      equal: ["x64", << parameters.arch >>]
+                  steps:
+                      - node/install-rosetta
+                      - install:
+                            arch: "x86_64"
+            - when:
+                  condition:
+                      not:
+                          equal: ["x64", << parameters.arch >>]
+                  steps:
+                      - install
+            - run: npm run publish --arch=<< parameters.arch >> --dry-run
+            - store_artifacts:
+                  path: out
+            - persist_to_workspace:
+                  root: .
+                  paths:
+                      - out
+    win-build:
+        parameters:
+            arch:
+                type: enum
+                enum: ["x64", "arm64", "ia32"]
+        executor: node/windows
+        steps:
+            - install
+            - run:
+                  name: npm run publish
+                  shell: powershell.exe
+                  command: npm run publish --arch=<< parameters.arch >> --dry-run
+            - store_artifacts:
+                  path: out
+            - persist_to_workspace:
+                  root: .
+                  paths:
+                      - out
+    linux-build:
+        parameters:
+            arch:
+                type: enum
+                enum: ["x64", "arm64", "armv7l"]
+        executor: node/linux
+        resource_class: large
+        steps:
+            - run: sudo apt-get update && sudo apt install rpm squashfs-tools
+            - install
+            - run: npm run publish --arch=<< parameters.arch >> --dry-run
+            # CircleCI doesn't let you persist files with the same name from multiple
+            # jobs, so only persist the .webpack path from the x64 linux-build job
+            - when:
+                  condition:
+                      not:
+                          equal: [<< parameters.arch >>, x64]
+                  steps:
+                      - run: rm -rf .vite/*
+            - store_artifacts:
+                  path: out
+            - persist_to_workspace:
+                  root: .
+                  paths:
+                      - out
+                      - .vite
+    publish-to-github:
+        docker:
+            - image: cimg/base:stable
+        steps:
+            - install
+            - attach_workspace:
+                  at: .
+            # - load-release-secrets
+            - run: npm publish --from-dry-run
+
+workflows:
+    build:
+        jobs:
+            - mac-build:
+                  context: ore-ui-customizer-release
+                  matrix:
+                      parameters:
+                          arch: [x64, arm64]
+                  filters:
+                      tags:
+                          only:
+                              - /^v.*/
+                      branches:
+                          ignore: /.*/
+            - win-build:
+                  matrix:
+                      parameters:
+                          arch: [x64, ia32]
+                  filters:
+                      tags:
+                          only:
+                              - /^v.*/
+                      branches:
+                          ignore: /.*/
+            - linux-build:
+                  matrix:
+                      parameters:
+                          arch: [x64, arm64, armv7l]
+                  filters:
+                      tags:
+                          only:
+                              - /^v.*/
+                      branches:
+                          ignore: /.*/
+            - publish-to-github:
+                  context: ore-ui-customizer-release
+                  requires:
+                      - mac-build
+                      - win-build
+                      - linux-build
+                  filters:
+                      tags:
+                          only:
+                              - /^v.*/
+                      branches:
+                          ignore: /.*/
