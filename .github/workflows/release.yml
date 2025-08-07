@@ -47,8 +47,9 @@ jobs:
             - name: Make distributables
               run: npm run make -- --dry-run --arch="${{ matrix.arch }}"
     publish:
-        permissions: write-all
+        runs-on: ubuntu-latest
         name: Publish
+        permissions: write-all
         steps:
             - name: Publish to GitHub Releases
               env:
