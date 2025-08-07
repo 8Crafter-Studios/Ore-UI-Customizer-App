@@ -47,8 +47,10 @@ jobs:
             - name: Make distributables
               run: npm run make -- --dry-run --arch="${{ matrix.arch }}"
     publish:
-        - name: Publish to GitHub Releases
-          permissions: write-all
-          env:
-              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          run: npm run publish --from-dry-run
+        permissions: write-all
+        name: Publish
+        steps:
+            - name: Publish to GitHub Releases
+              env:
+                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              run: npm run publish -- --from-dry-run
