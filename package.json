@@ -1,7 +1,7 @@
 {
     "name": "ore-ui-customizer-app",
     "productName": "ore-ui-customizer-app",
-    "version": "1.0.0-beta.6",
+    "version": "1.0.0-beta.7",
     "description": "The app version of 8Crafter's Ore UI Customizer.",
     "main": ".vite/build/main.js",
     "type": "commonjs",

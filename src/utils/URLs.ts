@@ -57,7 +57,7 @@ export const API_VERSION_URL: string = resolveURL(API_SOURCE_WEBSITE_URL, "./ass
  * The path to the app data folder for the app.
  */
 export const APP_DATA_FOLDER_PATH: string = path.join(
-    process.env.APPDATA || process.platform === "darwin" ? `${process.env.HOME!}/Library/Application Support` : `${process.env.HOME!}/.local/share`,
+    process.env.APPDATA || (process.platform === "darwin" ? `${process.env.HOME!}/Library/Application Support` : `${process.env.HOME!}/.local/share`),
     "ore_ui_customizer"
 );
 
@@ -65,6 +65,6 @@ export const APP_DATA_FOLDER_PATH: string = path.join(
  * The path to the old app data folder for the app.
  */
 export const OLD_APP_DATA_FOLDER_PATH: string = path.join(
-    process.env.APPDATA || process.platform === "darwin" ? `${process.env.HOME!}/Library/Application Support` : `${process.env.HOME!}/.local/share`,
+    process.env.APPDATA || (process.platform === "darwin" ? `${process.env.HOME!}/Library/Application Support` : `${process.env.HOME!}/.local/share`),
     "8Crafter's Ore UI Customizer"
 );
