@@ -4,7 +4,7 @@
  * @description A file containing the config class, which is used to store and retrieve app settings.
  * @supports Main, Preload, Renderer
  */
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 // import os from "node:os";
 import { APP_DATA_FOLDER_PATH } from "./URLs";
@@ -178,6 +178,9 @@ namespace exports {
             }
             const newData: ConfigJSON = mergeConfigData<Config, []>(existingData, data);
             this.#currentlyLoadedData = newData;
+            if (!existsSync(APP_DATA_FOLDER_PATH)) {
+                mkdirSync(APP_DATA_FOLDER_PATH, { recursive: true });
+            }
             writeFileSync(path.join(APP_DATA_FOLDER_PATH, "./config.json"), JSONB.stringify(newData, null, 4), { encoding: "utf-8" });
             for (const [key, value] of Object.entries(data) as ConfigEventMap["settingChanged"][]) {
                 if (key in Config.defaults) {
@@ -207,6 +210,7 @@ namespace exports {
          */
         public readConfigFile(): ConfigJSON {
             if (!existsSync(path.join(APP_DATA_FOLDER_PATH, "./config.json"))) {
+                mkdirSync(APP_DATA_FOLDER_PATH, { recursive: true });
                 writeFileSync(path.join(APP_DATA_FOLDER_PATH, "./config.json"), JSONB.stringify(Config.defaults, null, 4), { encoding: "utf-8" });
             }
             return { ...Config.defaults, ...JSONB.parse(readFileSync(path.join(APP_DATA_FOLDER_PATH, "./config.json"), { encoding: "utf-8" })) };

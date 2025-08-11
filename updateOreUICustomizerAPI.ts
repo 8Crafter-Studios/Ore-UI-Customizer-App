@@ -14,6 +14,9 @@ oreUICustomizerAPIContents = oreUICustomizerAPIContents.replace(
 
 oreUICustomizerAssetsContents = oreUICustomizerAssetsContents.replace(`import semver from "./semver.js";`, `import semver from "semver";`);
 
+oreUICustomizerAPIContents = "/* eslint-disable */\n" + oreUICustomizerAPIContents;
+oreUICustomizerAssetsContents = "/* eslint-disable */\n" + oreUICustomizerAssetsContents;
+
 writeFileSync("./src/utils/ore-ui-customizer-api.ts", oreUICustomizerAPIContents, { encoding: "utf-8" });
 writeFileSync("./src/utils/ore-ui-customizer-assets.ts", oreUICustomizerAssetsContents, { encoding: "utf-8" });
 
