@@ -281,7 +281,9 @@ if (started) {
     app.quit();
 }
 
-updateElectronApp();
+if (process.platform !== "darwin") {
+    updateElectronApp();
+}
 
 if (!startup) {
     initializeRemote();
