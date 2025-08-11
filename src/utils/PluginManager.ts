@@ -18,7 +18,7 @@ import {
 } from "./ore-ui-customizer-assets.ts";
 import { sanitizeFilename } from "./sanitize-filename.ts";
 import { addFolderContents, addFolderContentsReversed } from "./folderContentsUtils.ts";
-import { dialog } from "@electron/remote";
+import { app, dialog } from "@electron/remote";
 import type { MessageBoxReturnValue } from "electron";
 import "./zip.js";
 

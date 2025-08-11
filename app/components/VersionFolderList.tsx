@@ -43,28 +43,39 @@ export default function VersionFolderList(
             ]}
             wrapperId={options.wrapperId}
         >
-            {...options.versionFolders.map((versionFolder: VersionFolder): JSX.Element => (
-                <VersionFolderListItem
-                    displayVersionColoredHTML={versionFolder.getDisplayVersionColoredHTML()}
-                    versionFolderPath={versionFolder.path}
-                    installationStatus={
-                        versionFolder.installationStatus +
-                        (versionFolder.installationStatus === "Installed" || versionFolder.installationStatus === "Partially Failed Installation"
-                            ? ` (v${versionFolder.installedVersion})` + (versionFolder.getIsUpdateAvailable() ? " (Update Available)" : "")
-                            : "")
-                    }
-                    onOptionsButtonMouseDown={(): void => {
-                        SoundEffects.popB();
-                    }}
-                    onOptionsButtonClick={(event: JSX.TargetedMouseEvent<HTMLButtonElement>): void => {
-                        getOptionsMenuForVersionFolder(versionFolder).popup({
-                            window: getCurrentWindow(),
-                            x: event.clientX,
-                            y: event.clientY,
-                        });
-                    }}
-                />
-            ))}
+            {options.versionFolders.length === 0 && (
+                <>
+                    No Minecraft versions detected.
+                    <br />
+                    Please verify you are using a custom launcher such as <a href="https://bedrocklauncher.github.io/">bedrock launcher</a>. If you have another
+                    launcher, please go to <code>{"Preferences > Installing"}</code> and add the folder containing all of your Minecraft version folders to the{" "}
+                    <code>Version Folder Search Locations</code> list.
+                </>
+            )}
+            {...options.versionFolders.map(
+                (versionFolder: VersionFolder): JSX.Element => (
+                    <VersionFolderListItem
+                        displayVersionColoredHTML={versionFolder.getDisplayVersionColoredHTML()}
+                        versionFolderPath={versionFolder.path}
+                        installationStatus={
+                            versionFolder.installationStatus +
+                            (versionFolder.installationStatus === "Installed" || versionFolder.installationStatus === "Partially Failed Installation"
+                                ? ` (v${versionFolder.installedVersion})` + (versionFolder.getIsUpdateAvailable() ? " (Update Available)" : "")
+                                : "")
+                        }
+                        onOptionsButtonMouseDown={(): void => {
+                            SoundEffects.popB();
+                        }}
+                        onOptionsButtonClick={(event: JSX.TargetedMouseEvent<HTMLButtonElement>): void => {
+                            getOptionsMenuForVersionFolder(versionFolder).popup({
+                                window: getCurrentWindow(),
+                                x: event.clientX,
+                                y: event.clientY,
+                            });
+                        }}
+                    />
+                )
+            )}
         </ItemList>
     );
 }
