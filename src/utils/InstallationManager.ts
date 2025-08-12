@@ -341,7 +341,7 @@ export class VersionFolder {
                   indeterminate: true,
                   title: "Installing Ore UI Customizer",
                   text: "Preparing to install...",
-                  debug: true,
+                //   debug: true,
                   browserWindow: {
                       closable: false,
                       parent: getCurrentWindow(),

@@ -33,7 +33,7 @@ export default function TextBox(props: TextBoxProps): JSX.SpecificElement<"div">
         };
     });
     return (
-        <label style={{ display: "block", marginBottom: "calc(5px * var(--gui-scale))" }}>
+        <label style={{ display: "block", marginBottom: "calc((1px * var(--gui-scale)) + 1px)" }}>
             <label
                 class={"nsel ndrg" + (props.popupHelpInfo ? " text-box-popup-help-info-label" : "")}
                 onMouseOver={(event: JSX.TargetedMouseEvent<HTMLLabelElement>): void => {
@@ -50,7 +50,7 @@ export default function TextBox(props: TextBoxProps): JSX.SpecificElement<"div">
                     display: "flex",
                     flexDirection: "row",
                     alignItems: "center",
-                    marginBottom: "calc(2px * var(--gui-scale))",
+                    marginBottom: "calc((2px * var(--gui-scale)) + 1px)",
                 }}
             >
                 <span class="nsel ndrg text-box-title-label">{props.label}</span>

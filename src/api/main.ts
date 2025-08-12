@@ -735,13 +735,21 @@ ipcMain.on("get-window-id", (event: IpcMainEvent): void => {
 });
 
 ipcMain.on("get-is-404-response", async (event: IpcMainEvent, uri: string): Promise<void> => {
-    const response = await fetch(uri);
-    event.returnValue = response.status === 404;
+    try {
+        const response = await fetch(uri);
+        event.returnValue = response.status === 404;
+    } catch (e) {
+        event.returnValue = true;
+    }
 });
 
 ipcMain.handle("get-is-404-response", async (event: IpcMainInvokeEvent, uri: string): Promise<boolean> => {
-    const response = await fetch(uri);
-    return response.status === 404;
+    try {
+        const response = await fetch(uri);
+        return response.status === 404;
+    } catch (e) {
+        return true;
+    }
 });
 
 declare global {

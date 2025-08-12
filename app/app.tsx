@@ -13,6 +13,7 @@ import PluginDetailsOverlayPage from "./overlay_pages/PluginDetailsOverlayPage";
 import TutorialPage from "./pages/tutorial";
 import ConfigEditorPage from "./pages/configEditor";
 import ConfigDetailsOverlayPage from "./overlay_pages/ConfigDetailsOverlayPage";
+import DebugOverlay from "./components/DebugOverlay";
 
 let lastRoute: Router["routes"][number]["supportedRoutes"][number] | null = router.getRouteForLocation()!;
 
@@ -27,7 +28,8 @@ export default function App(): JSX.Element {
                 <AppContents />
             </div>
             <div id="page-overlay-container" style="display: contents;" />
-            {/* This svg is used to completely disable anti-aliasing on fonts. */}
+            <DebugOverlay />
+            {/* This svg is used to completely disable anti-aliasing on fonts, please ignore it. */}
             <svg class="offscreen" width="0" height="0" xmlns="http://www.w3.org/2000/svg">
                 <defs>
                     <filter id="crispify">

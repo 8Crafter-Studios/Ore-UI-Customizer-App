@@ -227,6 +227,7 @@
     font-size: var(--base-font-size);
     font-synthesis-weight: none;
     letter-spacing: calc((var(--gui-scale) - 2) * 1px);
+    --text-drop-shadow-color: #404040ff;
 }
 
 :root.use_noto_sans_font {
@@ -494,6 +495,18 @@ footer.off-screen {
     .radio_button_container_label:not(:last-child) {
         margin-bottom: calc(var(--gui-scale) * 1px);
     }
+    & > .btn,
+    .radio_button_container_label {
+        &::before {
+            content: "";
+            border: calc(var(--gui-scale) * 1px) solid #00000000;
+            width: calc(100% + 2px);
+            height: calc(100% + 2px);
+            position: absolute;
+            top: -4px;
+            left: -4px;
+        }
+    }
     & > .btn:hover:enabled,
     .btn.hover:enabled,
     .btn:focus:enabled,
@@ -503,14 +516,42 @@ footer.off-screen {
     .radio_button_container_label:focus:not(:has(> input:disabled)):not(:has(> input.disabled)):not(:has(> input[aria-disabled="true"])),
     .radio_button_container_label.focus:not(:has(> input:disabled)):not(:has(> input.disabled)):not(:has(> input[aria-disabled="true"])) {
         &::before {
-            content: "";
             border: calc(var(--gui-scale) * 1px) solid #ffffff;
-            width: calc(100% + 2px);
-            height: calc(100% + 2px);
-            position: absolute;
-            top: -4px;
-            left: -4px;
         }
+    }
+}
+
+.add-always-visible-button-outline.btn,
+.add-always-visible-button-outline.radio_button_container_label {
+    &::before {
+        content: "";
+        border: calc(var(--gui-scale) * 1px) solid #000000;
+        width: calc(100% + 2px);
+        height: calc(100% + 2px);
+        position: absolute;
+        top: -4px;
+        left: -4px;
+    }
+}
+
+.add-always-visible-button-outline.btn:hover:enabled,
+.add-always-visible-button-outline.btn.hover:enabled,
+.add-always-visible-button-outline.btn:focus:enabled,
+.add-always-visible-button-outline.btn.focus:enabled,
+.add-always-visible-button-outline.radio_button_container_label:hover:not(:has(> input:disabled)):not(:has(> input.disabled)):not(
+        :has(> input[aria-disabled="true"])
+    ),
+.add-always-visible-button-outline.radio_button_container_label.hover:not(:has(> input:disabled)):not(:has(> input.disabled)):not(
+        :has(> input[aria-disabled="true"])
+    ),
+.add-always-visible-button-outline.radio_button_container_label:focus:not(:has(> input:disabled)):not(:has(> input.disabled)):not(
+        :has(> input[aria-disabled="true"])
+    ),
+.add-always-visible-button-outline.radio_button_container_label.focus:not(:has(> input:disabled)):not(:has(> input.disabled)):not(
+        :has(> input[aria-disabled="true"])
+    ) {
+    &::before {
+        border: calc(var(--gui-scale) * 1px) solid #ffffff;
     }
 }
 
@@ -1933,5 +1974,19 @@ div:has(> .text-box-popup-help-info-label:hover) > div:has(> purple-border_backg
     display: block;
     transition: opacity 0.1s ease 0.5s;
     opacity: 1;
+}
+
+.settings-section-container-viewport > button,
+.settings-section-container-viewport > button_container {
+    margin: calc((1px * var(--gui-scale)) - 1px) 0;
+}
+
+.option-group-label {
+    display: block;
+    margin-bottom: calc((3px * var(--gui-scale)) + 1px);
+}
+
+:not(:first-child).option-group-label {
+    margin-top: calc((4px * var(--gui-scale)) - 1px);
 }
 

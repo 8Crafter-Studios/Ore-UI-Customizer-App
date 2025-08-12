@@ -1,19 +1,27 @@
-import { render, type Component, type FunctionComponent, type JSX, type RefObject } from "preact";
-import _React, { hydrate, useEffect, useRef, version } from "preact/compat";
+import { render, type JSX, type RefObject } from "preact";
+import _React, { hydrate, useEffect, useRef } from "preact/compat";
 import Toggle from "../components/Toggle";
-import Slider, { type SliderInnerHTMLInputElement, type SliderProps } from "../components/Slider";
+import Slider, { type SliderInnerHTMLInputElement } from "../components/Slider";
 import { updateGUIScale } from "../app";
-import { dialog, nativeTheme, shell } from "@electron/remote";
+import { app, clipboard, dialog, nativeTheme, shell } from "@electron/remote";
 import type { OpenDialogReturnValue } from "electron";
 import Dropdown from "../components/Dropdown";
 import { OverlayScrollbars } from "overlayscrollbars";
 import mergeRefs from "merge-refs";
+import { APP_DATA_FOLDER_PATH } from "../../src/utils/URLs";
+import { createToast } from "../components/Toast";
 
 export default function PreferencesPage(): JSX.SpecificElement<"center"> {
     const GUIScaleSliderRef: RefObject<SliderInnerHTMLInputElement> = useRef<SliderInnerHTMLInputElement>(null);
     const themeDropdownAutoOptionRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
     const themeDropdownSelectedOptionTextDisplayRef: RefObject<HTMLSpanElement> = useRef<HTMLSpanElement>(null);
+    const debugHUDDropdownSelectedOptionTextDisplayRef: RefObject<HTMLSpanElement> = useRef<HTMLSpanElement>(null);
+    const debugHUDDropdownContentsRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
     useEffect((): (() => void) => {
+        /**
+         * Controller for aborting listeners.
+         */
+        const controller: AbortController = new AbortController();
         function baseGUIScaleChangeCallback(): void {
             if (GUIScaleSliderRef.current) {
                 const element: SliderInnerHTMLInputElement | null = GUIScaleSliderRef.current;
@@ -45,21 +53,56 @@ export default function PreferencesPage(): JSX.SpecificElement<"center"> {
             })`;
             themeDropdownSelectedOptionTextDisplayRef.current!.textContent = `Auto (${prefersDarkColorSchemeMediaQueryList.matches ? "Dark" : "Light"})`;
         }
-        window.addEventListener("GUIScaleChange", baseGUIScaleChangeCallback);
+        function debugHUDChangeCallback(value: typeof config.debugHUD): void {
+            if (debugHUDDropdownSelectedOptionTextDisplayRef.current && debugHUDDropdownContentsRef.current) {
+                const valueOption: HTMLInputElement | null = debugHUDDropdownContentsRef.current.querySelector(`input[value="${value}"]`);
+                if (valueOption) {
+                    valueOption.checked = true;
+                } else {
+                    const selectedValueOption: HTMLInputElement | null = debugHUDDropdownContentsRef.current.querySelector(`input:checked`);
+                    if (selectedValueOption) {
+                        selectedValueOption.checked = false;
+                    }
+                }
+                debugHUDDropdownSelectedOptionTextDisplayRef.current!.textContent = config.constants.debugOverlayModes[value] ?? value;
+            }
+        }
+        // GUI scale option listeners
+        window.addEventListener("GUIScaleChange", baseGUIScaleChangeCallback, {
+            signal: controller.signal,
+        });
         config.addListener("settingChanged:GUIScale", GUIScaleChangeCallback);
+        // Debug HUD option listener
+        config.addListener("settingChanged:debugHUD", debugHUDChangeCallback);
+        // System theme listener
         const prefersDarkColorSchemeMediaQueryList: MediaQueryList = window.matchMedia("(prefers-color-scheme: dark)");
-        prefersDarkColorSchemeMediaQueryList.addEventListener("change", onSystemThemeChange);
+        prefersDarkColorSchemeMediaQueryList.addEventListener("change", onSystemThemeChange, {
+            signal: controller.signal,
+        });
         // console.log(GUIScaleSliderRef, GUIScaleSliderRef.current);
         return (): void => {
-            window.removeEventListener("GUIScaleChange", baseGUIScaleChangeCallback);
+            // Remove listeners
+            controller.abort();
+            // Remove non-abortable listeners
             config.removeListener("settingChanged:GUIScale", GUIScaleChangeCallback);
-            prefersDarkColorSchemeMediaQueryList.removeEventListener("change", onSystemThemeChange);
+            config.removeListener("settingChanged:debugHUD", debugHUDChangeCallback);
         };
     });
     return (
         <div style={{ width: "100%", height: "100%" }}>
             <SettingsSidebar sidebarWidth="40%" sidebarContainerID="settings-sidebar">
-                <SettingsSidebarSection>
+                {/* <SettingsSidebarSection>
+                    <SettingsSidebarSectionButton
+                        text="Accessibility"
+                        sectionID="accessibility"
+                        sidebarRadioID="perferences_section"
+                        image="resource://images/ui/glyphs/accessibility_glyph_color.png"
+                        hoverImage="resource://images/ui/glyphs/accessibility_glyph.png"
+                        imageSize={[13, 20]}
+                        default
+                    ></SettingsSidebarSectionButton>
+                </SettingsSidebarSection> */}
+                <SettingsSidebarSection /* sectionHeader="General" */>
                     <SettingsSidebarSectionButton
                         text="General"
                         sectionID="general"
@@ -139,6 +182,16 @@ export default function PreferencesPage(): JSX.SpecificElement<"center"> {
                         sectionID="preferences_tab"
                         sidebarRadioID="perferences_section"
                         disabled
+                    ></SettingsSidebarSectionButton>
+                </SettingsSidebarSection>
+                <SettingsSidebarSection sectionHeader="Advanced">
+                    <SettingsSidebarSectionButton
+                        text="Debug"
+                        sectionID="debug"
+                        sidebarRadioID="perferences_section"
+                        image="resource://images/ui/glyphs/debug_glyph_color.png"
+                        hoverImage="resource://images/ui/glyphs/debug_glyph.png"
+                        imageSize={[15, 15]}
                     ></SettingsSidebarSectionButton>
                 </SettingsSidebarSection>
             </SettingsSidebar>
@@ -223,6 +276,171 @@ export default function PreferencesPage(): JSX.SpecificElement<"center"> {
             </SettingsSectionContainer>
             <SettingsSectionContainer sectionWidth="60%" sectionID="installing" sidebarRadioID="perferences_section">
                 <VersionFolderSearchLocationsOption />
+            </SettingsSectionContainer>
+            <SettingsSectionContainer sectionWidth="60%" sectionID="debug" sidebarRadioID="perferences_section">
+                <Dropdown
+                    label="Enable Debug HUD"
+                    id="debug_hud_dropdown"
+                    minWidth="100px"
+                    options={[
+                        {
+                            label: config.constants.debugOverlayModes.none,
+                            value: "none",
+                            default: config.debugHUD === "none",
+                        },
+                        {
+                            label: config.constants.debugOverlayModes.top,
+                            value: "top",
+                            default: config.debugHUD === "top",
+                        },
+                        {
+                            label: config.constants.debugOverlayModes.basic,
+                            value: "basic",
+                            default: config.debugHUD === "basic",
+                        },
+                    ]}
+                    onChange={(value: typeof config.debugHUD): void => {
+                        config.debugHUD = value;
+                    }}
+                    selectedOptionTextDisplayRef={debugHUDDropdownSelectedOptionTextDisplayRef}
+                    dropdownContentsRef={debugHUDDropdownContentsRef}
+                />
+                <div>
+                    <span class="option-group-label nsel ndrg">Folders</span>
+                    <div class="button_container">
+                        <button
+                            type="button"
+                            class="btn nsel ndrg"
+                            style={{ width: "100%" }}
+                            onMouseDown={(event: JSX.TargetedMouseEvent<HTMLButtonElement>): void => {
+                                event.currentTarget.blur();
+                                if (event.currentTarget.disabled) return;
+                                SoundEffects.popB();
+                            }}
+                            onClick={(event: JSX.TargetedMouseEvent<HTMLButtonElement>): void => {
+                                event.currentTarget.blur();
+                                if (event.currentTarget.disabled) return;
+                                shell.openPath(APP_DATA_FOLDER_PATH);
+                            }}
+                        >
+                            Open Customizer App Data Folder
+                        </button>
+                    </div>
+                    <div class="button_container">
+                        <button
+                            type="button"
+                            class="btn nsel ndrg"
+                            style={{ width: "100%" }}
+                            onMouseDown={(event: JSX.TargetedMouseEvent<HTMLButtonElement>): void => {
+                                event.currentTarget.blur();
+                                if (event.currentTarget.disabled) return;
+                                SoundEffects.popB();
+                            }}
+                            onClick={(event: JSX.TargetedMouseEvent<HTMLButtonElement>): void => {
+                                event.currentTarget.blur();
+                                if (event.currentTarget.disabled) return;
+                                shell.openPath(app.getPath("userData"));
+                            }}
+                        >
+                            Open Application App Data Folder
+                        </button>
+                    </div>
+                </div>
+                <span class="nsel ndrg" style={{ wordBreak: "break-all" }}>
+                    Customizer Data Folder:
+                    <br />
+                    <span
+                        style={{
+                            cursor: "copy",
+                        }}
+                        onClick={(event: JSX.TargetedMouseEvent<HTMLSpanElement>): void => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            clipboard.writeText(APP_DATA_FOLDER_PATH);
+                            createToast({
+                                title: "Copied customizer data folder location to clipboard.",
+                            });
+                        }}
+                    >
+                        {APP_DATA_FOLDER_PATH.replaceAll("\\", "/")}
+                    </span>
+                </span>
+                <span class="nsel ndrg" style={{ wordBreak: "break-all" }}>
+                    App Data Folder:
+                    <br />
+                    <span
+                        style={{
+                            cursor: "copy",
+                        }}
+                        onClick={(event: JSX.TargetedMouseEvent<HTMLSpanElement>): void => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            clipboard.writeText(app.getPath("userData"));
+                            createToast({
+                                title: "Copied app data folder location to clipboard.",
+                            });
+                        }}
+                    >
+                        {app.getPath("userData").replaceAll("\\", "/")}
+                    </span>
+                </span>
+                <span class="nsel ndrg" style={{ wordBreak: "break-all" }}>
+                    Logs Folder:
+                    <br />
+                    <span
+                        style={{
+                            cursor: "copy",
+                        }}
+                        onClick={(event: JSX.TargetedMouseEvent<HTMLSpanElement>): void => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            clipboard.writeText(app.getPath("logs"));
+                            createToast({
+                                title: "Copied logs folder location to clipboard.",
+                            });
+                        }}
+                    >
+                        {app.getPath("logs").replaceAll("\\", "/")}
+                    </span>
+                </span>
+                <span class="nsel ndrg" style={{ wordBreak: "break-all" }}>
+                    Crash Dumps Folder:
+                    <br />
+                    <span
+                        style={{
+                            cursor: "copy",
+                        }}
+                        onClick={(event: JSX.TargetedMouseEvent<HTMLSpanElement>): void => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            clipboard.writeText(app.getPath("crashDumps"));
+                            createToast({
+                                title: "Copied crash dumps folder location to clipboard.",
+                            });
+                        }}
+                    >
+                        {app.getPath("crashDumps").replaceAll("\\", "/")}
+                    </span>
+                </span>
+                <span class="nsel ndrg" style={{ wordBreak: "break-all" }}>
+                    Temp Folder:
+                    <br />
+                    <span
+                        style={{
+                            cursor: "copy",
+                        }}
+                        onClick={(event: JSX.TargetedMouseEvent<HTMLSpanElement>): void => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            clipboard.writeText(app.getPath("temp"));
+                            createToast({
+                                title: "Copied temp folder location to clipboard.",
+                            });
+                        }}
+                    >
+                        {app.getPath("temp").replaceAll("\\", "/")}
+                    </span>
+                </span>
             </SettingsSectionContainer>
         </div>
     );
@@ -628,10 +846,14 @@ export function SettingsSidebarSectionButton(options: SettingsSidebarSectionButt
                                 // left: 0,
                                 filter: "brightness(0)",
                                 margin: `calc(${Math.max(
-                                    ((options.imageSize?.[1] ?? options.hoverImageSize?.[1] ?? 17) - (options.hoverImageSize?.[1] ?? 17)) / 2,
+                                    ((options.imageSize?.[1] ?? options.hoverImageSize?.[1] ?? 17) -
+                                        (options.hoverImageSize?.[1] ?? options.imageSize?.[1] ?? 17)) /
+                                        2,
                                     0
                                 )}px * var(--gui-scale)) calc(${Math.max(
-                                    ((options.imageSize?.[0] ?? options.hoverImageSize?.[0] ?? 17) - (options.hoverImageSize?.[0] ?? 17)) / 2,
+                                    ((options.imageSize?.[0] ?? options.hoverImageSize?.[0] ?? 17) -
+                                        (options.hoverImageSize?.[0] ?? options.imageSize?.[0] ?? 17)) /
+                                        2,
                                     0
                                 )}px * var(--gui-scale))`,
                             }}
@@ -715,7 +937,9 @@ export function SettingsSectionContainer(options: SettingsSectionContainerProps)
             OverlayScrollbars(
                 {
                     target: scrollingViewportRef.current,
-                    elements: {},
+                    elements: {
+                        viewport: scrollingViewportRef.current,
+                    },
                 },
                 {
                     overflow: {
@@ -751,7 +975,18 @@ export function SettingsSectionContainer(options: SettingsSectionContainerProps)
                 )
             )}
         >
-            <div ref={mergeRefs(scrollingViewportRef, options.scrollingViewportRef)} style={{ width: "calc(100% - 24px)", height: "calc(100% - 24px)", padding: "12px" }}>
+            <div
+                ref={mergeRefs(scrollingViewportRef, options.scrollingViewportRef)}
+                class="settings-section-container-viewport"
+                style={{
+                    width: "calc(100% - 24px)",
+                    height: "calc(100% - 24px)",
+                    padding: "12px",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "calc((2px * var(--gui-scale)) + 1px)",
+                }}
+            >
                 {options.children}
             </div>
         </div>

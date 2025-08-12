@@ -9,7 +9,7 @@ import "./utils/ProgressBar.ts";
 import "./utils/config.ts";
 import "./utils/version.ts";
 import "./utils/URLs.ts";
-import { autoUpdater, dialog, Menu, nativeTheme, shell } from "@electron/remote";
+import { app, autoUpdater, dialog, Menu, nativeTheme, shell } from "@electron/remote";
 import { CustomizerAppPage } from "./utils/pageList.ts";
 /* import { Titlebar } from "custom-electron-titlebar";
 
@@ -208,7 +208,26 @@ const menu = Menu.buildFromTemplate([
         visible: true,
     },
     { role: "editMenu" },
-    { role: "viewMenu" },
+    {
+        role: "viewMenu",
+        submenu: [
+            { role: "reload" },
+            { role: "forceReload" },
+            { role: "toggleDevTools" },
+            {
+                role: "toggleDevTools",
+                accelerator: "F12",
+                visible: false,
+                acceleratorWorksWhenHidden: true,
+            },
+            { type: "separator" },
+            { role: "resetZoom" },
+            { role: "zoomIn" },
+            { role: "zoomOut" },
+            { type: "separator" },
+            { role: "togglefullscreen" },
+        ],
+    },
     {
         label: "Go",
         submenu: [
@@ -375,6 +394,28 @@ const menu = Menu.buildFromTemplate([
                 },
             },
             {
+                label: "Next Debug HUD",
+                accelerator: "F3",
+                visible: false,
+                acceleratorWorksWhenHidden: true,
+                click(): void {
+                    config.debugHUD = config.constants.debugOverlayModeList.at(
+                        (config.constants.debugOverlayModeList.indexOf(config.debugHUD) + 1) % config.constants.debugOverlayModeList.length
+                    );
+                },
+            },
+            {
+                label: "Previous Debug HUD",
+                accelerator: "F4",
+                visible: false,
+                acceleratorWorksWhenHidden: true,
+                click(): void {
+                    config.debugHUD = config.constants.debugOverlayModeList.at(
+                        (config.constants.debugOverlayModeList.indexOf(config.debugHUD) - 1) % config.constants.debugOverlayModeList.length
+                    );
+                },
+            },
+            {
                 type: "separator",
             },
             {
@@ -388,6 +429,16 @@ const menu = Menu.buildFromTemplate([
     },
 ]);
 currentWindow.setMenu(menu);
+
+if (process.platform === "darwin") {
+    const currentWindow: Electron.BrowserWindow = getCurrentWindow();
+    if (currentWindow.isFocused()) {
+        Menu.setApplicationMenu(menu);
+    }
+    currentWindow.on("focus", (): void => {
+        Menu.setApplicationMenu(menu);
+    });
+}
 
 globalThis.currentMenu = menu;
 

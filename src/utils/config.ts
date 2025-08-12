@@ -115,6 +115,7 @@ namespace exports {
             GUIScaleOverride: null,
             downloadOreUICustomizerUpdatesSeparately: false,
             theme: "auto",
+            debugHUD: "none",
             volume: { master: 100, ui: 100 },
         } as const satisfies ConfigJSON);
         /**
@@ -366,6 +367,12 @@ namespace exports {
         public get actualTheme(): "dark" | "light" | "blue" {
             return this.theme === "auto" ? (nativeTheme.shouldUseDarkColors ? "dark" : "light") : this.theme;
         }
+        public get debugHUD(): "none" | "top" | "basic" {
+            return this.getConfigData().debugHUD ?? "none";
+        }
+        public set debugHUD(value: "none" | "top" | "basic" | undefined) {
+            this.saveChanges({ debugHUD: value ?? Config.defaults.debugHUD });
+        }
         /**
          * The volume options.
          *
@@ -374,6 +381,12 @@ namespace exports {
          * @readonly
          */
         public readonly volume: VolumeConfig = new VolumeConfig(this);
+        /**
+         * Constants for properties of the config.
+         *
+         * These are not settings.
+         */
+        public readonly constants: typeof ConfigConstants = ConfigConstants;
     }
     type SubConfigValueTypes = (typeof subConfigValueClasses)[number]["prototype"];
     /**
@@ -418,6 +431,15 @@ namespace exports {
         }
     }
     const subConfigValueClasses = [VolumeConfig] as const;
+
+    namespace ConfigConstants {
+        export const debugOverlayModeList = ["none", "top", "basic"] as const satisfies (typeof config)["debugHUD"][];
+        export const debugOverlayModes = {
+            none: "Off",
+            top: "Top",
+            basic: "Basic",
+        } as const satisfies { [key in (typeof config)["debugHUD"]]: string };
+    }
 
     /**
      * A class for managing the config file.

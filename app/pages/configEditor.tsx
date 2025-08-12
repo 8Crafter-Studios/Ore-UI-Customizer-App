@@ -769,21 +769,15 @@ export default function ConfigEditorPage(): JSX.SpecificElement<"center"> {
     if (!config) return <h1>Config not found.</h1>;
     function GeneralSectionOptions(): JSX.Element {
         return (
-            <div
-                style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "1em",
-                }}
-            >
-                {...generalSectionOptions.map((option) => {
+            <>
+                {...generalSectionOptions.map((option: (typeof generalSectionOptions)[number]): JSX.Element | null => {
                     if ("hidden" in option && option.hidden) {
                         return null;
                     } else {
                         return option.component({ config: config! });
                     }
                 })}
-            </div>
+            </>
         );
     }
     function ColorsSectionOptions(): JSX.Element {
@@ -1237,10 +1231,8 @@ export default function ConfigEditorPage(): JSX.SpecificElement<"center"> {
         }, []);
         return (
             <>
-                <span>Raw Config</span>
-                <br />
-
                 <div>
+                    <span style={{ display: "block", marginBottom: "calc((2px * var(--gui-scale)) + 1px)" }}>Raw Config</span>
                     <textarea
                         title="Raw Config"
                         class="form-control"

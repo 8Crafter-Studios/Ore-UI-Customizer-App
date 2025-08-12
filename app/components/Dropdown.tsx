@@ -2,18 +2,19 @@ import mergeRefs from "merge-refs";
 import type { JSX, RefObject } from "preact";
 import _React, { useRef, useEffect, Component } from "preact/compat";
 
-export interface DropdownProps {
+export interface DropdownProps<T extends string = string> {
     label: string;
     id: string;
-    options: DropdownOption[];
+    options: DropdownOption<T>[];
     minWidth?: string;
-    onChange?(value: typeof config.theme): void;
+    onChange?(value: T): void;
     selectedOptionTextDisplayRef?: RefObject<HTMLSpanElement>;
+    dropdownContentsRef?: RefObject<HTMLDivElement>;
 }
 
-export default function Dropdown(props: DropdownProps): JSX.Element {
+export default function Dropdown<T extends string = string>(props: DropdownProps<T>): JSX.Element {
     const selectedOptionTextDisplayRef: RefObject<HTMLSpanElement> = useRef<HTMLSpanElement>(null);
-    function onChange(value: typeof config.theme): void {
+    function onChange(value: T): void {
         selectedOptionTextDisplayRef.current!.textContent =
             props.options.find((option: DropdownOption): boolean | undefined => option.value === value)?.label ?? null;
         props.onChange?.(value);
@@ -73,7 +74,7 @@ export default function Dropdown(props: DropdownProps): JSX.Element {
 }`}
                 </style>
             </button>
-            <div data-dropdown-component="dropdowncontents" class="dropdowncontents" hidden style="display: flex;">
+            <div data-dropdown-component="dropdowncontents" class="dropdowncontents" hidden style="display: flex;" ref={props.dropdownContentsRef}>
                 <div style="flex-grow: 1; width: 0;">
                     {...props.options.map((option: DropdownOption): JSX.SpecificElement<"div"> => {
                         return (
@@ -93,7 +94,7 @@ export default function Dropdown(props: DropdownProps): JSX.Element {
                                     const radioInput: Element | null = event.currentTarget.querySelector("input[type='radio']");
                                     if (radioInput instanceof HTMLInputElement && !radioInput.disabled) {
                                         radioInput.checked = true;
-                                        onChange(option.value);
+                                        onChange(option.value as T);
                                     }
                                 }}
                             >
@@ -101,7 +102,7 @@ export default function Dropdown(props: DropdownProps): JSX.Element {
                                     type="radio"
                                     name={props.id}
                                     id={`dropdownOption_${props.id}_${option.value}`}
-                                    value="blue"
+                                    value={option.value}
                                     class="mcradio"
                                     checked={option.default}
                                 />
@@ -116,9 +117,9 @@ export default function Dropdown(props: DropdownProps): JSX.Element {
     );
 }
 
-export interface DropdownOption {
+export interface DropdownOption<T extends string = string> {
     label: string;
-    value: typeof config.theme;
+    value: T;
     default?: boolean;
     ref?: RefObject<HTMLDivElement>;
 }
