@@ -4,6 +4,10 @@ The app version of [8Crafter's Ore UI Customizer](https://www.8crafter.com/utili
 
 This app is still in beta, so please report any issues to you find [here](https://github.com/8Crafter-Studios/Ore-UI-Customizer-App/issues).
 
+## Prerequisites
+
+To use the app, you must be using a custom launcher, for example [Bedrock Launcher](https://bedrocklauncher.github.io). All custom launchers are supported, but if you are using a launcher other than the Windows or Linux bedrock launchers, then you must set where the app should look for the Minecraft versions in preferences, instructions for this will be on the installations tab if the app is unable to find any Minecraft versions.
+
 ## Overview
 
 This app supports Windows, Linux, and macOS (Darwin).
@@ -115,3 +119,4 @@ This is the installations page of the app.
 This is the configs page of the app.
 
 ![Plugins Page](.github/assets/plugins_page.png)
+
