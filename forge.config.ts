@@ -28,7 +28,7 @@ const config: ForgeConfig = {
     makers: [
         new MakerSquirrel((arch: string) => ({
             setupIcon: "resources/icon.ico",
-            setupExe: `ore-ui-customizer-app_${arch}_${(require("./package.json") as typeof import("./package.json")).version} Setup.exe`,
+            setupExe: `ore-ui-customizer-app_${(require("./package.json") as typeof import("./package.json")).version}-win32-${arch} Setup.exe`,
             // setupMsi: `ore-ui-customizer-app_${arch}_${(require("./package.json") as typeof import("./package.json")).version} Setup.msi`,
             iconUrl: "https://raw.githubusercontent.com/8Crafter-Studios/Ore-UI-Customizer-App/refs/heads/main/resources/icon.ico",
         })),

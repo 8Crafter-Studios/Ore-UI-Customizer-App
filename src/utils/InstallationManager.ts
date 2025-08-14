@@ -607,7 +607,6 @@ export class VersionFolder {
                 try {
                     rmSync(GUIFolderpath, { recursive: true, force: true });
                 } catch {}
-                globalThis.generatedZip = zipFs;
                 await addFolderContentsReversed(
                     zipFs.getChildByName("gui") as zip.ZipDirectoryEntry,
                     GUIFolderpath,

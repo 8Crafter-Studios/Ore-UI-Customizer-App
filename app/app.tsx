@@ -15,13 +15,10 @@ import ConfigEditorPage from "./pages/configEditor";
 import ConfigDetailsOverlayPage from "./overlay_pages/ConfigDetailsOverlayPage";
 import DebugOverlay from "./components/DebugOverlay";
 import { Cubemap } from "../src/libs/@hatchibombotar-cubemap/index.ts";
+// @ts-ignore This is a valid import.
+import "../src/libs/@hatchibombotar-cubemap/index.css";
 
 // Panorama
-const panoramaCSSLinkElement: HTMLLinkElement = document.createElement("link");
-panoramaCSSLinkElement.href = "/src/libs/@hatchibombotar-cubemap/index.css";
-panoramaCSSLinkElement.type = "text/css";
-panoramaCSSLinkElement.rel = "stylesheet";
-document.getElementsByTagName("head")[0]?.appendChild(panoramaCSSLinkElement);
 const panoramaContainer: HTMLDivElement = document.createElement("div");
 panoramaContainer.id = "panorama-container";
 panoramaContainer.style.position = "fixed";

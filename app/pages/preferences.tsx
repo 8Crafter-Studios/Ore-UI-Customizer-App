@@ -439,6 +439,11 @@ export default function PreferencesPage(): JSX.SpecificElement<"center"> {
                             value: "basic",
                             default: config.debugHUD === "basic",
                         },
+                        {
+                            label: config.constants.debugOverlayModes.config,
+                            value: "config",
+                            default: config.debugHUD === "config",
+                        },
                     ]}
                     onChange={(value: typeof config.debugHUD): void => {
                         config.debugHUD = value;
@@ -1092,7 +1097,7 @@ export function SettingsSectionContainer(options: SettingsSectionContainerProps)
                     update: {
                         ignoreMutation: null,
                         elementEvents: [["div.settings-section-container-viewport", "resize"]],
-                        attributes: ["hidden"]
+                        attributes: ["hidden"],
                     },
 
                     scrollbars: {},

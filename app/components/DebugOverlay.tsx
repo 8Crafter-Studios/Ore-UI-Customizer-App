@@ -4,6 +4,7 @@ import { app, screen } from "@electron/remote";
 import os from "node:os";
 import v8 from "node:v8";
 import { existsSync } from "node:fs";
+import { format_version } from "../../src/utils/ore-ui-customizer-api";
 
 /**
  * A debug overlay.
@@ -302,6 +303,44 @@ function DebugOverlay_Basic(): JSX.Element {
     const rightContainerRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
     // await app.getGPUInfo("complete");
     const currentWindow: Electron.BrowserWindow = getCurrentWindow();
+    function LeftContents(): JSX.Element {
+        return (
+            <>
+                <span
+                    class="crispy"
+                    style={{
+                        display: "block",
+                    }}
+                >
+                    App v{VERSION}
+                </span>
+                <span
+                    class="crispy"
+                    style={{
+                        display: "block",
+                    }}
+                >
+                    API v{format_version}
+                </span>
+                <span
+                    class="crispy"
+                    style={{
+                        display: "block",
+                    }}
+                >
+                    Env: {process.env.NODE_ENV === "development" ? "dev" : "prod"}
+                </span>
+                {/* <span
+                    class="crispy"
+                    style={{
+                        display: "block",
+                    }}
+                >
+                    TZ: {-new Date().getTimezoneOffset() / 60}
+                </span> */}
+            </>
+        );
+    }
     function RightContents(): JSX.Element {
         const process_memoryUsage: NodeJS.MemoryUsage = process.memoryUsage();
         const v8_heapStatistics: v8.HeapInfo = v8.getHeapStatistics();
@@ -373,6 +412,22 @@ function DebugOverlay_Basic(): JSX.Element {
                         display: "block",
                     }}
                 >
+                    Process Uptime: {Math.floor(process.uptime())}
+                </span>
+                <span
+                    class="crispy"
+                    style={{
+                        display: "block",
+                    }}
+                >
+                    System Uptime: {Math.floor(os.uptime())}
+                </span>
+                <span
+                    class="crispy"
+                    style={{
+                        display: "block",
+                    }}
+                >
                     &nbsp;
                 </span>
                 <span
@@ -418,20 +473,20 @@ function DebugOverlay_Basic(): JSX.Element {
         let lastForcedUpdate: number = Date.now();
         function handleWindowResize(): void {
             if (lastForcedUpdate + 100 < Date.now() && rightContainerRef.current) {
-                hydrate(<RightContents />, rightContainerRef.current);
+                render(<RightContents />, rightContainerRef.current);
                 lastForcedUpdate = Date.now();
             }
         }
         window.addEventListener("resize", handleWindowResize);
         if (rightContainerRef.current) {
-            hydrate(<RightContents />, rightContainerRef.current);
+            render(<RightContents />, rightContainerRef.current);
         }
         const intervalID: number = setInterval((): void => {
             if (!rightContainerRef.current) {
                 clearInterval(intervalID);
                 return;
             }
-            hydrate(<RightContents />, rightContainerRef.current);
+            render(<RightContents />, rightContainerRef.current);
         }, 1000) as unknown as number;
         return (): void => {
             window.removeEventListener("resize", handleWindowResize);
@@ -440,6 +495,31 @@ function DebugOverlay_Basic(): JSX.Element {
     });
     return (
         <>
+            {/* Left panel */}
+            <div
+                class="nsel ndrg"
+                style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    position: "absolute",
+                    top: 0,
+                    left: "calc((round(up, var(--gui-scale), 2) / 2) * 1px)",
+                    width: "calc(100vw - calc((round(up, var(--gui-scale), 2) / 2) * 1px))",
+                    height: "100vh",
+                    pointerEvents: "none",
+                    zIndex: 1000000000000,
+                    filter: "drop-shadow(calc((round(up, var(--gui-scale), 2) / 2) * 1px) calc((round(up, var(--gui-scale), 2) / 2) * 1px) 0 #404040FF)",
+                    color: "#FFFFFFFF",
+                    textAlign: "left",
+                    fontSize: "calc((round(up, var(--gui-scale), 2) / 2) * 10px)",
+                    // transform: "translate(calc((max(var(--gui-scale), 2) - round(down, max(var(--gui-scale), 2), 2)) * 0.5px), 0)",
+                    overflow: "hidden",
+                    letterSpacing: "calc((round(up, var(--gui-scale) - 2, 2) / 2) * 1px)",
+                }}
+                ref={rightContainerRef}
+            >
+                <LeftContents />
+            </div>
             {/* Right panel */}
             <div
                 class="nsel ndrg"
@@ -746,20 +826,20 @@ function DebugOverlay_Config(): JSX.Element {
         let lastForcedUpdate: number = Date.now();
         function handleWindowResize(): void {
             if (lastForcedUpdate + 100 < Date.now() && rightContainerRef.current) {
-                hydrate(<RightContents />, rightContainerRef.current);
+                render(<RightContents />, rightContainerRef.current);
                 lastForcedUpdate = Date.now();
             }
         }
         window.addEventListener("resize", handleWindowResize);
         if (rightContainerRef.current) {
-            hydrate(<RightContents />, rightContainerRef.current);
+            render(<RightContents />, rightContainerRef.current);
         }
         const intervalID: number = setInterval((): void => {
             if (!rightContainerRef.current) {
                 clearInterval(intervalID);
                 return;
             }
-            hydrate(<RightContents />, rightContainerRef.current);
+            render(<RightContents />, rightContainerRef.current);
         }, 1000) as unknown as number;
         return (): void => {
             window.removeEventListener("resize", handleWindowResize);

@@ -24,7 +24,16 @@ export default function LeftSidebar(props: LeftSidebarProps): JSX.SpecificElemen
                     if (event.currentTarget.hasAttribute("disabled")) return;
                     SoundEffects.popB();
                 }}
-                onClick={(): void => (props.tutorialMode ? props.tutorialButtonClickCallback?.("home") : router.history.push("/home"))}
+                onClick={(): void =>
+                    props.tutorialMode
+                        ? props.tutorialButtonClickCallback?.("home")
+                        : (router.history.list.splice(
+                              router.history.list.findIndex((v: RouterHistoryLocation<Electron.BrowserWindow>): boolean | undefined =>
+                                  router.getRouteForLocation(v)?.modes.includes("left-sidebar" as never)
+                              )
+                          ),
+                          router.history.push("/home"))
+                }
             >
                 <img
                     alt="Home"
@@ -41,7 +50,16 @@ export default function LeftSidebar(props: LeftSidebarProps): JSX.SpecificElemen
                     if (event.currentTarget.hasAttribute("disabled")) return;
                     SoundEffects.popB();
                 }}
-                onClick={(): void => (props.tutorialMode ? props.tutorialButtonClickCallback?.("installations") : router.history.push("/installations"))}
+                onClick={(): void =>
+                    props.tutorialMode
+                        ? props.tutorialButtonClickCallback?.("installations")
+                        : (router.history.list.splice(
+                              router.history.list.findIndex((v: RouterHistoryLocation<Electron.BrowserWindow>): boolean | undefined =>
+                                  router.getRouteForLocation(v)?.modes.includes("left-sidebar" as never)
+                              )
+                          ),
+                          router.history.push("/installations"))
+                }
             >
                 <img
                     alt="Installations"
@@ -58,7 +76,16 @@ export default function LeftSidebar(props: LeftSidebarProps): JSX.SpecificElemen
                     if (event.currentTarget.hasAttribute("disabled")) return;
                     SoundEffects.popB();
                 }}
-                onClick={(): void => (props.tutorialMode ? props.tutorialButtonClickCallback?.("configs") : router.history.push("/configs"))}
+                onClick={(): void =>
+                    props.tutorialMode
+                        ? props.tutorialButtonClickCallback?.("configs")
+                        : (router.history.list.splice(
+                              router.history.list.findIndex((v: RouterHistoryLocation<Electron.BrowserWindow>): boolean | undefined =>
+                                  router.getRouteForLocation(v)?.modes.includes("left-sidebar" as never)
+                              )
+                          ),
+                          router.history.push("/configs"))
+                }
             >
                 <img
                     alt="Configs"
@@ -75,7 +102,16 @@ export default function LeftSidebar(props: LeftSidebarProps): JSX.SpecificElemen
                     if (event.currentTarget.hasAttribute("disabled")) return;
                     SoundEffects.popB();
                 }}
-                onClick={(): void => (props.tutorialMode ? props.tutorialButtonClickCallback?.("plugins") : router.history.push("/plugins"))}
+                onClick={(): void =>
+                    props.tutorialMode
+                        ? props.tutorialButtonClickCallback?.("plugins")
+                        : (router.history.list.splice(
+                              router.history.list.findIndex((v: RouterHistoryLocation<Electron.BrowserWindow>): boolean | undefined =>
+                                  router.getRouteForLocation(v)?.modes.includes("left-sidebar" as never)
+                              )
+                          ),
+                          router.history.push("/plugins"))
+                }
             >
                 <img
                     alt="Plugins"
@@ -92,7 +128,16 @@ export default function LeftSidebar(props: LeftSidebarProps): JSX.SpecificElemen
                     if (event.currentTarget.hasAttribute("disabled")) return;
                     SoundEffects.popB();
                 }}
-                onClick={(): void => (props.tutorialMode ? props.tutorialButtonClickCallback?.("themes") : router.history.push("/themes"))}
+                onClick={(): void =>
+                    props.tutorialMode
+                        ? props.tutorialButtonClickCallback?.("themes")
+                        : (router.history.list.splice(
+                              router.history.list.findIndex((v: RouterHistoryLocation<Electron.BrowserWindow>): boolean | undefined =>
+                                  router.getRouteForLocation(v)?.modes.includes("left-sidebar" as never)
+                              )
+                          ),
+                          router.history.push("/themes"))
+                }
             >
                 <img
                     alt="Themes"
@@ -109,7 +154,16 @@ export default function LeftSidebar(props: LeftSidebarProps): JSX.SpecificElemen
                     if (event.currentTarget.hasAttribute("disabled")) return;
                     SoundEffects.popB();
                 }}
-                onClick={(): void => (props.tutorialMode ? props.tutorialButtonClickCallback?.("marketplace") : router.history.push("/marketplace"))}
+                onClick={(): void =>
+                    props.tutorialMode
+                        ? props.tutorialButtonClickCallback?.("marketplace")
+                        : (router.history.list.splice(
+                              router.history.list.findIndex((v: RouterHistoryLocation<Electron.BrowserWindow>): boolean | undefined =>
+                                  router.getRouteForLocation(v)?.modes.includes("left-sidebar" as never)
+                              )
+                          ),
+                          router.history.push("/marketplace"))
+                }
             >
                 <img
                     alt="Marketplace"
@@ -127,7 +181,16 @@ export default function LeftSidebar(props: LeftSidebarProps): JSX.SpecificElemen
                     if (event.currentTarget.hasAttribute("disabled")) return;
                     SoundEffects.popB();
                 }}
-                onClick={(): void => (props.tutorialMode ? props.tutorialButtonClickCallback?.("preferences") : router.history.push("/preferences"))}
+                onClick={(): void =>
+                    props.tutorialMode
+                        ? props.tutorialButtonClickCallback?.("preferences")
+                        : (router.history.list.splice(
+                              router.history.list.findIndex((v: RouterHistoryLocation<Electron.BrowserWindow>): boolean | undefined =>
+                                  router.getRouteForLocation(v)?.modes.includes("left-sidebar" as never)
+                              )
+                          ),
+                          router.history.push("/preferences"))
+                }
             >
                 <img alt="Preferences" src="resource://images/ui/glyphs/settings_glyph_2x.png" class="nsel ndrg" style="width: 30px; height: 30px;" />
             </div>

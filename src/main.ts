@@ -32,7 +32,9 @@ import type { OreUICustomizerConfig as OreUICustomizerConfig_Type } from "./util
 const openAboutWindow_function = require("about-window").default as typeof import("about-window").default;
 function openAboutWindow(parentWindow?: BrowserWindow): BrowserWindow {
     return openAboutWindow_function({
-        icon_path: path.join(__dirname, (isDev ? "../../" : "") + "resources/icon.png"),
+        icon_path: isDev
+            ? path.join(__dirname, "../../resources/icon.png")
+            : path.join(process.resourcesPath, "resources/icon.png") /* path.join(__dirname, (isDev ? "../../" : "") + "resources/icon.png"), */,
         product_name: "8Crafter's Ore UI Customizer",
         adjust_window_size: true,
         use_version_info: [
