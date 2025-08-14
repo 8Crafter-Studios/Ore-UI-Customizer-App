@@ -13,7 +13,8 @@
         "resolveJsonModule": true,
         "forceConsistentCasingInFileNames": true,
         "strict": true,
-        "allowSyntheticDefaultImports": true
+        "allowSyntheticDefaultImports": true,
+        "checkJs": true
     },
     "files": [],
     "exclude": ["deprecated/*"],

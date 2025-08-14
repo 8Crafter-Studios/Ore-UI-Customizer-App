@@ -120,6 +120,23 @@ export default function InstallationsPage(): JSX.SpecificElement<"center"> {
                                 },
                             });
                             break;
+                        case "Missing (Backup Available)":
+                            optionsList.push({
+                                label: "Restore Backup",
+                                async click(): Promise<void> {
+                                    versionFolder.uninstall();
+                                    reloadMainPageContents();
+                                },
+                            });
+                            break;
+                        case "Unknown (Backup Available)":
+                            optionsList.push({
+                                label: "Open Backup Folder",
+                                async click(): Promise<void> {
+                                    shell.openPath(versionFolder.getBackupFolderPath()!);
+                                },
+                            });
+                            break;
                         case "Unknown":
                             optionsList.push({
                                 label: "Install",

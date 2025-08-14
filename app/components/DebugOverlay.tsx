@@ -3,6 +3,7 @@ import { hydrate, render, useEffect, useRef } from "preact/compat";
 import { app, screen } from "@electron/remote";
 import os from "node:os";
 import v8 from "node:v8";
+import { existsSync } from "node:fs";
 
 /**
  * A debug overlay.
@@ -44,6 +45,8 @@ function DebugOverlayContents(props: DebugOverlayContentsProps): JSX.Element {
             return <DebugOverlay_Top />;
         case "basic":
             return <DebugOverlay_Basic />;
+        case "config":
+            return <DebugOverlay_Config />;
         case "none":
         default:
             return <></>;
@@ -291,7 +294,7 @@ let GPUInfo: GPUInfo | undefined = undefined;
 /**
  * The top debug overlay mode.
  *
- * This is like the debug text at the top of the screen in the Bedrock Edition Preview.
+ * This is like the Basic debug HUD mode on the dev versions of Bedrock Edition.
  *
  * @returns The debug overlay element.
  */
@@ -412,6 +415,14 @@ function DebugOverlay_Basic(): JSX.Element {
         );
     }
     useEffect((): (() => void) => {
+        let lastForcedUpdate: number = Date.now();
+        function handleWindowResize(): void {
+            if (lastForcedUpdate + 100 < Date.now() && rightContainerRef.current) {
+                hydrate(<RightContents />, rightContainerRef.current);
+                lastForcedUpdate = Date.now();
+            }
+        }
+        window.addEventListener("resize", handleWindowResize);
         if (rightContainerRef.current) {
             hydrate(<RightContents />, rightContainerRef.current);
         }
@@ -423,6 +434,7 @@ function DebugOverlay_Basic(): JSX.Element {
             hydrate(<RightContents />, rightContainerRef.current);
         }, 1000) as unknown as number;
         return (): void => {
+            window.removeEventListener("resize", handleWindowResize);
             clearInterval(intervalID);
         };
     });
@@ -446,6 +458,345 @@ function DebugOverlay_Basic(): JSX.Element {
                     textAlign: "right",
                     fontSize: "calc((round(up, var(--gui-scale), 2) / 2) * 10px)",
                     // transform: "translate(calc((max(var(--gui-scale), 2) - round(down, max(var(--gui-scale), 2), 2)) * 0.5px), 0)",
+                    overflow: "hidden",
+                    letterSpacing: "calc((round(up, var(--gui-scale) - 2, 2) / 2) * 1px)",
+                }}
+                ref={rightContainerRef}
+            >
+                <RightContents />
+            </div>
+        </>
+    );
+}
+
+/**
+ * The config debug overlay mode.
+ *
+ * This shows the config options.
+ *
+ * @returns The debug overlay element.
+ */
+function DebugOverlay_Config(): JSX.Element {
+    const rightContainerRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
+    function CrispyDropShadowSpan(props: JSX.HTMLAttributes<HTMLSpanElement>): JSX.Element {
+        return (
+            <span {...Object.fromEntries(Object.entries(props).filter(([key, value]: [key: string, value: any]): boolean => key !== "children"))}>
+                <span class="crispy cirspy-text-with-drop-shadow-inner-span">{props.children}</span>
+            </span>
+        );
+    }
+    function RightContents(): JSX.Element {
+        const configData: ConfigJSON = config.getConfigData();
+        const parsedVersionFolderSearchLocations: string[] = config.parsedVersionFolderSearchLocations;
+        const existingVersionFolderSearchLocations: boolean[] = parsedVersionFolderSearchLocations.map((location: string): boolean => existsSync(location));
+        return (
+            <>
+                <span
+                    class="crispy"
+                    style={{
+                        display: "block",
+                    }}
+                >
+                    <CrispyDropShadowSpan class="debug-overlay-config-mode-item-label" data-color="#AAAAAAFF">
+                        GUI Scale Modifier:{" "}
+                    </CrispyDropShadowSpan>
+                    <CrispyDropShadowSpan class="debug-overlay-config-mode-item-value">{JSONB.stringify(configData.GUIScale)}</CrispyDropShadowSpan>
+                </span>
+                <span
+                    class="crispy"
+                    style={{
+                        display: "block",
+                    }}
+                >
+                    <CrispyDropShadowSpan class="debug-overlay-config-mode-item-label" data-color="#AAAAAAFF">
+                        GUI Scale Override:{" "}
+                    </CrispyDropShadowSpan>
+                    <CrispyDropShadowSpan class="debug-overlay-config-mode-item-value">{JSONB.stringify(configData.GUIScaleOverride)}</CrispyDropShadowSpan>
+                </span>
+                <span
+                    class="crispy"
+                    style={{
+                        display: "block",
+                    }}
+                >
+                    <CrispyDropShadowSpan class="debug-overlay-config-mode-item-label" data-color="#AAAAAAFF">
+                        Attempt To Keep Current Config When Updating Version:{" "}
+                    </CrispyDropShadowSpan>
+                    <CrispyDropShadowSpan class="debug-overlay-config-mode-item-value">
+                        {JSONB.stringify(configData.attemptToKeepCurrentConfigWhenUpdatingVersion)}
+                    </CrispyDropShadowSpan>
+                </span>
+                <span
+                    class="crispy"
+                    style={{
+                        display: "block",
+                    }}
+                >
+                    <CrispyDropShadowSpan class="debug-overlay-config-mode-item-label" data-color="#AAAAAAFF">
+                        Bypass Import JS Plugin Prompt:{" "}
+                    </CrispyDropShadowSpan>
+                    <CrispyDropShadowSpan class="debug-overlay-config-mode-item-value">
+                        {JSONB.stringify(configData.bypassImportJSPluginPrompt)}
+                    </CrispyDropShadowSpan>
+                </span>
+                <span
+                    class="crispy"
+                    style={{
+                        display: "block",
+                    }}
+                >
+                    <CrispyDropShadowSpan class="debug-overlay-config-mode-item-label" data-color="#AAAAAAFF">
+                        Debug HUD:{" "}
+                    </CrispyDropShadowSpan>
+                    <CrispyDropShadowSpan class="debug-overlay-config-mode-item-value">{JSONB.stringify(configData.debugHUD)}</CrispyDropShadowSpan>
+                </span>
+                <span
+                    class="crispy"
+                    style={{
+                        display: "block",
+                    }}
+                >
+                    <CrispyDropShadowSpan class="debug-overlay-config-mode-item-label" data-color="#AAAAAAFF">
+                        Download Ore UI Customizer Updates Separately (Unused):{" "}
+                    </CrispyDropShadowSpan>
+                    <CrispyDropShadowSpan class="debug-overlay-config-mode-item-value">
+                        {JSONB.stringify(configData.downloadOreUICustomizerUpdatesSeparately)}
+                    </CrispyDropShadowSpan>
+                </span>
+                <span
+                    class="crispy"
+                    style={{
+                        display: "block",
+                    }}
+                >
+                    <CrispyDropShadowSpan class="debug-overlay-config-mode-item-label" data-color="#AAAAAAFF">
+                        Panorama:{" "}
+                    </CrispyDropShadowSpan>
+                    <CrispyDropShadowSpan class="debug-overlay-config-mode-item-value">{JSONB.stringify(configData.panorama)}</CrispyDropShadowSpan>
+                </span>
+                <span
+                    class="crispy"
+                    style={{
+                        display: "block",
+                    }}
+                >
+                    <CrispyDropShadowSpan class="debug-overlay-config-mode-item-label" data-color="#AAAAAAFF">
+                        Panorama Perspective:{" "}
+                    </CrispyDropShadowSpan>
+                    <CrispyDropShadowSpan class="debug-overlay-config-mode-item-value">{JSONB.stringify(configData.panoramaPerspective)}</CrispyDropShadowSpan>
+                </span>
+                <span
+                    class="crispy"
+                    style={{
+                        display: "block",
+                    }}
+                >
+                    <CrispyDropShadowSpan class="debug-overlay-config-mode-item-label" data-color="#AAAAAAFF">
+                        Panorama Rotate Direction:{" "}
+                    </CrispyDropShadowSpan>
+                    <CrispyDropShadowSpan class="debug-overlay-config-mode-item-value">
+                        {JSONB.stringify(configData.panoramaRotateDirection)}
+                    </CrispyDropShadowSpan>
+                </span>
+                <span
+                    class="crispy"
+                    style={{
+                        display: "block",
+                    }}
+                >
+                    <CrispyDropShadowSpan class="debug-overlay-config-mode-item-label" data-color="#AAAAAAFF">
+                        Panorama Rotate Speed:{" "}
+                    </CrispyDropShadowSpan>
+                    <CrispyDropShadowSpan class="debug-overlay-config-mode-item-value">{JSONB.stringify(configData.panoramaRotateSpeed)}</CrispyDropShadowSpan>
+                </span>
+                <span
+                    class="crispy"
+                    style={{
+                        display: "block",
+                    }}
+                >
+                    <CrispyDropShadowSpan class="debug-overlay-config-mode-item-label" data-color="#AAAAAAFF">
+                        Theme:{" "}
+                    </CrispyDropShadowSpan>
+                    <CrispyDropShadowSpan class="debug-overlay-config-mode-item-value">{JSONB.stringify(configData.theme)}</CrispyDropShadowSpan>
+                </span>
+                <span
+                    class="crispy"
+                    style={{
+                        display: "block",
+                    }}
+                >
+                    &nbsp;
+                </span>
+                <span
+                    class="crispy"
+                    style={{
+                        display: "block",
+                    }}
+                >
+                    <CrispyDropShadowSpan class="debug-overlay-config-mode-item-label" data-color="#FFFF54FF">
+                        Volume
+                    </CrispyDropShadowSpan>
+                </span>
+                {volumeCategories.map(
+                    (volumeCategory: (typeof volumeCategories)[number]): JSX.Element => (
+                        <span
+                            class="crispy"
+                            style={{
+                                display: "block",
+                            }}
+                        >
+                            <CrispyDropShadowSpan class="debug-overlay-config-mode-item-label" data-color="#AAAAAAFF">
+                                {volumeCategoryDisplayMapping[volumeCategory]}:{" "}
+                            </CrispyDropShadowSpan>
+                            <CrispyDropShadowSpan class="debug-overlay-config-mode-item-value">{configData.volume[volumeCategory]}%</CrispyDropShadowSpan>
+                        </span>
+                    )
+                )}
+                <span
+                    class="crispy"
+                    style={{
+                        display: "block",
+                    }}
+                >
+                    &nbsp;
+                </span>
+                <span
+                    class="crispy"
+                    style={{
+                        display: "block",
+                    }}
+                >
+                    <CrispyDropShadowSpan
+                        class="debug-overlay-config-mode-item-label"
+                        data-color="#FFFF54FF"
+                    >{`Version Folder Search Locations [${configData.versionFolderSearchLocations.length}]`}</CrispyDropShadowSpan>
+                </span>
+                {configData.versionFolderSearchLocations.map(
+                    (location: string, index: number): JSX.Element => (
+                        <span
+                            class="crispy"
+                            style={{
+                                display: "block",
+                            }}
+                        >
+                            {parsedVersionFolderSearchLocations[index] ? (
+                                existingVersionFolderSearchLocations[index] ? (
+                                    <CrispyDropShadowSpan class="debug-overlay-config-mode-item-value" data-color="#54FF54FF">
+                                        [E]
+                                    </CrispyDropShadowSpan>
+                                ) : (
+                                    <CrispyDropShadowSpan class="debug-overlay-config-mode-item-value" data-color="#FF5454FF">
+                                        [X]
+                                    </CrispyDropShadowSpan>
+                                )
+                            ) : (
+                                <CrispyDropShadowSpan class="debug-overlay-config-mode-item-value" data-color="#FFA854FF">
+                                    [?]
+                                </CrispyDropShadowSpan>
+                            )}{" "}
+                            <CrispyDropShadowSpan class="debug-overlay-config-mode-item-value">{`[${location}]`}</CrispyDropShadowSpan>
+                        </span>
+                    )
+                )}
+                <span
+                    class="crispy"
+                    style={{
+                        display: "block",
+                    }}
+                >
+                    &nbsp;
+                </span>
+                <span
+                    class="crispy"
+                    style={{
+                        display: "block",
+                    }}
+                >
+                    <CrispyDropShadowSpan
+                        class="debug-overlay-config-mode-item-label"
+                        data-color="#FFFF54FF"
+                    >{`Parsed Version Folder Search Locations [${parsedVersionFolderSearchLocations.length}]`}</CrispyDropShadowSpan>
+                </span>
+                {parsedVersionFolderSearchLocations.map(
+                    (location: string, index: number): JSX.Element => (
+                        <span
+                            class="crispy"
+                            style={{
+                                display: "block",
+                            }}
+                        >
+                            {existingVersionFolderSearchLocations[index] ? (
+                                <CrispyDropShadowSpan class="debug-overlay-config-mode-item-value" data-color="#54FF54FF">
+                                    [E]
+                                </CrispyDropShadowSpan>
+                            ) : (
+                                <CrispyDropShadowSpan class="debug-overlay-config-mode-item-value" data-color="#FF5454FF">
+                                    [X]
+                                </CrispyDropShadowSpan>
+                            )}{" "}
+                            <CrispyDropShadowSpan class="debug-overlay-config-mode-item-value">{`[${location}]`}</CrispyDropShadowSpan>
+                        </span>
+                    )
+                )}
+            </>
+        );
+    }
+    useEffect((): (() => void) => {
+        let lastForcedUpdate: number = Date.now();
+        function handleWindowResize(): void {
+            if (lastForcedUpdate + 100 < Date.now() && rightContainerRef.current) {
+                hydrate(<RightContents />, rightContainerRef.current);
+                lastForcedUpdate = Date.now();
+            }
+        }
+        window.addEventListener("resize", handleWindowResize);
+        if (rightContainerRef.current) {
+            hydrate(<RightContents />, rightContainerRef.current);
+        }
+        const intervalID: number = setInterval((): void => {
+            if (!rightContainerRef.current) {
+                clearInterval(intervalID);
+                return;
+            }
+            hydrate(<RightContents />, rightContainerRef.current);
+        }, 1000) as unknown as number;
+        return (): void => {
+            window.removeEventListener("resize", handleWindowResize);
+            clearInterval(intervalID);
+        };
+    });
+    return (
+        <>
+            <style>{`.debug-overlay-config-mode {
+    & span:not(.cirspy-text-with-drop-shadow-inner-span)[data-color]:not(:has(span:not(.cirspy-text-with-drop-shadow-inner-span))) {
+        color: attr(data-color type(<color>));
+        filter: drop-shadow(calc((round(up, var(--gui-scale), 2) / 2) * 1px) calc((round(up, var(--gui-scale), 2) / 2) * 1px) 0 rgba(from attr(data-color type(<color>)) calc(r * 0.25) calc(g * 0.25) calc(b * 0.25) / 1));
+    }
+    & span:not(.cirspy-text-with-drop-shadow-inner-span):not([data-color]):not(:has(span:not(.cirspy-text-with-drop-shadow-inner-span))) {
+        filter: drop-shadow(calc((round(up, var(--gui-scale), 2) / 2) * 1px) calc((round(up, var(--gui-scale), 2) / 2) * 1px) 0 #404040FF);
+    }
+}`}</style>
+            {/* Right panel */}
+            <div
+                class="nsel ndrg debug-overlay-config-mode debug-overlay-right"
+                style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    position: "absolute",
+                    top: 0,
+                    right: "calc((round(up, var(--gui-scale), 2) / 2) * 1px)",
+                    width: "calc(100vw - calc((round(up, var(--gui-scale), 2) / 2) * 1px))",
+                    height: "100vh",
+                    pointerEvents: "none",
+                    zIndex: 1000000000000,
+                    // filter: "drop-shadow(calc((round(up, var(--gui-scale), 2) / 2) * 1px) calc((round(up, var(--gui-scale), 2) / 2) * 1px) 0 #404040FF)",
+                    color: "#FFFFFFFF",
+                    textAlign: "right",
+                    fontSize: "calc((round(up, var(--gui-scale), 2) / 2) * 10px)",
+                    // transform: "translate(calc((max(var(--gui-scale), 2) - round(down, max(var(--gui-scale), 2), 2)) * 0.5px), 0)",
+                    overflow: "hidden",
+                    letterSpacing: "calc((round(up, var(--gui-scale) - 2, 2) / 2) * 1px)",
                 }}
                 ref={rightContainerRef}
             >

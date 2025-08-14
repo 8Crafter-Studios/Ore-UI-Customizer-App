@@ -8,7 +8,6 @@ export interface TextBoxProps extends JSX.HTMLAttributes<HTMLDivElement> {
     onInput?: JSX.InputEventHandler<HTMLInputElement>;
     label: string;
     description?: JSX.Element | JSX.Element[] | string;
-    checked?: boolean;
     inputProperties?: JSX.InputHTMLAttributes<HTMLInputElement> & { [key: PropertyKey]: unknown };
     inputStyle?: JSX.CSSProperties;
     inputRef?: RefObject<HTMLInputElement>;

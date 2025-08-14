@@ -15,7 +15,7 @@ import "./zip.js";
 /**
  * The version of the Ore UI Customizer API.
  */
-export const format_version = "1.3.1";
+export const format_version = "1.4.0";
 
 /**
  * The result of the {@link applyMods} function.
@@ -214,6 +214,19 @@ export async function applyMods(file: Blob, options: ApplyModsOptions = {}): Pro
     const plugins: Plugin[] = [...builtInPlugins, ...(settings.preloadedPlugins ?? [])];
     for (const encodedPlugin of settings.plugins ?? []) {
         plugins.push(await importPluginFromDataURI(encodedPlugin.dataURI, encodedPlugin.fileType));
+    }
+    for (const plugin of plugins) {
+        if (plugin.namespace !== "built-in" || (settings.enabledBuiltInPlugins[plugin.id as keyof typeof settings.enabledBuiltInPlugins] ?? true)) {
+            for (const action of plugin.actions) {
+                if (action.context !== "global_before") continue;
+                try {
+                    await action.action(zipFs);
+                } catch (e) {
+                    allFailedReplaces.globalPluginActions ??= [];
+                    allFailedReplaces.globalPluginActions.push(`${plugin.namespace !== "built-in" ? `${plugin.namespace}:` : ""}${plugin.id}:${action.id}`);
+                }
+            }
+        }
     }
     for (const entry of zipFs.entries as (zip.ZipFileEntry<any, any> | zip.ZipDirectoryEntry)[]) {
         if (/^(gui\/)?dist\/hbui\/assets\/[^\/]*?%40/.test(entry.data?.filename!)) {
@@ -1660,6 +1673,19 @@ const oreUICustomizerVersion = ${JSON.stringify(format_version)};`
         addedCount++;
     } catch (e) {
         console.error(e);
+    }
+    for (const plugin of plugins) {
+        if (plugin.namespace !== "built-in" || (settings.enabledBuiltInPlugins[plugin.id as keyof typeof settings.enabledBuiltInPlugins] ?? true)) {
+            for (const action of plugin.actions) {
+                if (action.context !== "global") continue;
+                try {
+                    await action.action(zipFs);
+                } catch (e) {
+                    allFailedReplaces.globalPluginActions ??= [];
+                    allFailedReplaces.globalPluginActions.push(`${plugin.namespace !== "built-in" ? `${plugin.namespace}:` : ""}${plugin.id}:${action.id}`);
+                }
+            }
+        }
     }
     log(`Added entries: ${addedCount}.`);
     log(`Removed entries: ${removedCount}.`);

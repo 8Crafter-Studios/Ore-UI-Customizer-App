@@ -42,7 +42,15 @@ export function copyFolder(folder: string, destination: string): void {
     }
 }
 
-export type InstallationStatus = "Installed" | "Partially Failed Installation" | "Not Installed" | "Installing" | "Uninstalling" | "Unknown";
+export type InstallationStatus =
+    | "Installed"
+    | "Partially Failed Installation"
+    | "Not Installed"
+    | "Installing"
+    | "Uninstalling"
+    | "Missing (Backup Available)"
+    | "Unknown (Backup Available)"
+    | "Unknown";
 
 export interface VersionFolderVersionDetails {
     version: [major: number, minor: number, patch: number, revision: number];
@@ -56,6 +64,11 @@ export interface FailedPluginsJSON {
 }
 
 export class InstallationManager {
+    public static getDataFolderSubpathOfVersionFolder(versionFolderPath: string): "data" | "assets" | undefined {
+        if (existsSync(path.join(versionFolderPath, "data"))) return "data";
+        if (existsSync(path.join(versionFolderPath, "assets"))) return "assets";
+        return undefined;
+    }
     public static getInstallationStatusOfVersionFolder(versionFolderPath: string): InstallationStatus {
         // Windows
         if (existsSync(path.join(versionFolderPath, "data/gui"))) {
@@ -85,9 +98,65 @@ export class InstallationManager {
                 return "Not Installed";
             }
         }
-        // Linux
+        // Linux/macOS
         if (existsSync(path.join(versionFolderPath, "assets/assets/gui"))) {
-            // TO-DO
+            if (existsSync(path.join(versionFolderPath, "assets/assets/gui/dist/hbui/oreUICustomizer8CrafterConfig.js"))) {
+                if (existsSync(path.join(versionFolderPath, "assets/assets/gui/dist/hbui/INSTALLING_ORE_UI_CUSTOMIZER"))) {
+                    return "Installing";
+                } else if (existsSync(path.join(versionFolderPath, "assets/assets/gui/dist/hbui/UNINSTALLING_ORE_UI_CUSTOMIZER"))) {
+                    return "Uninstalling";
+                } else if (existsSync(path.join(versionFolderPath, "assets/assets/gui/dist/hbui/failed_plugins.json"))) {
+                    try {
+                        const failedPlugins: FailedPluginsJSON = JSON.parse(
+                            readFileSync(path.join(versionFolderPath, "assets/assets/gui/dist/hbui/failed_plugins.json"), "utf-8")
+                        );
+                        if (Object.keys(failedPlugins).length > 0) {
+                            return "Partially Failed Installation";
+                        } else {
+                            return "Installed";
+                        }
+                    } catch (e: any) {
+                        console.error(e, e?.stack);
+                        return "Installed";
+                    }
+                } else {
+                    return "Installed";
+                }
+            } else {
+                return "Not Installed";
+            }
+        }
+        const dataFolderSubpath: "data" | "assets" | undefined = this.getDataFolderSubpathOfVersionFolder(versionFolderPath);
+        if (!dataFolderSubpath) {
+            return "Unknown (Backup Available)";
+        }
+        /**
+         * The path to the current backup folder location.
+         */
+        const backupFolderPath: string = path.join(APP_DATA_FOLDER_PATH, "backups", path.basename(versionFolderPath), dataFolderSubpath, "gui_vanilla_backup");
+        if (existsSync(backupFolderPath)) {
+            return "Missing (Backup Available)";
+        }
+        /**
+         * The path to the old backup folder location.
+         */
+        const oldBackupFolderPath: string = path.join(OLD_APP_DATA_FOLDER_PATH, path.basename(versionFolderPath), dataFolderSubpath, "gui_vanilla_backup");
+        if (existsSync(oldBackupFolderPath)) {
+            return "Missing (Backup Available)";
+        }
+        /**
+         * The path to the first alternative backup folder location.
+         */
+        const altBackupFolderPathA: string = path.join(versionFolderPath, dataFolderSubpath, "gui_vanilla_backup");
+        if (existsSync(altBackupFolderPathA)) {
+            return "Missing (Backup Available)";
+        }
+        /**
+         * The path to the second alternative backup folder location.
+         */
+        const altBackupFolderPathB: string = path.join(versionFolderPath, dataFolderSubpath, "gui_vanilla");
+        if (existsSync(altBackupFolderPathB)) {
+            return "Missing (Backup Available)";
         }
         // Other
         return "Unknown";
@@ -281,6 +350,14 @@ export class VersionFolder {
         return semver.compareBuild(this.installedVersion!, format_version) === -1;
     }
     /**
+     * Gets the data folder subpath of the version folder.
+     *
+     * @returns The data folder subpath of the version folder.
+     */
+    public getDataFolderSubpath(): ReturnType<(typeof InstallationManager)["getDataFolderSubpathOfVersionFolder"]> {
+        return InstallationManager.getDataFolderSubpathOfVersionFolder(this.path);
+    }
+    /**
      * Gets the path to the backup folder.
      *
      * @returns The path to the backup folder, or `undefined` if it does not exist.
@@ -300,17 +377,19 @@ export class VersionFolder {
         if (existsSync(oldBackupFolderPath)) {
             return oldBackupFolderPath;
         }
+        const dataFolderSubpath: ReturnType<(typeof InstallationManager)["getDataFolderSubpathOfVersionFolder"]> = this.getDataFolderSubpath();
+        if (!dataFolderSubpath) return undefined;
         /**
          * The path to the first alternative backup folder location.
          */
-        const altBackupFolderPathA: string = path.join(this.path, "data", "gui_vanilla_backup");
+        const altBackupFolderPathA: string = path.join(this.path, dataFolderSubpath, "gui_vanilla_backup");
         if (existsSync(altBackupFolderPathA)) {
             return altBackupFolderPathA;
         }
         /**
          * The path to the second alternative backup folder location.
          */
-        const altBackupFolderPathB: string = path.join(this.path, "data", "gui_vanilla");
+        const altBackupFolderPathB: string = path.join(this.path, dataFolderSubpath, "gui_vanilla");
         if (existsSync(altBackupFolderPathB)) {
             return altBackupFolderPathB;
         }
@@ -332,8 +411,11 @@ export class VersionFolder {
      * @returns A promise that resolves when the installation is complete.
      *
      * @throws {any} If the installation fails.
+     * @throws {ReferenceError} If the data folder subpath of the version folder is not found.
      */
     public async install(showProgressBar: boolean = true): Promise<void> {
+        const dataFolderSubpath: ReturnType<(typeof InstallationManager)["getDataFolderSubpathOfVersionFolder"]> = this.getDataFolderSubpath();
+        if (!dataFolderSubpath) throw new ReferenceError("Failed to get data folder subpath of version folder.");
         const progressBar: ProgressBar | undefined = showProgressBar
             ? new ProgressBar({
                   detail: "Preparing to install...",
@@ -341,7 +423,7 @@ export class VersionFolder {
                   indeterminate: true,
                   title: "Installing Ore UI Customizer",
                   text: "Preparing to install...",
-                //   debug: true,
+                  //   debug: true,
                   browserWindow: {
                       closable: false,
                       parent: getCurrentWindow(),
@@ -499,6 +581,7 @@ export class VersionFolder {
                 progressBar.text = "Applying modded zip...";
                 progressBar.detail = `Applying modded zip...`;
             }
+            const GUIFolderpath = this.guiFolderPath;
             /**
              * Apply a modded zip to a version.
              *
@@ -522,11 +605,12 @@ export class VersionFolder {
                     progressBar.value = 0;
                 }
                 try {
-                    rmSync(path.join(versionFolder, "data/gui"), { recursive: true, force: true });
+                    rmSync(GUIFolderpath, { recursive: true, force: true });
                 } catch {}
+                globalThis.generatedZip = zipFs;
                 await addFolderContentsReversed(
                     zipFs.getChildByName("gui") as zip.ZipDirectoryEntry,
-                    path.join(versionFolder, "data/gui"),
+                    GUIFolderpath,
                     undefined,
                     (_item: zip.ZipFileEntry<any, any>): void => {
                         moddedZipItemIndex++;
@@ -598,18 +682,21 @@ export class VersionFolder {
      * @param showProgressBar Whether or not to show a progress bar. Currently is not functional. Defaults to `true`.
      *
      * @throws {ReferenceError} If the backup folder could not be found.
+     * @throws {ReferenceError} If the data folder subpath could not be found.
      */
     public uninstall(suppressErrors: boolean = false, showProgressBar: boolean = true): void {
         const backupFolderPath: string | undefined = this.getBackupFolderPath();
-        const guiFolderPath: string = this.guiFolderPath;
+        const dataFolderSubpath: string | undefined = this.getDataFolderSubpath();
+        if (!dataFolderSubpath) throw new ReferenceError("Could not find data folder subpath.");
+        const guiFolderPath: string = path.join(this.path, dataFolderSubpath, "gui");
         if (!backupFolderPath) throw new ReferenceError("Could not find backup folder.");
         try {
-            rmdirSync(this.guiFolderPath, { recursive: true });
+            if (existsSync(guiFolderPath)) rmdirSync(guiFolderPath, { recursive: true });
             copyFolder(backupFolderPath, guiFolderPath);
         } catch (e: any) {
             if (e instanceof Error && e.message.startsWith("EBUSY: resource busy or locked, unlink")) {
                 let failedFileRemovals: Dirent<string>[] = [];
-                for (const item of readdirSync(this.guiFolderPath, { recursive: true, withFileTypes: true })) {
+                for (const item of readdirSync(guiFolderPath, { recursive: true, withFileTypes: true })) {
                     if (item.isFile()) {
                         try {
                             rmSync(path.join(item.parentPath, item.name), { force: true });

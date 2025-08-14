@@ -1125,6 +1125,63 @@ body.overlay_page_visible .possible_scroll_y {
     }
 }
 
+.mcdropdown:has(.dropdownbutton:disabled),
+.mcdropdown:has(#dropdownbutton:disabled) {
+    & > #dropdowncontents,
+    .dropdowncontents {
+        & .mcdropdownoption:not(#__priorityIncreaseSelector__) {
+            & > * {
+                filter: contrast(0.5);
+            }
+        }
+        & .mcdropdownoption:not(#__priorityIncreaseSelector__):has(> input:checked),
+        & .mcdropdownoption:not(#__priorityIncreaseSelector__):checked {
+            background-image: url("/resources/images/ui/dropdown/dropDownSelectBG.png");
+        }
+        & .mcdropdownoption:not(#__priorityIncreaseSelector__):not(:has(> input:checked)),
+        & .mcdropdownoption:not(#__priorityIncreaseSelector__):not(:checked) {
+            background-image: none;
+        }
+        & .mcdropdownoption:not(#__priorityIncreaseSelector__):has(> input:checked) {
+            & > .mcradiocheckbox:not(.disabled-toggle-checkbox) {
+                background-image: url("/resources/images/ui/radio/radio_on.png");
+            }
+
+            & > .mctogglecheckbox:not(.disabled-toggle-checkbox) {
+                background-image: url("/resources/images/ui/checkbox/checkbox_check.png");
+            }
+
+            & > .mcradiocheckbox .disabled-toggle-checkbox {
+                background-image: url("/resources/images/ui/radio/radio_on.png");
+                filter: brightness(0.5);
+            }
+
+            & > .mctogglecheckbox .disabled-toggle-checkbox {
+                background-image: url("/resources/images/ui/checkbox/checkbox_check_locked.png");
+            }
+        }
+
+        & .mcdropdownoption:not(#__priorityIncreaseSelector__):not(:has(> input:checked)) {
+            & > .mcradiocheckbox:not(.disabled-toggle-checkbox) {
+                background-image: url("/resources/images/ui/radio/radio_off.png");
+            }
+
+            & > .mctogglecheckbox:not(.disabled-toggle-checkbox) {
+                background-image: url("/resources/images/ui/checkbox/checkbox_space.png");
+            }
+
+            & > .mcradiocheckbox .disabled-toggle-checkbox {
+                background-image: url("/resources/images/ui/radio/radio_off.png");
+                filter: brightness(0.5);
+            }
+
+            & > .mctogglecheckbox .disabled-toggle-checkbox {
+                background-image: url("/resources/images/ui/checkbox/checkbox_space_locked.png");
+            }
+        }
+    }
+}
+
 .mcdropdownoption {
     & > label {
         vertical-align: 0.4em;

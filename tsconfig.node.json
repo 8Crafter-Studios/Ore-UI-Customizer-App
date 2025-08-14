@@ -20,7 +20,9 @@
         "allowSyntheticDefaultImports": true,
         "composite": true,
         "forceConsistentCasingInFileNames": true,
-        "noUncheckedIndexedAccess": true
+        "noUncheckedIndexedAccess": true,
+        "allowJs": true,
+        "checkJs": true
     },
     "include": ["vite.config.ts"],
     "exclude": ["deprecated/*", "src/globalify_renderer_imports.ts"]

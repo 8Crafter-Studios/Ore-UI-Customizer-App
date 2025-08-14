@@ -563,6 +563,7 @@ export class SplitDataReader
 /**
  * Represents a URL stored into a `string`.
  */
+// eslint-disable-next-line @typescript-eslint/ban-types
 interface URLString extends String { }
 
 /**

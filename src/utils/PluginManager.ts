@@ -21,6 +21,7 @@ import { addFolderContents, addFolderContentsReversed } from "./folderContentsUt
 import { app, dialog } from "@electron/remote";
 import type { MessageBoxReturnValue } from "electron";
 import "./zip.js";
+import { createToast } from "../../app/components/Toast.tsx";
 
 interface PluginManagerEventMap {
     pluginImported: [newPlugin: OreUICustomizerPlugin];
@@ -320,6 +321,9 @@ export class OreUICustomizerPlugin implements Omit<Plugin_Type, "actions"> {
     public delete(): void {
         if (existsSync(this.folderPath)) {
             rmSync(this.folderPath, { recursive: true, force: true });
+            if (PluginManager.loadedPlugins.includes(this)) {
+                PluginManager.loadedPlugins.splice(PluginManager.loadedPlugins.indexOf(this), 1);
+            }
             PluginManager.emit("pluginRemoved", this);
         }
     }
@@ -342,7 +346,6 @@ export const PluginManager = new (class PluginManager extends EventEmitter<Plugi
     public constructor() {
         super();
         this.setMaxListeners(1000000);
-        this.loadPlugins();
     }
     public getPluginFromFolderPath(folderPath: string): OreUICustomizerPlugin | undefined {
         folderPath = path.resolve(folderPath);
@@ -500,6 +503,14 @@ export const PluginManager = new (class PluginManager extends EventEmitter<Plugi
                     dependencies: pluginData.dependencies,
                     icon_data_uri: pluginData.icon_data_uri,
                 };
+                if (this.getPluginFromUUIDAndVersion(manifestData.header.uuid, manifestData.header.version)) {
+                    createToast({
+                        image: manifestData.icon_data_uri || "resource://images/ui/glyphs/icon-settings.png",
+                        title: `Failed to import '${manifestData.header.name}'`,
+                        message: "Duplicate pack detected",
+                    });
+                    throw new ReferenceError("Duplicate pack detected.");
+                }
                 const folderName: string = sanitizeFilename(`${manifestData.header.name.slice(0, 25)}-${manifestData.header.version}`);
                 mkdirSync(path.join(PluginManager.pluginsFolder, folderName), { recursive: true });
                 writeFileSync(path.join(PluginManager.pluginsFolder, folderName, "manifest.json"), JSONB.stringify(manifestData, null, 4));
@@ -581,6 +592,14 @@ export const PluginManager = new (class PluginManager extends EventEmitter<Plugi
                         dependencies: pluginData.dependencies,
                         icon_data_uri: pluginData.icon_data_uri,
                     };
+                    if (this.getPluginFromUUIDAndVersion(manifestData.header.uuid, manifestData.header.version)) {
+                        createToast({
+                            image: manifestData.icon_data_uri || "resource://images/ui/glyphs/icon-settings.png",
+                            title: `Failed to import '${manifestData.header.name}'`,
+                            message: "Duplicate pack detected",
+                        });
+                        throw new ReferenceError("Duplicate pack detected.");
+                    }
                     const folderName: string = sanitizeFilename(`${manifestData.header.name.slice(0, 25)}-${manifestData.header.version}`);
                     mkdirSync(path.join(PluginManager.pluginsFolder, folderName), { recursive: true });
                     writeFileSync(path.join(PluginManager.pluginsFolder, folderName, "manifest.json"), JSONB.stringify(manifestData, null, 4));
@@ -596,6 +615,16 @@ export const PluginManager = new (class PluginManager extends EventEmitter<Plugi
                     null,
                     true
                 ) as any;
+                if (this.getPluginFromUUIDAndVersion(manifest.header.uuid, manifest.header.version)) {
+                    createToast({
+                        image: zipFs.getChildByName("pack_icon.png")
+                            ? await (zipFs.getChildByName("pack_icon.png") as zip.ZipFileEntry<any, any>).getData64URI("image/png")
+                            : manifest.icon_data_uri || "resource://images/ui/glyphs/icon-settings.png",
+                        title: `Failed to import '${manifest.header.name}'`,
+                        message: "Duplicate pack detected",
+                    });
+                    throw new ReferenceError("Duplicate pack detected.");
+                }
                 const folderName: string = sanitizeFilename(`${manifest.header.name.slice(0, 25)}-${manifest.header.version}`);
                 await addFolderContentsReversed(zipFs.root, path.join(PluginManager.pluginsFolder, folderName));
                 const plugin: OreUICustomizerPlugin = new OreUICustomizerPlugin(path.join(PluginManager.pluginsFolder, folderName));
@@ -615,6 +644,16 @@ export const PluginManager = new (class PluginManager extends EventEmitter<Plugi
                     null,
                     true
                 ) as any;
+                if (this.getPluginFromUUIDAndVersion(manifest.header.uuid, manifest.header.version)) {
+                    createToast({
+                        image: zipFs.getChildByName("pack_icon.png")
+                            ? await (zipFs.getChildByName("pack_icon.png") as zip.ZipFileEntry<any, any>).getData64URI("image/png")
+                            : manifest.icon_data_uri || "resource://images/ui/glyphs/icon-settings.png",
+                        title: `Failed to import '${manifest.header.name}'`,
+                        message: "Duplicate pack detected",
+                    });
+                    throw new ReferenceError("Duplicate pack detected.");
+                }
                 const folderName: string = sanitizeFilename(`${manifest.header.name.slice(0, 25)}-${manifest.header.version}`);
                 await addFolderContentsReversed(zipFs.root, path.join(PluginManager.pluginsFolder, folderName));
                 const plugin: OreUICustomizerPlugin = new OreUICustomizerPlugin(path.join(PluginManager.pluginsFolder, folderName));
@@ -694,6 +733,14 @@ export const PluginManager = new (class PluginManager extends EventEmitter<Plugi
                     dependencies: pluginData.dependencies,
                     icon_data_uri: pluginData.icon_data_uri,
                 };
+                if (this.getPluginFromUUIDAndVersion(manifestData.header.uuid, manifestData.header.version)) {
+                    createToast({
+                        image: manifestData.icon_data_uri || "resource://images/ui/glyphs/icon-settings.png",
+                        title: `Failed to import '${manifestData.header.name}'`,
+                        message: "Duplicate pack detected",
+                    });
+                    throw new ReferenceError("Duplicate pack detected.");
+                }
                 const folderName: string = sanitizeFilename(`${manifestData.header.name.slice(0, 25)}-${manifestData.header.version}`);
                 mkdirSync(path.join(PluginManager.pluginsFolder, folderName), { recursive: true });
                 writeFileSync(path.join(PluginManager.pluginsFolder, folderName, "manifest.json"), JSONB.stringify(manifestData, null, 4));
@@ -773,6 +820,14 @@ export const PluginManager = new (class PluginManager extends EventEmitter<Plugi
                         dependencies: pluginData.dependencies,
                         icon_data_uri: pluginData.icon_data_uri,
                     };
+                    if (this.getPluginFromUUIDAndVersion(manifestData.header.uuid, manifestData.header.version)) {
+                        createToast({
+                            image: manifestData.icon_data_uri || "resource://images/ui/glyphs/icon-settings.png",
+                            title: `Failed to import '${manifestData.header.name}'`,
+                            message: "Duplicate pack detected",
+                        });
+                        throw new ReferenceError("Duplicate pack detected.");
+                    }
                     const folderName: string = sanitizeFilename(`${manifestData.header.name.slice(0, 25)}-${manifestData.header.version}`);
                     mkdirSync(path.join(PluginManager.pluginsFolder, folderName), { recursive: true });
                     writeFileSync(path.join(PluginManager.pluginsFolder, folderName, "manifest.json"), JSONB.stringify(manifestData, null, 4));
@@ -788,6 +843,16 @@ export const PluginManager = new (class PluginManager extends EventEmitter<Plugi
                     null,
                     true
                 ) as any;
+                if (this.getPluginFromUUIDAndVersion(manifest.header.uuid, manifest.header.version)) {
+                    createToast({
+                        image: zipFs.getChildByName("pack_icon.png")
+                            ? await (zipFs.getChildByName("pack_icon.png") as zip.ZipFileEntry<any, any>).getData64URI("image/png")
+                            : manifest.icon_data_uri || "resource://images/ui/glyphs/icon-settings.png",
+                        title: `Failed to import '${manifest.header.name}'`,
+                        message: "Duplicate pack detected",
+                    });
+                    throw new ReferenceError("Duplicate pack detected.");
+                }
                 const folderName: string = sanitizeFilename(`${manifest.header.name.slice(0, 25)}-${manifest.header.version}`);
                 await addFolderContentsReversed(zipFs.root, path.join(PluginManager.pluginsFolder, folderName));
                 const plugin: OreUICustomizerPlugin = new OreUICustomizerPlugin(path.join(PluginManager.pluginsFolder, folderName));
@@ -807,6 +872,16 @@ export const PluginManager = new (class PluginManager extends EventEmitter<Plugi
                     null,
                     true
                 ) as any;
+                if (this.getPluginFromUUIDAndVersion(manifest.header.uuid, manifest.header.version)) {
+                    createToast({
+                        image: zipFs.getChildByName("pack_icon.png")
+                            ? await (zipFs.getChildByName("pack_icon.png") as zip.ZipFileEntry<any, any>).getData64URI("image/png")
+                            : manifest.icon_data_uri || "resource://images/ui/glyphs/icon-settings.png",
+                        title: `Failed to import '${manifest.header.name}'`,
+                        message: "Duplicate pack detected",
+                    });
+                    throw new ReferenceError("Duplicate pack detected.");
+                }
                 const folderName: string = sanitizeFilename(`${manifest.header.name.slice(0, 25)}-${manifest.header.version}`);
                 await addFolderContentsReversed(zipFs.root, path.join(PluginManager.pluginsFolder, folderName));
                 const plugin: OreUICustomizerPlugin = new OreUICustomizerPlugin(path.join(PluginManager.pluginsFolder, folderName));
@@ -833,6 +908,16 @@ export const PluginManager = new (class PluginManager extends EventEmitter<Plugi
                 null,
                 true
             ) as any;
+            if (this.getPluginFromUUIDAndVersion(manifest.header.uuid, manifest.header.version)) {
+                createToast({
+                    image: zipFs.getChildByName("pack_icon.png")
+                        ? await (zipFs.getChildByName("pack_icon.png") as zip.ZipFileEntry<any, any>).getData64URI("image/png")
+                        : manifest.icon_data_uri || "resource://images/ui/glyphs/icon-settings.png",
+                    title: `Failed to import '${manifest.header.name}'`,
+                    message: "Duplicate pack detected",
+                });
+                throw new ReferenceError("Duplicate pack detected.");
+            }
             const folderName: string = sanitizeFilename(`${manifest.header.name.slice(0, 25)}-${manifest.header.version}`);
             await addFolderContentsReversed(zipFs.root, path.join(PluginManager.pluginsFolder, folderName));
             const plugin: OreUICustomizerPlugin = new OreUICustomizerPlugin(path.join(PluginManager.pluginsFolder, folderName));
@@ -900,6 +985,14 @@ export const PluginManager = new (class PluginManager extends EventEmitter<Plugi
                 dependencies: pluginData.dependencies,
                 icon_data_uri: pluginData.icon_data_uri,
             };
+            if (this.getPluginFromUUIDAndVersion(manifestData.header.uuid, manifestData.header.version)) {
+                createToast({
+                    image: manifestData.icon_data_uri || "resource://images/ui/glyphs/icon-settings.png",
+                    title: `Failed to import '${manifestData.header.name}'`,
+                    message: "Duplicate pack detected",
+                });
+                throw new ReferenceError("Duplicate pack detected.");
+            }
             const folderName: string = sanitizeFilename(`${manifestData.header.name.slice(0, 25)}-${manifestData.header.version}`);
             mkdirSync(path.join(PluginManager.pluginsFolder, folderName), { recursive: true });
             writeFileSync(path.join(PluginManager.pluginsFolder, folderName, "manifest.json"), JSONB.stringify(manifestData, null, 4));
@@ -913,3 +1006,13 @@ export const PluginManager = new (class PluginManager extends EventEmitter<Plugi
         throw new ReferenceError(`Invalid file type: ${path.extname(filePath)}. Must be ".ouicplugin", ".mcouicplugin", or ".js".`);
     }
 })();
+
+PluginManager.on("pluginImported", (importedPlugin: OreUICustomizerPlugin): void => {
+    createToast({
+        title: `Successfully imported '${importedPlugin.metadata.name}'`,
+        image: importedPlugin.icon || "resource://images/ui/glyphs/icon-settings.png",
+    });
+});
+
+const loadPluginsErrors: Error[] = PluginManager.loadPlugins();
+if (loadPluginsErrors.length > 0) console.error(loadPluginsErrors);

@@ -4,7 +4,7 @@
  * @description A file containing the config class, which is used to store and retrieve app settings.
  * @supports Main, Preload, Renderer
  */
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, Stats, watchFile, writeFileSync } from "node:fs";
 import path from "node:path";
 // import os from "node:os";
 import { APP_DATA_FOLDER_PATH } from "./URLs";
@@ -116,16 +116,25 @@ namespace exports {
             downloadOreUICustomizerUpdatesSeparately: false,
             theme: "auto",
             debugHUD: "none",
+            panorama: "off",
+            panoramaPerspective: 400,
+            panoramaRotateDirection: "counterclockwise",
+            panoramaRotateSpeed: 2.5,
             volume: { master: 100, ui: 100 },
         } as const satisfies ConfigJSON);
         /**
          * The currently loaded data from the config file.
          */
         #currentlyLoadedData: ConfigJSON = this.readConfigFile();
-        /**
-         * The last time the data was loaded from the config file.
-         */
-        #lastDataLoadTime: number = Date.now();
+        public constructor(options?: ConstructorParameters<typeof EventEmitter>[0]) {
+            super(options);
+            this.readConfigFile();
+            watchFile(path.join(APP_DATA_FOLDER_PATH, "./config.json"), (current: Stats, previous: Stats): void => {
+                if (current.mtimeMs !== previous.mtimeMs) {
+                    this.#currentlyLoadedData = this.readConfigFile() ?? this.#currentlyLoadedData;
+                }
+            });
+        }
         /**
          * Saves changes to the config file.
          *
@@ -198,10 +207,11 @@ namespace exports {
          * @returns The config data.
          */
         public getConfigData(forceReloadIfUndefined: boolean = false): ConfigJSON {
-            if (Date.now() - this.#lastDataLoadTime > 1000) {
+            /* 
+            if (!disableConfigUpdate && Date.now() - this.#lastDataLoadTime > 1000) {
                 this.#currentlyLoadedData = this.readConfigFile() ?? this.#currentlyLoadedData;
                 this.#lastDataLoadTime = Date.now();
-            }
+            } */
             return this.#currentlyLoadedData ?? (forceReloadIfUndefined ? this.readConfigFile() : undefined);
         }
         /**
@@ -227,7 +237,7 @@ namespace exports {
          * ```
          */
         public get versionFolderSearchLocations(): string[] {
-            return this.getConfigData().versionFolderSearchLocations;
+            return this.getConfigData().versionFolderSearchLocations ?? Config.defaults.versionFolderSearchLocations;
         }
         public set versionFolderSearchLocations(value: string[] | undefined) {
             this.saveChanges({ versionFolderSearchLocations: value ?? Config.defaults.versionFolderSearchLocations });
@@ -249,6 +259,7 @@ namespace exports {
                     .replaceAll(/%temp%/gi, process.env.TEMP!)
                     .replaceAll(/%tmp%/gi, process.env.TMP!)
                     .replaceAll(/%public%/gi, process.env.PUBLIC!)
+                    .replaceAll(/\\/g, "/")
             );
         }
         /**
@@ -261,7 +272,7 @@ namespace exports {
          * @example -1
          */
         public get GUIScale(): number {
-            return this.getConfigData().GUIScale;
+            return this.getConfigData().GUIScale ?? Config.defaults.GUIScale;
         }
         public set GUIScale(value: number | undefined) {
             this.saveChanges({ GUIScale: value ?? Config.defaults.GUIScale });
@@ -276,7 +287,7 @@ namespace exports {
          * @example 3
          */
         public get GUIScaleOverride(): number | null {
-            return this.getConfigData().GUIScaleOverride;
+            return this.getConfigData().GUIScaleOverride ?? Config.defaults.GUIScaleOverride;
         }
         public set GUIScaleOverride(value: number | null | undefined) {
             this.saveChanges({ GUIScaleOverride: value ?? Config.defaults.GUIScaleOverride });
@@ -323,7 +334,7 @@ namespace exports {
          * Whether to attempt to keep the current config when updating the version.
          */
         public get attemptToKeepCurrentConfigWhenUpdatingVersion(): boolean {
-            return this.getConfigData().attemptToKeepCurrentConfigWhenUpdatingVersion ?? false;
+            return this.getConfigData().attemptToKeepCurrentConfigWhenUpdatingVersion ?? Config.defaults.attemptToKeepCurrentConfigWhenUpdatingVersion;
         }
         public set attemptToKeepCurrentConfigWhenUpdatingVersion(value: boolean | undefined) {
             this.saveChanges({ attemptToKeepCurrentConfigWhenUpdatingVersion: value ?? Config.defaults.attemptToKeepCurrentConfigWhenUpdatingVersion });
@@ -332,7 +343,7 @@ namespace exports {
          * Whether to bypass the import JS plugin prompt.
          */
         public get bypassImportJSPluginPrompt(): boolean {
-            return this.getConfigData().bypassImportJSPluginPrompt ?? false;
+            return this.getConfigData().bypassImportJSPluginPrompt ?? Config.defaults.bypassImportJSPluginPrompt;
         }
         public set bypassImportJSPluginPrompt(value: boolean | undefined) {
             this.saveChanges({ bypassImportJSPluginPrompt: value ?? Config.defaults.bypassImportJSPluginPrompt });
@@ -353,13 +364,13 @@ namespace exports {
          * @todo
          */
         public get downloadOreUICustomizerUpdatesSeparately(): boolean {
-            return this.getConfigData().downloadOreUICustomizerUpdatesSeparately ?? false;
+            return this.getConfigData().downloadOreUICustomizerUpdatesSeparately ?? Config.defaults.downloadOreUICustomizerUpdatesSeparately;
         }
         public set downloadOreUICustomizerUpdatesSeparately(value: boolean | undefined) {
             this.saveChanges({ downloadOreUICustomizerUpdatesSeparately: value ?? Config.defaults.downloadOreUICustomizerUpdatesSeparately });
         }
         public get theme(): "auto" | "dark" | "light" | "blue" {
-            return this.getConfigData().theme ?? "auto";
+            return this.getConfigData().theme ?? Config.defaults.theme;
         }
         public set theme(value: "auto" | "dark" | "light" | "blue" | undefined) {
             this.saveChanges({ theme: value ?? Config.defaults.theme });
@@ -367,11 +378,35 @@ namespace exports {
         public get actualTheme(): "dark" | "light" | "blue" {
             return this.theme === "auto" ? (nativeTheme.shouldUseDarkColors ? "dark" : "light") : this.theme;
         }
-        public get debugHUD(): "none" | "top" | "basic" {
-            return this.getConfigData().debugHUD ?? "none";
+        public get debugHUD(): (typeof ConfigConstants.debugOverlayModeList)[number] {
+            return this.getConfigData().debugHUD ?? Config.defaults.debugHUD;
         }
-        public set debugHUD(value: "none" | "top" | "basic" | undefined) {
+        public set debugHUD(value: (typeof ConfigConstants.debugOverlayModeList)[number] | undefined) {
             this.saveChanges({ debugHUD: value ?? Config.defaults.debugHUD });
+        }
+        public get panorama(): (typeof ConfigConstants.panoramaList)[number] {
+            return this.getConfigData().panorama ?? Config.defaults.panorama;
+        }
+        public set panorama(value: (typeof ConfigConstants.panoramaList)[number] | undefined) {
+            this.saveChanges({ panorama: value ?? Config.defaults.panorama });
+        }
+        public get panoramaPerspective(): number {
+            return this.getConfigData().panoramaPerspective ?? Config.defaults.panoramaPerspective;
+        }
+        public set panoramaPerspective(value: number | undefined) {
+            this.saveChanges({ panoramaPerspective: value ?? Config.defaults.panoramaPerspective });
+        }
+        public get panoramaRotateDirection(): "clockwise" | "counterclockwise" {
+            return this.getConfigData().panoramaRotateDirection ?? Config.defaults.panoramaRotateDirection;
+        }
+        public set panoramaRotateDirection(value: "clockwise" | "counterclockwise" | undefined) {
+            this.saveChanges({ panoramaRotateDirection: value ?? Config.defaults.panoramaRotateDirection });
+        }
+        public get panoramaRotateSpeed(): number {
+            return this.getConfigData().panoramaRotateSpeed ?? Config.defaults.panoramaRotateSpeed;
+        }
+        public set panoramaRotateSpeed(value: number | undefined) {
+            this.saveChanges({ panoramaRotateSpeed: value ?? Config.defaults.panoramaRotateSpeed });
         }
         /**
          * The volume options.
@@ -413,7 +448,7 @@ namespace exports {
          * @default 100
          */
         public get master(): number {
-            return this.#config.getConfigData().volume.master;
+            return this.#config.getConfigData().volume?.master ?? Config.defaults.volume.master;
         }
         public set master(value: number | undefined) {
             this.#config.saveChanges({ volume: { master: value ?? Config.defaults.volume.master } });
@@ -424,7 +459,7 @@ namespace exports {
          * @default 100
          */
         public get ui(): number {
-            return this.#config.getConfigData().volume.ui;
+            return this.#config.getConfigData().volume?.ui ?? Config.defaults.volume.ui;
         }
         public set ui(value: number | undefined) {
             this.#config.saveChanges({ volume: { ui: value ?? Config.defaults.volume.ui } });
@@ -433,12 +468,41 @@ namespace exports {
     const subConfigValueClasses = [VolumeConfig] as const;
 
     namespace ConfigConstants {
-        export const debugOverlayModeList = ["none", "top", "basic"] as const satisfies (typeof config)["debugHUD"][];
+        export const debugOverlayModeList = ["none", "top", "basic", "config"] as const;
         export const debugOverlayModes = {
             none: "Off",
             top: "Top",
             basic: "Basic",
+            config: "Config",
         } as const satisfies { [key in (typeof config)["debugHUD"]]: string };
+        export const panoramaList = [
+            "off",
+            "beta",
+            "buzzy-bees",
+            "chase-the-skies",
+            "creeking",
+            "education-demo",
+            "preview",
+            "spring-to-life",
+            "trails-and-tales",
+            "tricky-trials",
+            "wild-update",
+            "windows-10-edition-beta",
+        ] as const;
+        export const panoramaDisplayMapping = {
+            off: "Off",
+            beta: "Beta",
+            "buzzy-bees": "Buzzy Bees",
+            "chase-the-skies": "Chase the Skies",
+            creeking: "Creeking",
+            "education-demo": "Education Demo",
+            preview: "Preview",
+            "spring-to-life": "Spring to Life",
+            "trails-and-tales": "Trails and Tales",
+            "tricky-trials": "Tricky Trials",
+            "wild-update": "Wild Update",
+            "windows-10-edition-beta": "Windows 10 Edition Beta",
+        };
     }
 
     /**

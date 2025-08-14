@@ -27,7 +27,9 @@
         "allowSyntheticDefaultImports": true,
         "composite": true,
         "forceConsistentCasingInFileNames": true,
-        "noUncheckedIndexedAccess": true
+        "noUncheckedIndexedAccess": true,
+        "checkJs": true,
+        "allowJs": true
     },
     "include": ["src", "./app/renderer.tsx", "app"],
     "exclude": ["deprecated/*"]

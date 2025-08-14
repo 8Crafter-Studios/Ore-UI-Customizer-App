@@ -5,11 +5,12 @@ import Slider, { type SliderInnerHTMLInputElement } from "../components/Slider";
 import { updateGUIScale } from "../app";
 import { app, clipboard, dialog, nativeTheme, shell } from "@electron/remote";
 import type { OpenDialogReturnValue } from "electron";
-import Dropdown from "../components/Dropdown";
+import Dropdown, { type DropdownOption } from "../components/Dropdown";
 import { OverlayScrollbars } from "overlayscrollbars";
 import mergeRefs from "merge-refs";
 import { APP_DATA_FOLDER_PATH } from "../../src/utils/URLs";
 import { createToast } from "../components/Toast";
+import TextBox from "../components/TextBox";
 
 export default function PreferencesPage(): JSX.SpecificElement<"center"> {
     const GUIScaleSliderRef: RefObject<SliderInnerHTMLInputElement> = useRef<SliderInnerHTMLInputElement>(null);
@@ -17,6 +18,11 @@ export default function PreferencesPage(): JSX.SpecificElement<"center"> {
     const themeDropdownSelectedOptionTextDisplayRef: RefObject<HTMLSpanElement> = useRef<HTMLSpanElement>(null);
     const debugHUDDropdownSelectedOptionTextDisplayRef: RefObject<HTMLSpanElement> = useRef<HTMLSpanElement>(null);
     const debugHUDDropdownContentsRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
+    const panoramaDropdownSelectedOptionTextDisplayRef: RefObject<HTMLSpanElement> = useRef<HTMLSpanElement>(null);
+    const panoramaDropdownContentsRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
+    const panoramaPerspectiveOptionRef: RefObject<HTMLInputElement> = useRef<HTMLInputElement>(null);
+    const panoramaRotateDirectionDropdownButtonRef: RefObject<HTMLButtonElement> = useRef<HTMLButtonElement>(null);
+    const panoramaRotateSpeedOptionRef: RefObject<HTMLInputElement> = useRef<HTMLInputElement>(null);
     useEffect((): (() => void) => {
         /**
          * Controller for aborting listeners.
@@ -67,6 +73,29 @@ export default function PreferencesPage(): JSX.SpecificElement<"center"> {
                 debugHUDDropdownSelectedOptionTextDisplayRef.current!.textContent = config.constants.debugOverlayModes[value] ?? value;
             }
         }
+        function panoramaChangeCallback(value: typeof config.panorama): void {
+            if (panoramaDropdownSelectedOptionTextDisplayRef.current && panoramaDropdownContentsRef.current) {
+                const valueOption: HTMLInputElement | null = panoramaDropdownContentsRef.current.querySelector(`input[value="${value}"]`);
+                if (valueOption) {
+                    valueOption.checked = true;
+                } else {
+                    const selectedValueOption: HTMLInputElement | null = panoramaDropdownContentsRef.current.querySelector(`input:checked`);
+                    if (selectedValueOption) {
+                        selectedValueOption.checked = false;
+                    }
+                }
+                panoramaDropdownSelectedOptionTextDisplayRef.current!.textContent = config.constants.panoramaDisplayMapping[value] ?? value;
+                if (value === "off") {
+                    panoramaPerspectiveOptionRef.current!.disabled = true;
+                    panoramaRotateDirectionDropdownButtonRef.current!.disabled = true;
+                    panoramaRotateSpeedOptionRef.current!.disabled = true;
+                } else {
+                    panoramaPerspectiveOptionRef.current!.disabled = false;
+                    panoramaRotateDirectionDropdownButtonRef.current!.disabled = false;
+                    panoramaRotateSpeedOptionRef.current!.disabled = false;
+                }
+            }
+        }
         // GUI scale option listeners
         window.addEventListener("GUIScaleChange", baseGUIScaleChangeCallback, {
             signal: controller.signal,
@@ -74,6 +103,8 @@ export default function PreferencesPage(): JSX.SpecificElement<"center"> {
         config.addListener("settingChanged:GUIScale", GUIScaleChangeCallback);
         // Debug HUD option listener
         config.addListener("settingChanged:debugHUD", debugHUDChangeCallback);
+        // Panorama option listener
+        config.addListener("settingChanged:panorama", panoramaChangeCallback);
         // System theme listener
         const prefersDarkColorSchemeMediaQueryList: MediaQueryList = window.matchMedia("(prefers-color-scheme: dark)");
         prefersDarkColorSchemeMediaQueryList.addEventListener("change", onSystemThemeChange, {
@@ -86,6 +117,7 @@ export default function PreferencesPage(): JSX.SpecificElement<"center"> {
             // Remove non-abortable listeners
             config.removeListener("settingChanged:GUIScale", GUIScaleChangeCallback);
             config.removeListener("settingChanged:debugHUD", debugHUDChangeCallback);
+            config.removeListener("settingChanged:panorama", panoramaChangeCallback);
         };
     });
     return (
@@ -216,7 +248,7 @@ export default function PreferencesPage(): JSX.SpecificElement<"center"> {
                         config.GUIScale = Number(this.getAttribute("data-value"));
                         updateGUIScale();
                     }}
-                ></Slider>
+                />
                 <Dropdown
                     label="Theme"
                     id="theme_dropdown"
@@ -248,6 +280,115 @@ export default function PreferencesPage(): JSX.SpecificElement<"center"> {
                         config.theme = value;
                     }}
                     selectedOptionTextDisplayRef={themeDropdownSelectedOptionTextDisplayRef}
+                />
+                <Dropdown
+                    label="Panorama"
+                    id="panorama_dropdown"
+                    minWidth="100px"
+                    options={config.constants.panoramaList.map(
+                        (panorama: typeof config.panorama): DropdownOption<typeof config.panorama> => ({
+                            label: config.constants.panoramaDisplayMapping[panorama] ?? panorama,
+                            value: panorama,
+                            default: config.panorama === panorama,
+                        })
+                    )}
+                    onChange={(value: typeof config.panorama): void => {
+                        config.panorama = value;
+                    }}
+                    selectedOptionTextDisplayRef={panoramaDropdownSelectedOptionTextDisplayRef}
+                    dropdownContentsRef={panoramaDropdownContentsRef}
+                />
+                <TextBox
+                    inputRef={panoramaPerspectiveOptionRef}
+                    label="Panorama Perspective"
+                    value={config.panoramaPerspective.toString()}
+                    placeholder="400"
+                    inputProperties={{
+                        type: "number",
+                        inputMode: "numeric",
+                        min: "0",
+                        step: "1",
+                        disabled: config.panorama === "off",
+                    }}
+                    required
+                    onInput={(event: JSX.TargetedInputEvent<HTMLInputElement>): void => {
+                        if (event.currentTarget.validity.badInput || !/^-?\d*\.?\d*$/.test(event.currentTarget.value)) {
+                            event.currentTarget.style.outline = "calc(var(--gui-scale) * 1px) solid red";
+                            event.currentTarget.style.color = "red";
+                        } else {
+                            event.currentTarget.style.outline = "";
+                            event.currentTarget.style.color = "";
+                        }
+                    }}
+                    onChange={function onChange(this: HTMLInputElement, _event: Event): void {
+                        this.style.outline = "";
+                        this.style.color = "";
+                        if (this.value === "") {
+                            config.panoramaPerspective = undefined;
+                            this.valueAsNumber = config.panoramaPerspective;
+                        } else if (!/^-?\d*\.?\d*$/.test(this.value)) {
+                            this.valueAsNumber = config.panoramaPerspective;
+                        } else {
+                            config.panoramaPerspective = this.valueAsNumber;
+                        }
+                    }}
+                />
+                <Dropdown
+                    dropdownButtonRef={panoramaRotateDirectionDropdownButtonRef}
+                    label="Panorama Rotate Direction"
+                    id="panorama_rotate_direction_dropdown"
+                    minWidth="100px"
+                    disabled={config.panorama === "off"}
+                    options={[
+                        {
+                            label: "Clockwise",
+                            value: "clockwise",
+                            default: config.panoramaRotateDirection === "clockwise",
+                        },
+                        {
+                            label: "Counterclockwise (Default)",
+                            value: "counterclockwise",
+                            default: config.panoramaRotateDirection === "counterclockwise",
+                        },
+                    ]}
+                    onChange={(value: typeof config.panoramaRotateDirection): void => {
+                        config.panoramaRotateDirection = value;
+                    }}
+                />
+                <TextBox
+                    inputRef={panoramaRotateSpeedOptionRef}
+                    label="Panorama Rotate Speed"
+                    value={config.panoramaRotateSpeed.toString()}
+                    placeholder="2.5"
+                    inputProperties={{
+                        type: "number",
+                        inputMode: "numeric",
+                        min: "0",
+                        step: "0.5",
+                        disabled: config.panorama === "off",
+                    }}
+                    required
+                    onInput={(event: JSX.TargetedInputEvent<HTMLInputElement>): void => {
+                        if (event.currentTarget.validity.badInput || !/^\d*\.?\d*$/.test(event.currentTarget.value)) {
+                            event.currentTarget.style.outline = "calc(var(--gui-scale) * 1px) solid red";
+                            event.currentTarget.style.color = "red";
+                        } else {
+                            event.currentTarget.style.outline = "";
+                            event.currentTarget.style.color = "";
+                        }
+                    }}
+                    onChange={function onChange(this: HTMLInputElement, _event: Event): void {
+                        this.style.outline = "";
+                        this.style.color = "";
+                        if (this.value === "") {
+                            config.panoramaRotateSpeed = undefined;
+                            this.valueAsNumber = config.panoramaRotateSpeed;
+                        } else if (!/^\d*\.?\d*$/.test(this.value)) {
+                            this.valueAsNumber = config.panoramaRotateSpeed;
+                        } else {
+                            config.panoramaRotateSpeed = this.valueAsNumber;
+                        }
+                    }}
                 />
             </SettingsSectionContainer>
             <SettingsSectionContainer sectionWidth="60%" sectionID="audio" sidebarRadioID="perferences_section">
@@ -932,11 +1073,13 @@ export interface SettingsSectionContainerProps extends JSX.HTMLAttributes<HTMLDi
 export function SettingsSectionContainer(options: SettingsSectionContainerProps): JSX.SpecificElement<"div"> {
     const containerRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
     const scrollingViewportRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
+    const scrollingViewportContainerRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
     useEffect((): void => {
-        if (scrollingViewportRef.current) {
+        // MutationObserver.prototype.observe(HTMLElement.prototype, {subtree: true, childList: true, attributes: true, characterData: true});
+        if (scrollingViewportRef.current && scrollingViewportContainerRef.current) {
             OverlayScrollbars(
                 {
-                    target: scrollingViewportRef.current,
+                    target: scrollingViewportContainerRef.current,
                     elements: {
                         viewport: scrollingViewportRef.current,
                     },
@@ -945,6 +1088,11 @@ export function SettingsSectionContainer(options: SettingsSectionContainerProps)
                     overflow: {
                         x: "scroll",
                         y: "scroll",
+                    },
+                    update: {
+                        ignoreMutation: null,
+                        elementEvents: [["div.settings-section-container-viewport", "resize"]],
+                        attributes: ["hidden"]
                     },
 
                     scrollbars: {},
@@ -976,18 +1124,29 @@ export function SettingsSectionContainer(options: SettingsSectionContainerProps)
             )}
         >
             <div
-                ref={mergeRefs(scrollingViewportRef, options.scrollingViewportRef)}
-                class="settings-section-container-viewport"
+                ref={scrollingViewportContainerRef}
+                class="settings-section-container-viewport-container"
                 style={{
                     width: "calc(100% - 24px)",
-                    height: "calc(100% - 24px)",
+                    height: "calc(100% - 12px)",
                     padding: "12px",
-                    display: "flex",
-                    flexDirection: "column",
-                    gap: "calc((2px * var(--gui-scale)) + 1px)",
+                    paddingBottom: "0",
                 }}
             >
-                {options.children}
+                <div
+                    ref={mergeRefs(scrollingViewportRef, options.scrollingViewportRef)}
+                    class="settings-section-container-viewport"
+                    style={{
+                        width: "calc(100% - 24px)",
+                        height: "100%",
+                        padding: "12px",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: "calc((2px * var(--gui-scale)) + 1px)",
+                    }}
+                >
+                    {options.children}
+                </div>
             </div>
         </div>
     );

@@ -2,18 +2,82 @@ import mergeRefs from "merge-refs";
 import type { JSX, RefObject } from "preact";
 import _React, { useRef, useEffect, Component } from "preact/compat";
 
+/**
+ * The props for a dropdown component.
+ */
 export interface DropdownProps<T extends string = string> {
+    /**
+     * The label of the dropdown, this is displayed above the dropdown.
+     */
     label: string;
+    /**
+     * The id of the dropdown.
+     */
     id: string;
+    /**
+     * The options for the dropdown.
+     */
     options: DropdownOption<T>[];
+    /**
+     * The minimum width of the dropdown.
+     *
+     * @default "50px"
+     */
     minWidth?: string;
+    /**
+     * This is the function that is called when an option is selected.
+     *
+     * @param value The value of the selected option.
+     *
+     * @default undefined
+     */
     onChange?(value: T): void;
+    /**
+     * Whether the dropdown is initially disabled.
+     *
+     * Setting this will true will set the `disabled` property of the {@link dropdownButtonRef | dropdown button} to true.
+     *
+     * @default false
+     */
+    disabled?: boolean;
+    /**
+     * This is the span element that contains the text displayed in the {@link dropdownButtonRef | dropdown button}.
+     *
+     * @default undefined
+     */
     selectedOptionTextDisplayRef?: RefObject<HTMLSpanElement>;
+    /**
+     * This is the div that contains the dropdown contents.
+     *
+     * Inside of this is a single div element that contains div elements for each option,
+     * each of these div elements contains and input (a hidden radio input element that is
+     * checked when the option is selected), div (the thing that renders the checkbox image),
+     * and label (the option's label).
+     *
+     * @default undefined
+     */
     dropdownContentsRef?: RefObject<HTMLDivElement>;
+    /**
+     * This is the button that shows/hides the dropdown.
+     *
+     * This is what you disable to disable the dropdown.
+     *
+     * @default undefined
+     */
+    dropdownButtonRef?: RefObject<HTMLButtonElement>;
 }
 
+/**
+ * A dropdown.
+ *
+ * If you need to dynamically disable or enable the dropdown, you just set the dropdown button to be disabled.
+ *
+ * @param props The props for the dropdown.
+ * @returns The dropdown component.
+ */
 export default function Dropdown<T extends string = string>(props: DropdownProps<T>): JSX.Element {
     const selectedOptionTextDisplayRef: RefObject<HTMLSpanElement> = useRef<HTMLSpanElement>(null);
+    const dropdownButtonRef: RefObject<HTMLButtonElement> = useRef<HTMLButtonElement>(null);
     function onChange(value: T): void {
         selectedOptionTextDisplayRef.current!.textContent =
             props.options.find((option: DropdownOption): boolean | undefined => option.value === value)?.label ?? null;
@@ -46,6 +110,8 @@ export default function Dropdown<T extends string = string>(props: DropdownProps
                         event.currentTarget.parentElement?.querySelector('[data-dropdown-component="dropdowncontents"]')?.setAttribute("hidden", "");
                     }
                 }}
+                disabled={props.disabled}
+                ref={mergeRefs(dropdownButtonRef, props.dropdownButtonRef)}
             >
                 <span data-dropdown-component="selectedOptionTextDisplay" ref={mergeRefs(selectedOptionTextDisplayRef, props.selectedOptionTextDisplayRef)}>
                     {props.options.find((option: DropdownOption): boolean | undefined => option.default)?.label}
@@ -84,6 +150,7 @@ export default function Dropdown<T extends string = string>(props: DropdownProps
                                 class="mcdropdownoption"
                                 onTouchStart={(): void => {}}
                                 onMouseDown={(event: JSX.TargetedMouseEvent<HTMLInputElement>): void => {
+                                    if (dropdownButtonRef.current?.disabled) return;
                                     const radioInput: Element | null = event.currentTarget.querySelector("input[type='radio']");
                                     if (radioInput instanceof HTMLInputElement && !radioInput.disabled) {
                                         SoundEffects.popB();
@@ -91,6 +158,7 @@ export default function Dropdown<T extends string = string>(props: DropdownProps
                                 }}
                                 onClick={(event: JSX.TargetedMouseEvent<HTMLDivElement>): void => {
                                     event.preventDefault();
+                                    if (dropdownButtonRef.current?.disabled) return;
                                     const radioInput: Element | null = event.currentTarget.querySelector("input[type='radio']");
                                     if (radioInput instanceof HTMLInputElement && !radioInput.disabled) {
                                         radioInput.checked = true;

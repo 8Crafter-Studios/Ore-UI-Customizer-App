@@ -14,6 +14,130 @@ import TutorialPage from "./pages/tutorial";
 import ConfigEditorPage from "./pages/configEditor";
 import ConfigDetailsOverlayPage from "./overlay_pages/ConfigDetailsOverlayPage";
 import DebugOverlay from "./components/DebugOverlay";
+import { Cubemap } from "../src/libs/@hatchibombotar-cubemap/index.ts";
+
+// Panorama
+const panoramaCSSLinkElement: HTMLLinkElement = document.createElement("link");
+panoramaCSSLinkElement.href = "/src/libs/@hatchibombotar-cubemap/index.css";
+panoramaCSSLinkElement.type = "text/css";
+panoramaCSSLinkElement.rel = "stylesheet";
+document.getElementsByTagName("head")[0]?.appendChild(panoramaCSSLinkElement);
+const panoramaContainer: HTMLDivElement = document.createElement("div");
+panoramaContainer.id = "panorama-container";
+panoramaContainer.style.position = "fixed";
+panoramaContainer.style.zIndex = "-10";
+document.getElementsByTagName("body")[0]!.appendChild(panoramaContainer);
+if (config.panorama !== "off") {
+    globalThis.cubemap = new Cubemap(
+        panoramaContainer,
+        [
+            "resource://images/cubemap/" + config.panorama + "/front.png",
+            "resource://images/cubemap/" + config.panorama + "/right.png",
+            "resource://images/cubemap/" + config.panorama + "/back.png",
+            "resource://images/cubemap/" + config.panorama + "/left.png",
+            "resource://images/cubemap/" + config.panorama + "/top.png",
+            "resource://images/cubemap/" + config.panorama + "/bottom.png",
+        ],
+        {
+            width: "100vw",
+            height: "100vh",
+            perspective: config.panoramaPerspective,
+            rotate_type: "auto",
+            rotate_speed: config.panoramaRotateSpeed,
+            background_color: "transparent",
+            direction: config.panoramaRotateDirection,
+        }
+    );
+} else {
+    globalThis.cubemap = undefined;
+}
+config.on("settingChanged:panorama", (panorama: typeof config.panorama): void => {
+    if (panorama === "off" && globalThis.cubemap !== undefined) {
+        panoramaContainer.replaceChildren();
+        globalThis.cubemap = undefined;
+    } else if (panorama !== "off" && globalThis.cubemap === undefined) {
+        globalThis.cubemap = new Cubemap(
+            panoramaContainer,
+            [
+                "resource://images/cubemap/" + panorama + "/front.png",
+                "resource://images/cubemap/" + panorama + "/right.png",
+                "resource://images/cubemap/" + panorama + "/back.png",
+                "resource://images/cubemap/" + panorama + "/left.png",
+                "resource://images/cubemap/" + panorama + "/top.png",
+                "resource://images/cubemap/" + panorama + "/bottom.png",
+            ],
+            {
+                width: "100vw",
+                height: "100vh",
+                perspective: config.panoramaPerspective,
+                rotate_type: "auto",
+                rotate_speed: config.panoramaRotateSpeed,
+                background_color: "transparent",
+                direction: config.panoramaRotateDirection,
+            }
+        );
+    } else if (panorama !== "off" && globalThis.cubemap !== undefined) {
+        globalThis.cubemap.images = [
+            "resource://images/cubemap/" + panorama + "/front.png",
+            "resource://images/cubemap/" + panorama + "/right.png",
+            "resource://images/cubemap/" + panorama + "/back.png",
+            "resource://images/cubemap/" + panorama + "/left.png",
+            "resource://images/cubemap/" + panorama + "/top.png",
+            "resource://images/cubemap/" + panorama + "/bottom.png",
+        ];
+        globalThis.cubemap.center.replaceChildren();
+        globalThis.cubemap.load();
+    }
+});
+config.on("settingChanged:panoramaPerspective", (panoramaPerspective: typeof config.panoramaPerspective): void => {
+    if (globalThis.cubemap === undefined) return;
+    globalThis.cubemap.perspective = panoramaPerspective;
+    globalThis.cubemap.update();
+});
+config.on("settingChanged:panoramaRotateDirection", (panoramaRotateDirection: typeof config.panoramaRotateDirection): void => {
+    if (globalThis.cubemap === undefined) return;
+    globalThis.cubemap.options.direction = panoramaRotateDirection;
+    globalThis.cubemap.update();
+});
+config.on("settingChanged:panoramaRotateSpeed", (panoramaRotateSpeed: typeof config.panoramaRotateSpeed): void => {
+    if (globalThis.cubemap === undefined) return;
+    globalThis.cubemap.center.style.setProperty("--spin-time", 360 / panoramaRotateSpeed + "s");
+});
+window.addEventListener("resize", (): void => void globalThis.cubemap?.update());
+
+// Panorama that allows for looking around with pointer lock, this is for possible future use.
+/* document.body.replaceChildren();
+const panoramaContainer = document.createElement("div");
+panoramaContainer.id = "panorama-container";
+panoramaContainer.style.position = "fixed";
+panoramaContainer.style.zIndex = "0";
+document.getElementsByTagName("body")[0].appendChild(panoramaContainer);
+globalThis.cubemap = new cubemap.constructor(
+    panoramaContainer,
+    [
+        "resource://images/cubemap/" + config.panorama + "/front.png",
+        "resource://images/cubemap/" + config.panorama + "/right.png",
+        "resource://images/cubemap/" + config.panorama + "/back.png",
+        "resource://images/cubemap/" + config.panorama + "/left.png",
+        "resource://images/cubemap/" + config.panorama + "/top.png",
+        "resource://images/cubemap/" + config.panorama + "/bottom.png",
+    ],
+    {
+        width: "100vw",
+        height: "100vh",
+        perspective: config.panoramaPerspective,
+        rotate_type: "drag",
+        rotate_speed: config.panoramaRotateSpeed,
+        background_color: "transparent",
+        direction: config.panoramaRotateDirection,
+    }
+);
+document.querySelector(".cubemap").addEventListener("mousedown", () => {
+    document.querySelector(".cubemap").requestPointerLock();
+});
+document.querySelector(".cubemap").addEventListener("mouseup", () => {
+    document.exitPointerLock();
+}); */
 
 let lastRoute: Router["routes"][number]["supportedRoutes"][number] | null = router.getRouteForLocation()!;
 
@@ -355,6 +479,9 @@ config.on("settingChanged", (...[key]: ConfigEventMap["settingChanged"]): void =
 });
 
 declare global {
+    namespace globalThis {
+        var cubemap: Cubemap | undefined;
+    }
     interface WindowEventMap {
         GUIScaleChange: CustomEvent<{ newGUIScale: number }>;
     }
