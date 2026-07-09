@@ -27,6 +27,6 @@
         "types": ["@ore-ui-types/libs"],
         "alwaysStrict": false
     },
-    "include": ["./"],
+    "include": ["./", "node_modules/@ore-ui-types/libs"],
     "exclude": ["node_modules/@types/node"]
 }

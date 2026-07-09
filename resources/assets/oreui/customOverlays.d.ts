@@ -179,7 +179,7 @@ declare function mapStackWithTS(stack: string, showLoadingPlaceholders?: boolean
     hasUnloadedStacks: true;
     fullyLoadedStack: Promise<string>;
 };
-declare const facetList: string[];
+declare const facetList: FacetList[number][];
 interface EngineInterceptorEventMap {
     beforeMethodCall: EngineInterceptorBeforeMethodCallEvent;
     methodCall: EngineInterceptorAfterMethodCallEvent;
@@ -339,6 +339,40 @@ declare namespace globalThis {
              * The list of facets that when an event related to them is triggered by the vanilla UI files, the event is blocked from passing to anything else.
              */
             readonly facetsWithUpdatesFromVanillaBlocked: string[];
+            /**
+             * The list of facets that have been loaded that are new (as in not yet in the {@link facetList}) that have been logged in the console.
+             *
+             * @internal
+             */
+            readonly __notedDiscoveredNewLoadedFacets__: string[];
+            /**
+             * The list of facets that have been loaded that are new (as in not yet in the {@link facetList}).
+             */
+            readonly discoveredNewLoadedFacets: string[];
+            /**
+             * The list of facets that have been requested that are new (as in not yet in the {@link facetList}).
+             */
+            readonly discoveredNewRequestedFacets: string[];
+            /**
+             * Observes the data of a facet.
+             *
+             * The callback is not triggered when the facet is discarded.
+             *
+             * @template T The ID of the facet to observe the data of.
+             * @param facet The facet to observe the data of.
+             * @param callback The callback to call when the data of the facet changes.
+             * @returns Whether the callback was added or not. If it returns false that means that the specified callback was already being used to observe the specified facet.
+             */
+            observeFacetData<T extends LooseAutocomplete<FacetList[number]>>(facet: T, callback: (facetData: (FacetTypeMap & Record<string, unknown>)[T], facet: T) => void): boolean;
+            /**
+             * Stops observing the data of a facet.
+             *
+             * @template T The ID of the facet to stop observing the data of.
+             * @param facet The facet to stop observing the data of.
+             * @param callback The callback that was passed to {@link observeFacetData}.
+             * @returns Whether the callback was removed or not. If it returns false that means that the specified callback was not being used to observe the specified facet.
+             */
+            unobserveFacetData<T extends LooseAutocomplete<FacetList[number]>>(facet: T, callback: (facetData: (FacetTypeMap & Record<string, unknown>)[T], facet: T) => void): boolean;
             /**
              * Sets whether a facet is force loaded or not.
              *

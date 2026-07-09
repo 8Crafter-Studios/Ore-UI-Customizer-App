@@ -6,7 +6,7 @@
  */
 import path, { type resolve } from "node:path";
 import { copyFileSync, createWriteStream, Dirent, existsSync, mkdirSync, readdirSync, readFileSync, rmdirSync, rmSync, writeFileSync } from "node:fs";
-import semver from "semver";
+import semver, { type SemVer } from "semver";
 import { API_SOURCE_WEBSITE_URL, APP_DATA_FOLDER_PATH, CACHE_FOLDER_PATH, CACHE_FOLDER_SUBPATHS, OLD_APP_DATA_FOLDER_PATH } from "./URLs";
 import "./zip.js";
 import { ConfigManager } from "./ConfigManager.ts";
@@ -736,6 +736,12 @@ export class VersionFolder implements Omit<VersionFolderVersionDetailsExtended, 
      * @returns `true` if the version of the Ore UI Customizer that is installed on the version folder is outdated, `false` otherwise.
      */
     public getIsUpdateAvailable(): boolean {
+        const v1: SemVer | null = semver.parse(this.installedVersion!);
+        const v2: SemVer | null = semver.parse(format_version);
+        if (v1 !== null && v2 !== null && v1.version === v2.version && !v1.build.length !== !v2.build.length) {
+            if (v1.build.length === 0) return false;
+            return true;
+        }
         return semver.compareBuild(this.installedVersion!, format_version) === -1;
     }
     /**

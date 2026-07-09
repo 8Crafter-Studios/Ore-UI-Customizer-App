@@ -683,6 +683,157 @@ const facetList = [
         ]
         : []),
 ];
+//#region Facet Spy Failure Fallback Injections
+globalThis.forceLoadFacet ??= async function forceLoadFacet(facetName, timeout = 5000, ignoreAlreadyLoadedData = false) {
+    return await new Promise((resolve, reject) => {
+        const currentFacetData = FacetManager.facetData[facetName];
+        if (!ignoreAlreadyLoadedData && facetName in FacetManager.facetData) {
+            resolve(currentFacetData);
+            return;
+        }
+        let facetStatus = "unloaded";
+        const callback = (value) => {
+            try {
+                // globalThis.forceLoadedFacets[facetName as FacetList[number]] = true;
+                if (!FacetManager.forceLoadedFacets.includes(facetName))
+                    FacetManager.forceLoadedFacets.push(facetName);
+                // const targetFacetA: SharedFacetBase<string> | undefined = globalThis.facetSpyData?.sharedFacets?.[facetName as FacetList[number]] as
+                //     | SharedFacetBase<string>
+                //     | undefined;
+                // const targetFacetB: SharedFacetBase<string> | undefined = globalThis.accessedFacets?.[facetName as string]?.();
+                // if (!targetFacetA && !targetFacetB) {
+                //     throw new ReferenceError(
+                //         `No target facet matching the facet's name could be found in facetSpyData.sharedFacets or accessedFacets for facet: ${facetName}`
+                //     );
+                // }
+                // targetFacetA?.set(value);
+                // targetFacetB?.set(value);
+                engine.off(`facet:updated:${facetName}`, callback);
+                engine.off(`facet:error:${facetName}`, failureCallback);
+                facetStatus = "loaded";
+                resolve(value);
+            }
+            catch (e) {
+                facetStatus = "failed";
+                // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
+                reject(e);
+            }
+        };
+        const failureCallback = (e) => {
+            try {
+                engine.off(`facet:updated:${facetName}`, callback);
+                engine.off(`facet:error:${facetName}`, failureCallback);
+                facetStatus = "failed";
+                // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
+                reject(e);
+            }
+            catch (e) {
+                facetStatus = "failed";
+                // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
+                reject(e);
+            }
+        };
+        engine.on(`facet:updated:${facetName}`, callback);
+        engine.on(`facet:error:${facetName}`, failureCallback);
+        engine.trigger("facet:request", facetName, facetName, {});
+        if (timeout && timeout < Infinity) {
+            setTimeout(() => {
+                if (facetStatus !== "unloaded")
+                    return;
+                facetStatus = "failed";
+                engine.off(`facet:updated:${facetName}`, callback);
+                engine.off(`facet:error:${facetName}`, failureCallback);
+                reject(new ReferenceError(`Timed out while fetching facet: ${facetName} (timeout: ${timeout})`));
+            }, timeout);
+        }
+    });
+};
+globalThis.unloadForceLoadedFacet ??= function unloadForceLoadedFacet(facetName) {
+    if (FacetManager.forceLoadedFacets.includes(facetName) /* globalThis.forceLoadedFacets[facetName as FacetList[number]] */) {
+        forceUnloadFacet(facetName);
+        // delete globalThis.forceLoadedFacets[facetName as FacetList[number]];
+        if (FacetManager.forceLoadedFacets.includes(facetName))
+            FacetManager.forceLoadedFacets.splice(FacetManager.forceLoadedFacets.indexOf(facetName), 1);
+        return true;
+    }
+    return false;
+};
+globalThis.forceUnloadFacet ??= function forceUnloadFacet(facetName) {
+    engine.trigger("facet:discard", facetName);
+    // const targetFacetA: SharedFacetBase<string> | undefined = globalThis.facetSpyData?.sharedFacets?.[facetName as FacetList[number]] as
+    //     | SharedFacetBase<string>
+    //     | undefined;
+    // const targetFacetB: SharedFacetBase<string> | undefined = globalThis.accessedFacets?.[facetName]?.();
+    // try {
+    //     targetFacetA?.set(Symbol.for("NoValue") as FacetNoValueSymbol);
+    // } catch (e) {
+    //     if ((globalThis as Record<string, unknown>)["logForceUnloadFacetSetValueErrors"]) {
+    //         console.error(e);
+    //     }
+    // }
+    // try {
+    //     targetFacetB?.set(Symbol.for("NoValue") as FacetNoValueSymbol);
+    // } catch (e) {
+    //     if ((globalThis as Record<string, unknown>)["logForceUnloadFacetSetValueErrors"]) {
+    //         console.error(e);
+    //     }
+    // }
+};
+globalThis.forceLoadUnloadedFacets ??= async function forceLoadUnloadedFacets({ enableErrorLogging = false, enableSuccessLogging = false, enableAlreadyLoadedLogging = false, enableLoadingFacetsTracking = false, } = {}) {
+    if (!globalThis.facetSpyData)
+        throw new ReferenceError("The global facetSpyData variable was not found.");
+    if (enableLoadingFacetsTracking)
+        globalThis.loadingFacets = {};
+    return await Promise.all(facetList.map(async (facetName, i) => {
+        // Since i is always an integer, it is safe to cast it to a bigint when putting it into the template string.
+        if (enableLoadingFacetsTracking)
+            globalThis.loadingFacets[`${facetName}${i}`] = true;
+        try {
+            const currentFacetData = (globalThis.facetSpyData?.sharedFacets?.[facetName] ?? globalThis.accessedFacets?.[facetName]?.())?.get();
+            if ((currentFacetData?.toString?.() ?? "Symbol(NoValue)") === "Symbol(NoValue)") {
+                const result = [facetName, await forceLoadFacet(facetName), "success", !facetList.includes(facetName)];
+                if (enableSuccessLogging)
+                    console.log(i, ...result);
+                return result;
+            }
+            const result = [facetName, currentFacetData, "alreadyLoaded", !facetList.includes(facetName)];
+            if (enableAlreadyLoadedLogging)
+                console.log(i, ...result);
+            return result;
+        }
+        catch (e) {
+            if (enableErrorLogging)
+                console.error(e, i, facetName, "error");
+            return [facetName, e, "error"];
+        }
+        finally {
+            if (enableLoadingFacetsTracking)
+                delete globalThis.loadingFacets[`${facetName}${i}`];
+        }
+    }));
+};
+globalThis.unloadForceLoadedFacets ??= function unloadForceLoadedFacets() {
+    return FacetManager.forceLoadedFacets /* Object.keys(globalThis.forceLoadedFacets) */
+        .map((facetName) => [
+        facetName,
+        unloadForceLoadedFacet(facetName),
+    ]);
+};
+// globalThis.forceLoadedFacets ??= {};
+{
+    const checkForNewFacetsFallbackIntervalId = setInterval(function checkForNewFacets() {
+        if (typeof globalThis.facetSpy === "function" && globalThis.facetSpyData?.sharedFacets)
+            return void clearInterval(checkForNewFacetsFallbackIntervalId);
+        for (const facetName of FacetManager.discoveredNewLoadedFacets) {
+            if (facetList.includes(facetName))
+                continue;
+            if (FacetManager.__notedDiscoveredNewLoadedFacets__.includes(facetName))
+                continue;
+            FacetManager.__notedDiscoveredNewLoadedFacets__.push(facetName);
+            console.info(`New facet discovered (loaded)!: ${facetName}`);
+        }
+    }, 1);
+}
 /**
  * A polyfilled version of {@link EventTarget}.
  *
@@ -844,7 +995,7 @@ class PolyfillEventTarget {
         let _stopPropagationTriggered = false;
         let stopImmediatePropagationTriggered = false;
         const proxy = new Proxy(event, {
-            get(target, prop, _receiver) {
+            get: (target, prop, _receiver) => {
                 if (prop === "stopPropagation") {
                     return function stopPropagation() {
                         _stopPropagationTriggered = true;
@@ -865,7 +1016,34 @@ class PolyfillEventTarget {
                 if (prop === "currentTarget")
                     return this;
                 // Access it directly to stop TypeErrors when a getter tries to access a private property.
-                return target[prop];
+                const targetPropValue = target[prop];
+                if (typeof targetPropValue === "function") {
+                    try {
+                        // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
+                        const boundMethod = targetPropValue.bind(target);
+                        boundMethod.originalMethodProp = prop;
+                        boundMethod.originalMethod = targetPropValue;
+                        boundMethod.originalContainerObject = target;
+                        return boundMethod;
+                    }
+                    catch {
+                        try {
+                            const methodProxy = (...args) => {
+                                // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+                                return targetPropValue(...args);
+                            };
+                            methodProxy.name = `${targetPropValue.name}_proxy`;
+                            methodProxy.originalMethodProp = prop;
+                            methodProxy.originalMethod = targetPropValue;
+                            methodProxy.originalContainerObject = target;
+                            return methodProxy;
+                        }
+                        catch {
+                            return targetPropValue;
+                        }
+                    }
+                }
+                return targetPropValue;
                 // return Reflect.get(target, prop, receiver);
             },
         });
@@ -1132,6 +1310,7 @@ var globalThis;
          */
         class FacetManager extends PolyfillEventTarget {
             static #constructed = false;
+            #observedFacets = {};
             constructor() {
                 if (FacetManager.#constructed)
                     throw new TypeError("Illegal constructor");
@@ -1154,6 +1333,20 @@ var globalThis;
              */
             facetsWithUpdatesFromVanillaBlocked = [];
             /**
+             * The list of facets that have been loaded that are new (as in not yet in the {@link facetList}) that have been logged in the console.
+             *
+             * @internal
+             */
+            __notedDiscoveredNewLoadedFacets__ = [];
+            /**
+             * The list of facets that have been loaded that are new (as in not yet in the {@link facetList}).
+             */
+            discoveredNewLoadedFacets = [];
+            /**
+             * The list of facets that have been requested that are new (as in not yet in the {@link facetList}).
+             */
+            discoveredNewRequestedFacets = [];
+            /**
              * @todo
              */
             #init() {
@@ -1163,14 +1356,108 @@ var globalThis;
                     if (!id.startsWith("facet:updated:"))
                         return;
                     // this.dispatchEvent(new FacetUpdatedEvent(facetName)); // TODO
+                    const facetID = id.slice("facet:updated:".length);
                     // TEMP
-                    this.facetData[id.slice("facet:updated:".length)] = facetData;
+                    this.facetData[facetID] = facetData;
+                    this.#triggerFacetDataObservers(facetID, facetData);
+                    if (!facetList.includes(facetID) && !this.discoveredNewLoadedFacets.includes(facetID)) {
+                        // this.dispatchEvent(new FacetNewNotedLoadedFacetEvent(facetName)); // TODO
+                        this.discoveredNewLoadedFacets.push(facetID);
+                    }
+                });
+                __OUICInternals__.EngineInterceptorInstance.addEventListener("beforeMethodCall", (event) => {
+                    if (event.method !== "trigger")
+                        return;
+                    function assertEventMethodType(event) {
+                        /* empty */
+                    }
+                    assertEventMethodType(event);
+                    if (event.args[0] !== "facet:request")
+                        return;
+                    function assertEventArgsType(args) {
+                        /* empty */
+                    }
+                    assertEventArgsType(event.args);
+                    const facetID = event.args[1];
+                    if (!this.forceLoadedFacets.includes(facetID))
+                        return;
+                    if (!(facetID in this.facetData))
+                        return;
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    // IDEA: Maybe create an Error object and check the stack to see if the source of this facet request was a vanilla file, or at least check to make sure the forceLoadFacet function isn't in the error stack.
+                    (__OUICInternals__.EngineInterceptorInstance.originalEngineMethods.trigger?.bind(globalThis.engine) ?? globalThis.engine.trigger)(`facet:updated:${facetID}`, this.facetData[facetID]);
+                });
+                (__OUICInternals__.EngineInterceptorInstance.originalEngineMethods.on?.bind(globalThis.engine) ?? globalThis.engine.on)("facet:request", (facetName) => {
+                    // this.dispatchEvent(new FacetNewNotedRequestedFacetEvent(facetName)); // TODO
+                    this.discoveredNewRequestedFacets.push(facetName);
                 });
                 (__OUICInternals__.EngineInterceptorInstance.originalEngineMethods.on?.bind(globalThis.engine) ?? globalThis.engine.on)("facet:discard", (facetName) => {
                     // this.dispatchEvent(new FacetDiscardedEvent(facetName)); // TODO
                     // TEMP
                     delete this.facetData[facetName];
                 });
+            }
+            /**
+             * Triggers the facet data observation callbacks for the specified facet.
+             *
+             * The should not be called when the facet is discarded.
+             *
+             * @template T The ID of the facet to trigger the observers of.
+             * @param facet The facet to trigger the observers of.
+             * @param facetData The data to pass to the callbacks.
+             */
+            #triggerFacetDataObservers(facet, facetData) {
+                if (!this)
+                    throw new TypeError("Illegal invocation");
+                if (!this.#observedFacets[facet])
+                    return;
+                for (const callback of this.#observedFacets[facet]) {
+                    try {
+                        callback(facetData, facet);
+                    }
+                    catch (e) {
+                        console.error(e);
+                    }
+                }
+            }
+            /**
+             * Observes the data of a facet.
+             *
+             * The callback is not triggered when the facet is discarded.
+             *
+             * @template T The ID of the facet to observe the data of.
+             * @param facet The facet to observe the data of.
+             * @param callback The callback to call when the data of the facet changes.
+             * @returns Whether the callback was added or not. If it returns false that means that the specified callback was already being used to observe the specified facet.
+             */
+            observeFacetData(facet, callback) {
+                if (!this)
+                    throw new TypeError("Illegal invocation");
+                if (this.#observedFacets[facet]?.includes(callback))
+                    return false;
+                this.#observedFacets[facet] ??= [];
+                this.#observedFacets[facet].push(callback);
+                return true;
+            }
+            /**
+             * Stops observing the data of a facet.
+             *
+             * @template T The ID of the facet to stop observing the data of.
+             * @param facet The facet to stop observing the data of.
+             * @param callback The callback that was passed to {@link observeFacetData}.
+             * @returns Whether the callback was removed or not. If it returns false that means that the specified callback was not being used to observe the specified facet.
+             */
+            unobserveFacetData(facet, callback) {
+                if (!this)
+                    throw new TypeError("Illegal invocation");
+                if (!this.#observedFacets[facet])
+                    return false;
+                const callbackIndex = this.#observedFacets[facet].indexOf(callback);
+                if (callbackIndex === -1)
+                    return false;
+                this.#observedFacets[facet].splice(callbackIndex, 1);
+                return true;
             }
             /**
              * Sets whether a facet is force loaded or not.
@@ -1206,6 +1493,21 @@ var globalThis;
         __decorate([
             writable(false)
         ], FacetManager.prototype, "facetsWithUpdatesFromVanillaBlocked", void 0);
+        __decorate([
+            writable(false)
+        ], FacetManager.prototype, "__notedDiscoveredNewLoadedFacets__", void 0);
+        __decorate([
+            writable(false)
+        ], FacetManager.prototype, "discoveredNewLoadedFacets", void 0);
+        __decorate([
+            writable(false)
+        ], FacetManager.prototype, "discoveredNewRequestedFacets", void 0);
+        __decorate([
+            writable(false)
+        ], FacetManager.prototype, "observeFacetData", null);
+        __decorate([
+            writable(false)
+        ], FacetManager.prototype, "unobserveFacetData", null);
         __decorate([
             writable(false)
         ], FacetManager.prototype, "setFacetIsForceLoaded", null);
@@ -1680,6 +1982,7 @@ function hookEngineMethod(method) {
                 : void 0;
         }
         //@ts-ignore
+        // eslint-disable-next-line @typescript-eslint/no-confusing-void-expression -- Sometimes ESLint thinks this returns void rather than an object.
         const result = original.apply(engine, arguments);
         //@ts-ignore Sometimes this shows an error and sometimes it doesn't, it is very inconsistent.
         // eslint-disable-next-line @typescript-eslint/no-unsafe-argument -- Sometimes this shows an error and sometimes it doesn't, it is very inconsistent.
@@ -8049,7 +8352,7 @@ async function enableLitePlayScreen(noReload = false) {
     tabListButtons[Math.max(0, tabIDs.indexOf(currentTab))].dispatchEvent(new Event("click"));
     if (window.observingExternalServerWorldListForLitePlayScreenServersTab !== true) {
         window.observingExternalServerWorldListForLitePlayScreenServersTab = true;
-        facetSpyData.sharedFacets["vanilla.externalServerWorldList"].observe((externalServerWorldList) => {
+        FacetManager.observeFacetData("vanilla.externalServerWorldList", (externalServerWorldList) => {
             /**
              * The servers tab button.
              *
@@ -8082,7 +8385,7 @@ async function enableLitePlayScreen(noReload = false) {
     }
     if (window.observingThirdPartyWorldListForLitePlayScreenServersTab !== true) {
         window.observingThirdPartyWorldListForLitePlayScreenServersTab = true;
-        facetSpyData.sharedFacets["vanilla.thirdPartyWorldList"].observe((thirdPartyWorldList) => {
+        FacetManager.observeFacetData("vanilla.thirdPartyWorldList", (thirdPartyWorldList) => {
             const serverListIterables = thirdPartyWorldList ?
                 "thirdPartyWorlds" in thirdPartyWorldList ?
                     [thirdPartyWorldList.thirdPartyWorlds]
@@ -8128,7 +8431,7 @@ async function enableLitePlayScreen(noReload = false) {
     }
     if (window.observingFriendWorldListForLitePlayScreenFriendsTab !== true) {
         window.observingFriendWorldListForLitePlayScreenFriendsTab = true;
-        facetSpyData.sharedFacets["vanilla.friendworldlist"].observe((_friendworldList) => {
+        FacetManager.observeFacetData("vanilla.friendworldlist", (_friendworldList) => {
             if (currentTab !== "friends") {
                 return;
             }
@@ -8145,7 +8448,7 @@ async function enableLitePlayScreen(noReload = false) {
     }
     if (window.observingLANWorldListForLitePlayScreenLanTab !== true) {
         window.observingLANWorldListForLitePlayScreenLanTab = true;
-        facetSpyData.sharedFacets["vanilla.lanWorldList"].observe((_lanWorldList) => {
+        FacetManager.observeFacetData("vanilla.lanWorldList", (_lanWorldList) => {
             if (currentTab !== "friends") {
                 return;
             }
@@ -8162,7 +8465,7 @@ async function enableLitePlayScreen(noReload = false) {
     }
     if (window.observingNetworkWorldDetailsForLitePlayScreenServersTab !== true) {
         window.observingNetworkWorldDetailsForLitePlayScreenServersTab = true;
-        facetSpyData.sharedFacets["vanilla.networkWorldDetails"].observe((networkWorldDetails) => {
+        FacetManager.observeFacetData("vanilla.networkWorldDetails", (networkWorldDetails) => {
             if (currentTab !== "servers" && currentTab !== "featured") {
                 return;
             }
@@ -8583,7 +8886,8 @@ queueMicrotask(setTimeout.bind(void 0, async function startEnablingLitePlayScree
              *
              * @type {FacetTypeMap["core.router"] | undefined}
              */
-            const router = globalThis.facetSpyData && globalThis.getAccessibleFacetSpyFacets?.()["core.router"];
+            const router = 
+            /* globalThis.facetSpyData && */ globalThis.getAccessibleFacetSpyFacets?.()["core.router"];
             if (!router) {
                 // If the router facet is not available, wait for a short time and try again.
                 await new Promise((resolve) => void setTimeout(resolve, 10));
@@ -8614,7 +8918,7 @@ queueMicrotask(setTimeout.bind(void 0, async function startEnablingLitePlayScree
                 .slice(0)
                 .map(
             /** @returns {RouteHistoryItem | undefined} */ (v, i) => !v.pathname.startsWith("/ouic/") || i === router.history.list.length - 1 ? { ...v } : undefined);
-            const routerObserveCallback = (async (/** @type {FacetTypeMap["core.router"]} */ router) => {
+            const routerObserveCallback = (async (router) => {
                 if (router.history.list.length < loadedRouterPositions.length) {
                     loadedRouterPositions.splice(router.history.list.length - 1, loadedRouterPositions.length - router.history.list.length);
                 }
@@ -8624,8 +8928,9 @@ queueMicrotask(setTimeout.bind(void 0, async function startEnablingLitePlayScree
                         .map(
                     /** @returns {RouteHistoryItem | undefined} */ (v, i) => !v.pathname.startsWith("/ouic/") || i === router.history.list.length - 1 ? { ...v } : undefined));
                 }
-                else if (router.history.list[router.history.list.length - 1].pathname !==
-                    loadedRouterPositions[loadedRouterPositions.length - 1]?.pathname &&
+                else if (router.history.list.length &&
+                    router.history.list[router.history.list.length - 1].pathname !==
+                        loadedRouterPositions[loadedRouterPositions.length - 1]?.pathname &&
                     router.history.list[router.history.list.length - 1].pathname.startsWith("/ouic/") &&
                     /^\/ouic\/[^/]+/.exec(router.history.list[router.history.list.length - 1].pathname)?.[0] !==
                         loadedRouterPositions[loadedRouterPositions.length - 1]?.pathname.match(/^\/ouic\/[^/]+/)?.[0]) {
@@ -8635,7 +8940,7 @@ queueMicrotask(setTimeout.bind(void 0, async function startEnablingLitePlayScree
                     await loadOUICScreen(router.history.location.pathname);
                 }
             });
-            facetSpyData.sharedFacets["core.router"].observe(routerObserveCallback);
+            FacetManager.observeFacetData("core.router", routerObserveCallback);
             const localForceLoadedFacets = [];
             try {
                 let forceLoadedExternalServerWorldListFacet = false;
@@ -9709,23 +10014,9 @@ Pixels Per Millimeter: ${pixelsPerMillimeter ?? "Loading..."}`;
             console.error(e);
         }
     }
-    void (async function waitToInitRouterFacetObserverForRouterTabOf8CrafterUtilitiesMenu() {
-        while (typeof facetSpyData === "undefined" ||
-            !facetSpyData?.sharedFacets?.["core.router"] ||
-            typeof facetSpyData.sharedFacets["core.router"] !== "object") {
-            await new Promise((resolve) => void setTimeout(resolve, 1));
-        }
-        while (true) {
-            const routerFacetContext = facetSpyData.sharedFacets["core.router"];
-            if (routerFacetContext) {
-                routerFacetContext.observe(routerObserveCallback);
-                break;
-            }
-            await new Promise((resolve) => void setTimeout(resolve, 1));
-        }
-    })();
-    // facetSpyData.sharedFacets["core.router"].observe(routerObserveCallback);
-    // facetSpyData.sharedFacets["vanilla.connectionErrorInfoFacet"].observe(console.log);
+    FacetManager.observeFacetData("core.router", routerObserveCallback);
+    // FacetManager.observeFacetData("core.router", routerObserveCallback);
+    // FacetManager.observeFacetData("vanilla.connectionErrorInfoFacet", console.log);
     // forceLoadFacet("vanilla.connectionErrorInfoFacet");
     // forceUnloadFacet("vanilla.connectionErrorInfoFacet");
     screenInputBlocker = document.createElement("div");

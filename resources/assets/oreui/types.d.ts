@@ -442,7 +442,7 @@ declare global {
          *
          * Only exists when the {@link forceLoadUnloadedFacets} function is run with the `enableLoadingFacetsTracking` option set to `true`.
          */
-        var loadingFacets: { [FacetType in FacetList[number]]?: true } | undefined;
+        var loadingFacets: { [FacetType in `${FacetList[number]}${bigint}`]?: true } | undefined;
         /**
          * Forcefully loads all facets that are not loaded (meaning they are not accessible through the {@link getAccessibleFacetSpyFacets} function).
          *
