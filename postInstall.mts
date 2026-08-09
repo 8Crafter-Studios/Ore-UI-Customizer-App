@@ -13,3 +13,7 @@ writeFileSync(
     }
 ${readFileSync("./node_modules/@ore-ui-types/enums/index.js")}`
 );
+writeFileSync(
+    "./resources/assets/oreui/@ore-ui-types/enums.map",
+    readFileSync("./node_modules/@ore-ui-types/enums/index.js.map")
+);

@@ -32,6 +32,8 @@ declare function configurable(value: boolean): MethodDecorator & PropertyDecorat
 declare const shikiLoadedPromise: Promise<{
     default: typeof import("./shiki.bundle.js");
 }>;
+declare var oreUIEnums: typeof import("@ore-ui-types/enums") | undefined;
+declare const oreUIEnumsLoadedPromise: Promise<void>;
 interface Console {
     everything: ConsoleEverythingEntry[];
     /**
@@ -98,6 +100,10 @@ interface Window {
      * @internal
      */
     observingThirdPartyWorldListForLitePlayScreenServersTab?: boolean | undefined;
+    /**
+     * @internal
+     */
+    observingRealmsListForLitePlayScreenServersTab?: boolean | undefined;
     /**
      * @internal
      */
@@ -325,7 +331,17 @@ declare namespace globalThis {
         class FacetManager extends PolyfillEventTarget {
             #private;
             private constructor();
+            /**
+             * The data of the facets that are currently loaded, not including facets that have been discarded.
+             */
             readonly facetData: Partial<FacetTypeMap> & Record<string, unknown>;
+            /**
+             * The data of the facets that have been loaded, including facets that have been discarded.
+             */
+            readonly facetDataAll: Partial<FacetTypeMap> & Record<string, unknown>;
+            /**
+             * The list of facets that are currently force loaded.
+             */
             readonly forceLoadedFacets: string[];
             /**
              * The list of facets that are currently being used by the vanilla UI files.
@@ -363,7 +379,7 @@ declare namespace globalThis {
              * @param callback The callback to call when the data of the facet changes.
              * @returns Whether the callback was added or not. If it returns false that means that the specified callback was already being used to observe the specified facet.
              */
-            observeFacetData<T extends LooseAutocomplete<FacetList[number]>>(facet: T, callback: (facetData: (FacetTypeMap & Record<string, unknown>)[T], facet: T) => void): boolean;
+            observeFacetData<T extends LooseAutocomplete<FacetList[number]>>(facet: T, callback: (facetData: (FacetTypeMap & Record<string, unknown>)[T], facet: T) => Promise<void> | void): boolean;
             /**
              * Stops observing the data of a facet.
              *
@@ -372,7 +388,7 @@ declare namespace globalThis {
              * @param callback The callback that was passed to {@link observeFacetData}.
              * @returns Whether the callback was removed or not. If it returns false that means that the specified callback was not being used to observe the specified facet.
              */
-            unobserveFacetData<T extends LooseAutocomplete<FacetList[number]>>(facet: T, callback: (facetData: (FacetTypeMap & Record<string, unknown>)[T], facet: T) => void): boolean;
+            unobserveFacetData<T extends LooseAutocomplete<FacetList[number]>>(facet: T, callback: (facetData: (FacetTypeMap & Record<string, unknown>)[T], facet: T) => Promise<void> | void): boolean;
             /**
              * Sets whether a facet is force loaded or not.
              *
@@ -386,7 +402,7 @@ declare namespace globalThis {
             setFacetIsForceLoaded(_facet: LooseAutocomplete<FacetList[number]>, _forceLoaded: boolean): void;
         }
         /**
-         * @alpha This class is still in early development.
+         * The query
          */
         export const FacetManagerInstance: FacetManager;
         /**
@@ -395,16 +411,54 @@ declare namespace globalThis {
          */
         class QueryManager extends PolyfillEventTarget {
             #private;
+            /**
+             * The next query ID.
+             */
+            nextQueryId: bigint;
+            /**
+             * @todo Document this.
+             */
+            readonly activeVanillaNonParameterizedQueries: {
+                [queryName in LooseAutocomplete<keyof EngineQuerySubscribeEventParamsMap>]?: (number | bigint)[];
+            };
+            /**
+             * @todo Document this.
+             */
+            readonly activeVanillaNonParameterizedQueriesIdMap: {
+                [queryId: `${number | bigint}`]: LooseAutocomplete<keyof EngineQuerySubscribeEventParamsMap>;
+            };
+            /**
+             * @todo Document this.
+             */
+            readonly activeQueryManagerQueryIds: {
+                [queryId: `${number | bigint}`]: ((result: EngineQueryResult<keyof EngineQueryNonFacetResultMap>) => void)[];
+            };
             private constructor();
             /**
+             * Gets the query ID for a query name and paramters using the same hashing function as the vanilla UI files do.
              *
              * @param queryName The name of the query.
              * @param queryParameters The parameters of the query.
-             @readonly
-             *
-             * @todo
+             * @returns The query ID.
              */
-            fetchQuery<T extends keyof EngineQuerySubscribeEventParamsMap>(_queryName: T, ..._queryParameters: EngineQuerySubscribeEventParamsMap[T]): Promise<EngineQueryResult<T>>;
+            protected getQueryID<T extends keyof EngineQuerySubscribeEventParamsMap>(queryName: T, queryParameters: unknown[]): number;
+            /**
+             * Fetches a query.
+             *
+             * @param queryName The name of the query.
+             * @param queryParameters The parameters of the query.
+             * @returns The result of the query.
+             */
+            fetchQuery<T extends keyof EngineQuerySubscribeEventParamsMap>(queryName: T, ...queryParameters: EngineQuerySubscribeEventParamsMap[T]): Promise<EngineQueryResult<T>>;
+            /**
+             * Subscribes to a query.
+             *
+             * @param queryName The name of the query.
+             * @param callback The callback to call when the query is updated.
+             * @param queryParameters The parameters of the query.
+             * @returns A function to unsubscribe from the query.
+             */
+            subscribeToQuery<T extends keyof EngineQuerySubscribeEventParamsMap>(queryName: T, callback: (result: EngineQueryResult<T>) => Promise<void> | void, ...queryParameters: EngineQuerySubscribeEventParamsMap[T]): () => void;
         }
         /**
          * @alpha This class is still in early development.
@@ -452,13 +506,18 @@ declare const hookedEngineSubscriptions: {
     trigger: Record<EngineEventID, RemoveFirstNElements<Parameters<typeof engine.trigger<EngineEventID>>, 1>[]>;
 };
 /**
- * @type {{[key in keyof EngineQueryNonFacetResultMap]?: [timestamp: number, value: EngineQueryNonFacetResultMap[key], args: unknown[]][]} & {[key in FacetList[number]]?: [timestamp: number, value: FacetTypeMap[key]][]} & Record<string, [timestamp: number, value: any][]>}
+ * @type {{[key in keyof EngineQueryNonFacetResultMap]?: [timestamp: number, responseType: "subscribed" | "updated", value: EngineQueryNonFacetResultMap[key], args: unknown[]][]} & {[key in FacetList[number]]?: [timestamp: number, responseType: "subscribed" | "updated", value: FacetTypeMap[key]][]} & Record<string, [timestamp: number, responseType: "subscribed" | "updated", value: any][]>}
  */
 declare const cachedQueryResults: {
-    [key in keyof EngineQueryNonFacetResultMap]?: [timestamp: number, value: EngineQueryNonFacetResultMap[key], args: unknown[]][];
+    [key in keyof EngineQueryNonFacetResultMap]?: [
+        timestamp: number,
+        responseType: "subscribed" | "updated",
+        value: EngineQueryNonFacetResultMap[key],
+        args: unknown[]
+    ][];
 } & {
-    [key in FacetList[number]]?: [timestamp: number, value: FacetTypeMap[key], args: unknown[]][];
-} & Record<string, [timestamp: number, value: unknown, args: unknown[]][]>;
+    [key in FacetList[number]]?: [timestamp: number, responseType: "subscribed" | "updated", value: FacetTypeMap[key], args: unknown[]][];
+} & Record<string, [timestamp: number, responseType: "subscribed" | "updated", value: unknown, args: unknown[]][]>;
 /**
  * @type {{[method in keyof typeof hookedEngineSubscriptions]: { "before": ((...args: Parameters<typeof engine[method]>) => void | boolean)[]; "after": ((...args: Parameters<typeof engine[method]>) => void)[] }}}
  */

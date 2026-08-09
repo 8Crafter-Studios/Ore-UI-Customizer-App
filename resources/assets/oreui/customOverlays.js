@@ -197,6 +197,9 @@ function configurable(value) {
 // Initialize shiki.
 globalThis.shiki ??= undefined;
 const shikiLoadedPromise = import("./shiki.bundle.js");
+// Initialize Ore UI Types.
+var oreUIEnums;
+const oreUIEnumsLoadedPromise = import("@ore-ui-types/enums").then((v) => void (oreUIEnums = v));
 // IDEA: Make a modified version of the TypeScript ESLint `no-redundant-type-constituents` rule to allow for unknown in unions.
 // IDEA: Make a modified version of the TypeScript ESLint `no-duplicate-type-constituents` rule to allow for undefined in unions.
 // Hook onto Promise states.
@@ -1318,7 +1321,17 @@ var globalThis;
                 super();
                 this.#init();
             }
+            /**
+             * The data of the facets that are currently loaded, not including facets that have been discarded.
+             */
             facetData = {};
+            /**
+             * The data of the facets that have been loaded, including facets that have been discarded.
+             */
+            facetDataAll = {};
+            /**
+             * The list of facets that are currently force loaded.
+             */
             forceLoadedFacets = [];
             /**
              * The list of facets that are currently being used by the vanilla UI files.
@@ -1359,6 +1372,7 @@ var globalThis;
                     const facetID = id.slice("facet:updated:".length);
                     // TEMP
                     this.facetData[facetID] = facetData;
+                    this.facetDataAll[facetID] = facetData;
                     this.#triggerFacetDataObservers(facetID, facetData);
                     if (!facetList.includes(facetID) && !this.discoveredNewLoadedFacets.includes(facetID)) {
                         // this.dispatchEvent(new FacetNewNotedLoadedFacetEvent(facetName)); // TODO
@@ -1414,7 +1428,7 @@ var globalThis;
                     return;
                 for (const callback of this.#observedFacets[facet]) {
                     try {
-                        callback(facetData, facet);
+                        void callback(facetData, facet)?.catch(console.error);
                     }
                     catch (e) {
                         console.error(e);
@@ -1483,6 +1497,9 @@ var globalThis;
         ], FacetManager.prototype, "facetData", void 0);
         __decorate([
             writable(false)
+        ], FacetManager.prototype, "facetDataAll", void 0);
+        __decorate([
+            writable(false)
         ], FacetManager.prototype, "forceLoadedFacets", void 0);
         __decorate([
             writable(false)
@@ -1512,17 +1529,34 @@ var globalThis;
             writable(false)
         ], FacetManager.prototype, "setFacetIsForceLoaded", null);
         /**
-         * @alpha This class is still in early development.
+         * The query
          */
         __OUICInternals__.FacetManagerInstance = _FacetManagerInstance;
         // export const FacetManagerInstance: FacetManager = new (FacetManager as new () => FacetManager)();
         let _QueryManagerInstance;
+        // TODO: Implement a thing to notify of new discovered queries.
         /**
          * @alpha This class is still in early development.
          * @hideconstructor
          */
         class QueryManager extends PolyfillEventTarget {
             static #constructed = false;
+            /**
+             * The next query ID.
+             */
+            nextQueryId = 12527412642613253000n + BigInt(Date.now());
+            /**
+             * @todo Document this.
+             */
+            activeVanillaNonParameterizedQueries = {};
+            /**
+             * @todo Document this.
+             */
+            activeVanillaNonParameterizedQueriesIdMap = {};
+            /**
+             * @todo Document this.
+             */
+            activeQueryManagerQueryIds = {};
             constructor() {
                 if (QueryManager.#constructed)
                     throw new TypeError("Illegal constructor");
@@ -1538,23 +1572,109 @@ var globalThis;
                     throw new TypeError("Illegal invocation");
             }
             /**
+             * Gets the query ID for a query name and paramters using the same hashing function as the vanilla UI files do.
              *
              * @param queryName The name of the query.
              * @param queryParameters The parameters of the query.
-             @readonly
-             *
-             * @todo
+             * @returns The query ID.
              */
-            async fetchQuery(_queryName, ..._queryParameters) {
-                throw new Error("Method not implemented.");
-                // eslint-disable-next-line @typescript-eslint/await-thenable -- TEMP
-                await 1;
+            getQueryID(queryName, queryParameters) {
+                const t = queryName, a = queryParameters;
+                // This has function is from the vanilla Ore UI index.js file's query driver.
+                const l = ((e, t) => {
+                    const a = ((e, t) => t.reduce((e, t) => `${e}\0${t}`, e))(e, t);
+                    return ((e) => {
+                        let t = 0;
+                        for (let a = 0; a < e.length; ++a)
+                            t = e.charCodeAt(a) + (t << 5) - t;
+                        return t >>> 0;
+                    })(a);
+                })(t, a);
+                return l;
             }
+            /**
+             * Fetches a query.
+             *
+             * @param queryName The name of the query.
+             * @param queryParameters The parameters of the query.
+             * @returns The result of the query.
+             */
+            async fetchQuery(queryName, ...queryParameters) {
+                let resolvePromise;
+                const queryId = queryParameters.length === 0 ? BigInt(this.getQueryID(queryName, [])) : this.nextQueryId++;
+                const queryCallback = (value) => {
+                    (__OUICInternals__.EngineInterceptorInstance.originalEngineMethods.off?.bind(globalThis.engine) ?? globalThis.engine.off.bind(globalThis.engine))(`query:subscribed/${queryId}`, queryCallback);
+                    (__OUICInternals__.EngineInterceptorInstance.originalEngineMethods.off?.bind(globalThis.engine) ?? globalThis.engine.off.bind(globalThis.engine))(`query:updated/${queryId}`, queryCallbackUpdated);
+                    (__OUICInternals__.EngineInterceptorInstance.originalEngineMethods.trigger?.bind(globalThis.engine) ?? globalThis.engine.trigger.bind(globalThis.engine))("query:unsubscribe", queryId);
+                    resolvePromise(value);
+                };
+                const queryCallbackUpdated = (value) => {
+                    (__OUICInternals__.EngineInterceptorInstance.originalEngineMethods.off?.bind(globalThis.engine) ?? globalThis.engine.off.bind(globalThis.engine))(`query:subscribed/${queryId}`, queryCallback);
+                    (__OUICInternals__.EngineInterceptorInstance.originalEngineMethods.off?.bind(globalThis.engine) ?? globalThis.engine.off.bind(globalThis.engine))(`query:updated/${queryId}`, queryCallbackUpdated);
+                    resolvePromise(value);
+                };
+                return await new Promise((resolve) => {
+                    resolvePromise = resolve;
+                    (__OUICInternals__.EngineInterceptorInstance.originalEngineMethods.on?.bind(globalThis.engine) ?? globalThis.engine.on.bind(globalThis.engine))(`query:subscribed/${queryId}`, queryCallback);
+                    (__OUICInternals__.EngineInterceptorInstance.originalEngineMethods.on?.bind(globalThis.engine) ?? globalThis.engine.on.bind(globalThis.engine))(`query:updated/${queryId}`, queryCallbackUpdated);
+                    (__OUICInternals__.EngineInterceptorInstance.originalEngineMethods.trigger?.bind(globalThis.engine) ?? globalThis.engine.trigger.bind(globalThis.engine))(`query:subscribe/${queryName}`, queryId, ...queryParameters);
+                });
+            }
+            // fetchQueryWithParams
+            /**
+             * Subscribes to a query.
+             *
+             * @param queryName The name of the query.
+             * @param callback The callback to call when the query is updated.
+             * @param queryParameters The parameters of the query.
+             * @returns A function to unsubscribe from the query.
+             */
+            subscribeToQuery(queryName, callback, ...queryParameters) {
+                let unsubscribed = false;
+                const queryId = queryParameters.length === 0 ? BigInt(this.getQueryID(queryName, [])) : this.nextQueryId++;
+                const queryCallback = (value) => {
+                    void callback(value);
+                };
+                function unsubscribe() {
+                    if (unsubscribed)
+                        throw new Error("Already unsubscribed from query.");
+                    unsubscribed = true;
+                    (__OUICInternals__.EngineInterceptorInstance.originalEngineMethods.off?.bind(globalThis.engine) ?? globalThis.engine.off.bind(globalThis.engine))(`query:subscribed/${queryId}`, queryCallback);
+                    (__OUICInternals__.EngineInterceptorInstance.originalEngineMethods.off?.bind(globalThis.engine) ?? globalThis.engine.off.bind(globalThis.engine))(`query:updated/${queryId}`, queryCallback);
+                    if (!__OUICInternals__.QueryManagerInstance.activeQueryManagerQueryIds[`${queryId}`])
+                        return;
+                    const callbackIndex = __OUICInternals__.QueryManagerInstance.activeQueryManagerQueryIds[`${queryId}`].indexOf(queryCallback);
+                    if (callbackIndex !== -1)
+                        __OUICInternals__.QueryManagerInstance.activeQueryManagerQueryIds[`${queryId}`].splice(callbackIndex, 1);
+                    if (!__OUICInternals__.QueryManagerInstance.activeQueryManagerQueryIds[`${queryId}`].length) {
+                        delete __OUICInternals__.QueryManagerInstance.activeQueryManagerQueryIds[`${queryId}`];
+                        if (!__OUICInternals__.QueryManagerInstance.activeVanillaNonParameterizedQueries[queryName]?.length) {
+                            (__OUICInternals__.EngineInterceptorInstance.originalEngineMethods.trigger?.bind(globalThis.engine) ?? globalThis.engine.trigger.bind(globalThis.engine))("query:unsubscribe", queryId);
+                        }
+                    }
+                }
+                (__OUICInternals__.EngineInterceptorInstance.originalEngineMethods.on?.bind(globalThis.engine) ?? globalThis.engine.on.bind(globalThis.engine))(`query:subscribed/${queryId}`, queryCallback);
+                (__OUICInternals__.EngineInterceptorInstance.originalEngineMethods.on?.bind(globalThis.engine) ?? globalThis.engine.on.bind(globalThis.engine))(`query:updated/${queryId}`, queryCallback);
+                (__OUICInternals__.EngineInterceptorInstance.originalEngineMethods.trigger?.bind(globalThis.engine) ?? globalThis.engine.trigger.bind(globalThis.engine))(`query:subscribe/${queryName}`, queryId, ...queryParameters);
+                __OUICInternals__.QueryManagerInstance.activeQueryManagerQueryIds[`${queryId}`] ??= [];
+                __OUICInternals__.QueryManagerInstance.activeQueryManagerQueryIds[`${queryId}`].push(queryCallback);
+                return unsubscribe;
+            }
+            // public async fetchQueryWithTimeout
             // public fetchQuery
             static {
                 _QueryManagerInstance = new QueryManager();
             }
         }
+        __decorate([
+            writable(false)
+        ], QueryManager.prototype, "activeVanillaNonParameterizedQueries", void 0);
+        __decorate([
+            writable(false)
+        ], QueryManager.prototype, "activeVanillaNonParameterizedQueriesIdMap", void 0);
+        __decorate([
+            writable(false)
+        ], QueryManager.prototype, "activeQueryManagerQueryIds", void 0);
         __decorate([
             writable(false)
         ], QueryManager.prototype, "fetchQuery", null);
@@ -1656,7 +1776,7 @@ const hookedEngineSubscriptions = {
     trigger: {},
 };
 /**
- * @type {{[key in keyof EngineQueryNonFacetResultMap]?: [timestamp: number, value: EngineQueryNonFacetResultMap[key], args: unknown[]][]} & {[key in FacetList[number]]?: [timestamp: number, value: FacetTypeMap[key]][]} & Record<string, [timestamp: number, value: any][]>}
+ * @type {{[key in keyof EngineQueryNonFacetResultMap]?: [timestamp: number, responseType: "subscribed" | "updated", value: EngineQueryNonFacetResultMap[key], args: unknown[]][]} & {[key in FacetList[number]]?: [timestamp: number, responseType: "subscribed" | "updated", value: FacetTypeMap[key]][]} & Record<string, [timestamp: number, responseType: "subscribed" | "updated", value: any][]>}
  */
 const cachedQueryResults = {};
 /**
@@ -1674,11 +1794,22 @@ const engineHookTriggerCallbacks = {
                 if (!__CACHING_ENGINE_QUERY_RESULTS_FROM_HOOK_ENABLED__)
                     return;
                 if (id.startsWith("query:subscribe/")) {
-                    originalEngineMethods.on(`query:subscribed/${args[0]}`, (value, ..._args) => {
+                    const cacheCallback_subscribed = (value, ..._args) => {
                         const key = id.slice("query:subscribe/".length);
                         cachedQueryResults[key] ??= [];
-                        cachedQueryResults[key].push([Date.now(), value, args]);
-                    });
+                        cachedQueryResults[key].push([Date.now(), "subscribed", value, args]);
+                        originalEngineMethods.off(`query:subscribed/${args[0]}`, cacheCallback_subscribed);
+                        originalEngineMethods.off(`query:updated/${args[0]}`, cacheCallback_updated);
+                    };
+                    const cacheCallback_updated = (value, ..._args) => {
+                        const key = id.slice("query:subscribe/".length);
+                        cachedQueryResults[key] ??= [];
+                        cachedQueryResults[key].push([Date.now(), "updated", value, args]);
+                        originalEngineMethods.off(`query:subscribed/${args[0]}`, cacheCallback_subscribed);
+                        originalEngineMethods.off(`query:updated/${args[0]}`, cacheCallback_updated);
+                    };
+                    originalEngineMethods.on(`query:subscribed/${args[0]}`, cacheCallback_subscribed);
+                    originalEngineMethods.on(`query:updated/${args[0]}`, cacheCallback_updated);
                 }
             },
         ],
@@ -1863,10 +1994,22 @@ const originalEngineMethods = {
                 // console.debug(7, arguments);
                 __coreInput_value__ = value;
             });
+            originalEngineMethods.on(`query:updated/${args[0]}`, 
+            //@ts-ignore
+            (value) => {
+                // console.debug(7, arguments);
+                __coreInput_value__ = value;
+            });
         }
         else if (id === "query:subscribe/core.featureFlag") {
             // console.debug(6, id, ...args);
             originalEngineMethods.on(`query:subscribed/${args[0]}`, 
+            //@ts-ignore
+            (value) => {
+                // console.debug(7, arguments);
+                cachedFeatureFlagQueries[args[1]] = value;
+            });
+            originalEngineMethods.on(`query:updated/${args[0]}`, 
             //@ts-ignore
             (value) => {
                 // console.debug(7, arguments);
@@ -1887,10 +2030,37 @@ const originalEngineMethods = {
                 // console.debug(7, arguments);
                 cachedFacetQueryData[facetID] = value;
             });
+            //@ts-ignore
+            originalEngineMethods.on(`query:updated/${args[0]}`, (value) => {
+                // console.debug(7, arguments);
+                cachedFacetQueryData[facetID] = value;
+            });
         }
     });
     engineHookTriggerCallbacks.trigger.after.push(function afterQuerySubscribeCallback(id, ...args) {
-        if (id === "query:subscribe/core.input") {
+        if (id.startsWith("query:subscribe/") && args.length === 1) {
+            const [queryId] = args;
+            const queryName = id.slice("query:subscribe/".length);
+            QueryManager.activeVanillaNonParameterizedQueries[queryName] ??= [];
+            if (!QueryManager.activeVanillaNonParameterizedQueries[queryName].includes(queryId)) {
+                QueryManager.activeVanillaNonParameterizedQueries[queryName].push(queryId);
+            }
+            QueryManager.activeVanillaNonParameterizedQueriesIdMap[`${queryId}`] = queryName;
+        }
+        if (id === "query:unsubscribe") {
+            const [queryId] = args;
+            const queryName = QueryManager.activeVanillaNonParameterizedQueriesIdMap[`${queryId}`];
+            if (!queryName)
+                return;
+            if (!QueryManager.activeVanillaNonParameterizedQueries[queryName])
+                return;
+            const idIndex = QueryManager.activeVanillaNonParameterizedQueries[queryName].indexOf(queryId);
+            if (idIndex === -1)
+                return;
+            QueryManager.activeVanillaNonParameterizedQueries[queryName].splice(idIndex, 1);
+            delete QueryManager.activeVanillaNonParameterizedQueriesIdMap[`${queryId}`];
+        }
+        else if (id === "query:subscribe/core.input") {
             if (typeof __coreInput_value__ !== "undefined") {
                 // console.log(5, __coreInput_value__);
                 localStorage.setItem("queryValueCache:query:subscribe/core.input", JSON.stringify(__coreInput_value__));
@@ -1905,14 +2075,21 @@ const originalEngineMethods = {
             }
             else if (globalThis.getAccessibleFacetSpyFacets?.()["core.input"]) {
                 originalEngineMethods.trigger(`query:subscribed/${args[0]}`, globalThis.getAccessibleFacetSpyFacets?.()["core.input"]);
-            }
-            else {
-                globalThis.forceLoadFacet("core.input").then((facetData) => {
-                    originalEngineMethods.trigger(`query:subscribed/${args[0]}`, facetData);
-                }, (reason) => {
-                    console.error(new ReferenceError(`Failed to load facet core.input for query subscribe/core.input with ID ${args[0]}.`), reason);
-                });
-            }
+            } /* else {
+                globalThis.forceLoadFacet("core.input").then(
+                    (facetData): void => {
+                        originalEngineMethods.trigger(`query:subscribed/${(args as EngineEvent<"query:subscribe/core.input">)[0]}`, facetData);
+                    },
+                    (reason: unknown): void => {
+                        console.error(
+                            new ReferenceError(
+                                `Failed to load facet core.input for query subscribe/core.input with ID ${(args as EngineEvent<"query:subscribe/core.input">)[0]}.`
+                            ),
+                            reason
+                        );
+                    }
+                );
+            } */
         }
         else if (id === "query:subscribe/core.featureFlag") {
             // TEMP: The second as statement should be removed once the module has types for `core.featureFlag`.
@@ -1934,31 +2111,33 @@ const originalEngineMethods = {
             if (args.length > 1)
                 return /* void console.warn(id, args) */; // Don't mess with queries that have parameters.
             const facetID = id.slice("query:subscribe/".length);
-            if (typeof cachedFacetQueryData[facetID] !== "undefined") {
-                // console.log(5, __coreInput_value__);
-                localStorage.setItem(`queryValueCache:query:subscribe/${facetID}`, JSON.stringify(cachedFacetQueryData[facetID]));
-            }
-            else if (localStorage.getItem(`queryValueCache:query:subscribe/${facetID}`)) {
-                // console.log(
-                //     4,
-                //     localStorage.getItem("queryValueCache:query:subscribe/core.input"),
-                //     JSON.parse(localStorage.getItem("queryValueCache:query:subscribe/core.input") ?? "null")
-                // );
-                originalEngineMethods.trigger(`query:subscribed/${args[0]}`, JSON.parse(localStorage.getItem(`queryValueCache:query:subscribe/${facetID}`) ?? "null"));
-            }
-            else if (__queryResolvers__[facetID]) {
-                originalEngineMethods.trigger(`query:subscribed/${args[0]}`, __queryResolvers__[facetID](...args.slice(1)));
-            }
-            else if (globalThis.getAccessibleFacetSpyFacets?.()[facetID]) {
-                originalEngineMethods.trigger(`query:subscribed/${args[0]}`, globalThis.getAccessibleFacetSpyFacets?.()[facetID]);
-            }
-            else {
-                globalThis.forceLoadFacet(facetID).then((facetData) => {
-                    originalEngineMethods.trigger(`query:subscribed/${args[0]}`, facetData);
-                }, (reason) => {
-                    console.error(new ReferenceError(`Failed to load facet ${facetID} for query ${id} with ID ${args[0]}.`), reason);
-                });
-            }
+            setTimeout(() => {
+                if (typeof cachedFacetQueryData[facetID] !== "undefined") {
+                    // console.log(5, __coreInput_value__);
+                    localStorage.setItem(`queryValueCache:query:subscribe/${facetID}`, JSON.stringify(cachedFacetQueryData[facetID]));
+                }
+                else if (localStorage.getItem(`queryValueCache:query:subscribe/${facetID}`)) {
+                    // console.log(
+                    //     4,
+                    //     localStorage.getItem("queryValueCache:query:subscribe/core.input"),
+                    //     JSON.parse(localStorage.getItem("queryValueCache:query:subscribe/core.input") ?? "null")
+                    // );
+                    originalEngineMethods.trigger(`query:subscribed/${args[0]}`, JSON.parse(localStorage.getItem(`queryValueCache:query:subscribe/${facetID}`) ?? "null"));
+                }
+                else if (__queryResolvers__[facetID]) {
+                    originalEngineMethods.trigger(`query:subscribed/${args[0]}`, __queryResolvers__[facetID](...args.slice(1)));
+                }
+                else if (globalThis.getAccessibleFacetSpyFacets?.()[facetID]) {
+                    originalEngineMethods.trigger(`query:subscribed/${args[0]}`, globalThis.getAccessibleFacetSpyFacets?.()[facetID]);
+                }
+                else {
+                    globalThis.forceLoadFacet(facetID).then((facetData) => {
+                        originalEngineMethods.trigger(`query:subscribed/${args[0]}`, facetData);
+                    }, (reason) => {
+                        console.error(new ReferenceError(`Failed to load facet ${facetID} for query ${id} with ID ${args[0]}.`), reason);
+                    });
+                }
+            }, 1);
         }
     });
 }
@@ -7222,9 +7401,10 @@ async function enableLitePlayScreen(noReload = false) {
     //@ts-ignore
     const contentContainerElement = elements.find((element) => !element.classList.contains("vanilla-neutral20-background") && element.hasAttribute("data-landmark-id") && !element.hasAttribute("data-in-use")) ?? null;
     try {
-        if ((getAccessibleFacetSpyFacets()["vanilla.realmsListFacet"] ?? (await forceLoadFacet("vanilla.realmsListFacet"))).realms.length === 0) {
+        const realmsListFacet = getAccessibleFacetSpyFacets()["vanilla.realmsListFacet"] ?? (await forceLoadFacet("vanilla.realmsListFacet"));
+        if (realmsListFacet.state === 0 && realmsListFacet.realms.length === 0) {
             console.debug("Force fetching realms list."); // DEBUG
-            (getAccessibleFacetSpyFacets()["vanilla.realmsListFacet"] ?? (await forceLoadFacet("vanilla.realmsListFacet"))).forceFetchRealmsList?.();
+            realmsListFacet.forceFetchRealmsList?.();
         }
     }
     catch { }
@@ -7232,8 +7412,18 @@ async function enableLitePlayScreen(noReload = false) {
     contentContainerElement.setAttribute("data-in-use", "true");
     //@ts-ignore
     contentContainerElement.innerHTML = `<div style="height: 100%; display: flex; flex-direction: column; justify-content: flex-start; overflow-y: scroll"><div id="litePlayScreen_tabList" style="display: flex; flex-direction: row; width: 90%; margin: 0 5%">
-    <button type="button" class="btn nsel" style="font-size: 2vw; line-height: 2.8571428572vw; flex-grow: 1; font-family: Minecraft Seven v2" id="litePlayScreen_worldsTabButton" data-tab-id="worlds">Worlds (${(getAccessibleFacetSpyFacets()["vanilla.localWorldList"] ?? (await forceLoadFacet("vanilla.localWorldList")))?.localWorlds?.length ?? "..."})</button>
-    <button type="button" class="btn nsel" style="font-size: 2vw; line-height: 2.8571428572vw; flex-grow: 1; font-family: Minecraft Seven v2" id="litePlayScreen_realmsTabButton" data-tab-id="realms">Realms (${(getAccessibleFacetSpyFacets()["vanilla.realmsListFacet"] ?? (await forceLoadFacet("vanilla.realmsListFacet")))?.realms?.length ?? "..."})</button>
+    <button type="button" class="btn nsel" style="font-size: 2vw; line-height: 2.8571428572vw; flex-grow: 1; font-family: Minecraft Seven v2" id="litePlayScreen_worldsTabButton" data-tab-id="worlds">Worlds (${((getAccessibleFacetSpyFacets()["vanilla.localWorldList"] ?? (await forceLoadFacet("vanilla.localWorldList").catch(() => undefined)))
+        ?.localWorlds ?? (await QueryManager.fetchQuery("vanilla.menus.localWorldListQuery").catch(() => undefined))?.worlds)?.length ?? "..."})</button>
+    <button type="button" class="btn nsel" style="font-size: 2vw; line-height: 2.8571428572vw; flex-grow: 1; font-family: Minecraft Seven v2" id="litePlayScreen_realmsTabButton" data-tab-id="realms">Realms (${await (async () => {
+        const realmsListFacet = getAccessibleFacetSpyFacets()["vanilla.realmsListFacet"] ?? (await forceLoadFacet("vanilla.realmsListFacet"));
+        if (realmsListFacet?.state === 0 /* Unknown */)
+            return "??";
+        if (realmsListFacet?.state === 1 /* Loading */)
+            return "...";
+        if (realmsListFacet?.state === 3 /* Error */)
+            return "!";
+        return realmsListFacet?.realms?.length ?? "...";
+    })()})</button>
     <button type="button" class="btn nsel" style="font-size: 2vw; line-height: 2.8571428572vw; flex-grow: 1; font-family: Minecraft Seven v2" id="litePlayScreen_friendsTabButton" data-tab-id="friends">Friends (${(function getFriendsTabWorldsCount(friends, lan) {
         return friends !== undefined || lan !== undefined ? (friends ?? 0) + (lan ?? 0) : "...";
     })((getAccessibleFacetSpyFacets()["vanilla.friendworldlist"] ?? (await forceLoadFacet("vanilla.friendworldlist")))?.friendWorlds?.length, (getAccessibleFacetSpyFacets()["vanilla.lanWorldList"] ?? (await forceLoadFacet("vanilla.lanWorldList")))?.lanWorlds.length)})</button>
@@ -7334,8 +7524,8 @@ async function enableLitePlayScreen(noReload = false) {
             switch (tabButtonID) {
                 case "worlds": {
                     currentTab = "worlds";
-                    const worldListIterable = (getAccessibleFacetSpyFacets()["vanilla.localWorldList"] ?? (await forceLoadFacet("vanilla.localWorldList")))
-                        ?.localWorlds;
+                    const worldListIterable = (getAccessibleFacetSpyFacets()["vanilla.localWorldList"] ??
+                        (await forceLoadFacet("vanilla.localWorldList").catch(() => undefined)))?.localWorlds ?? (await QueryManager.fetchQuery("vanilla.menus.localWorldListQuery").catch(() => undefined))?.worlds;
                     /**
                      * The worlds tab button.
                      *
@@ -7382,9 +7572,20 @@ async function enableLitePlayScreen(noReload = false) {
                             changePage(Math.max(0, Math.min(pageCount - 1, 0)), currentTab);
                             return;
                         }
-                        const worldList = Array.from(worldListIterable).sort((worldA, worldB) => worldB.lastSaved - worldA.lastSaved);
+                        const worldList = Array.from(worldListIterable);
+                        if ("lastSaved" in worldList[0])
+                            worldList.sort((worldA, worldB) => worldB.lastSaved - worldA.lastSaved);
                         for (let i = currentPage * 5; i < Math.min(worldList.length, (currentPage + 1) * 5); i++) {
-                            const world = worldList[i];
+                            let world;
+                            getWorldData: {
+                                const world_1 = worldList[i];
+                                if ("lastSaved" in world_1) {
+                                    world = world_1;
+                                    break getWorldData;
+                                }
+                                const world_2 = await QueryManager.fetchQuery("vanilla.menus.localWorldQuery", world_1.id);
+                                world = world_2;
+                            }
                             const worldButtonContainer = document.createElement("div");
                             worldButtonContainer.id = `litePlayScreen_worldsTabWorldList_worldListContainer_worldButtonContainer_${world.id}`;
                             worldButtonContainer.style = "display: flex; flex-direction: row; width: 100%; height: 6vw; justify-content: space-between;";
@@ -7483,10 +7684,13 @@ async function enableLitePlayScreen(noReload = false) {
                     });
                     break;
                 }
+                // TODO: If the realms list is loading when this is rendered, it needs to update once it is done loading.
                 case "realms": {
                     currentTab = "realms";
-                    const realmListIterable = (getAccessibleFacetSpyFacets()["vanilla.realmsListFacet"] ?? (await forceLoadFacet("vanilla.realmsListFacet")))
-                        ?.realms;
+                    const realmsRolesAndPermissionsQueriesFacet = getAccessibleFacetSpyFacets()["vanilla.realmsRolesAndPermissionsQueries"] ??
+                        (await forceLoadFacet("vanilla.realmsRolesAndPermissionsQueries"));
+                    const realmsListFacet = getAccessibleFacetSpyFacets()["vanilla.realmsListFacet"] ?? (await forceLoadFacet("vanilla.realmsListFacet"));
+                    const realmListIterable = realmsListFacet?.realms;
                     /**
                      * The realms tab button.
                      *
@@ -7495,7 +7699,10 @@ async function enableLitePlayScreen(noReload = false) {
                     //@ts-ignore
                     const realmsTabButton = document.getElementById("litePlayScreen_realmsTabButton");
                     if (realmsTabButton) {
-                        realmsTabButton.textContent = `Realms (${realmListIterable?.length ?? 0})`;
+                        realmsTabButton.textContent = `Realms (${realmsListFacet?.state === 0 /* Unknown */ ? "??"
+                            : realmsListFacet?.state === 1 /* Loading */ ? "..."
+                                : realmsListFacet?.state === 3 /* Error */ ? "!"
+                                    : (realmListIterable?.length ?? "...")})`;
                     }
                     const pageCount = Math.ceil((realmListIterable?.length ?? 0) / 5);
                     const buttonBar = document.createElement("div");
@@ -7517,7 +7724,17 @@ async function enableLitePlayScreen(noReload = false) {
                     // realmListContainer.style.display = "contents";
                     realmListContainer.style.width = "100%";
                     // realmListContainer.style.height = "100%";
-                    if (!realmListIterable || pageCount === 0) {
+                    if (realmsListFacet?.state === 1 /* Loading */) {
+                        const emptyListInfo = document.createElement("p");
+                        emptyListInfo.textContent = "Loading...";
+                        emptyListInfo.style.fontSize = "2vw";
+                        emptyListInfo.style.lineHeight = "2.8571428572vw";
+                        emptyListInfo.style.padding = "0.2rem 0";
+                        emptyListInfo.style.margin = "6px 0";
+                        emptyListInfo.style.fontFamily = "Minecraft Seven v2";
+                        realmListContainer.appendChild(emptyListInfo);
+                    }
+                    else if (!realmListIterable || pageCount === 0) {
                         const emptyListInfo = document.createElement("p");
                         emptyListInfo.textContent = "No realms found.";
                         emptyListInfo.style.fontSize = "2vw";
@@ -7607,7 +7824,8 @@ async function enableLitePlayScreen(noReload = false) {
     </div>
     <div id="realmOptionsOverlayElement_buttonsElement" style="display: flex; flex-direction: row; justify-content: space-between; position: absolute; bottom: 0; left: 0; width: 100%; padding: 0.5vh 0.5vh">
         <button type="button" class="btn" style="font-size: 2vw; line-height: 2.8571428572vw; font-family: Minecraft Seven v2; display: table-cell" id="realmOptionsOverlayElement_joinRealmButton">Join Realm</button>
-        <button type="button" class="btn" style="font-size: 2vw; line-height: 2.8571428572vw; font-family: Minecraft Seven v2; display: table-cell" id="realmOptionsOverlayElement_realmsStoriesButton">Realm Stories</button>
+        <button type="button" class="btn" style="font-size: 2vw; line-height: 2.8571428572vw; font-family: Minecraft Seven v2; display: table-cell" id="realmOptionsOverlayElement_realmHubButton">Realm Hub</button>
+        <button type="button" class="btn" style="font-size: 2vw; line-height: 2.8571428572vw; font-family: Minecraft Seven v2; display: table-cell" id="realmOptionsOverlayElement_realmsStoriesButton">Realms Stories</button>
     </div>
 </div>`;
                                 //@ts-ignore
@@ -7632,13 +7850,33 @@ async function enableLitePlayScreen(noReload = false) {
                                     const networkWorldJoiner = getAccessibleFacetSpyFacets()["vanilla.networkWorldJoiner"] ?? (await forceLoadFacet("vanilla.networkWorldJoiner"));
                                     if (networkWorldJoiner) {
                                         networkWorldJoiner.joinRealmWorld(realmID.toString(), 0);
+                                        realmOptionsOverlayElement.remove();
                                     }
                                 });
+                                // realmOptionsOverlayElement.querySelector("#realmOptionsOverlayElement_realmsStoriesButton")!.addEventListener("click", () => {
+                                //     getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                                //     const router = getAccessibleFacetSpyFacets()["core.router"];
+                                //     openRoute: if (router) {
+                                //         const previousPathname: string = router.history.location.pathname;
+                                //         router.history.push(`/realms/${realmID}/hub`);
+                                //         if (previousPathname !== router.history.location.pathname) break openRoute;
+                                //         router.history.push(`/realms-story-entry-route/feed/${realmID}`);
+                                //     }
+                                // });
                                 realmOptionsOverlayElement.querySelector("#realmOptionsOverlayElement_realmsStoriesButton").addEventListener("click", () => {
                                     getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
                                     const router = getAccessibleFacetSpyFacets()["core.router"];
                                     if (router) {
                                         router.history.push(`/realms-story-entry-route/feed/${realmID}`);
+                                        realmOptionsOverlayElement.remove();
+                                    }
+                                });
+                                realmOptionsOverlayElement.querySelector("#realmOptionsOverlayElement_realmHubButton").addEventListener("click", () => {
+                                    getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                                    const router = getAccessibleFacetSpyFacets()["core.router"];
+                                    if (router) {
+                                        router.history.push(`/realms/${realmID}/hub`);
+                                        realmOptionsOverlayElement.remove();
                                     }
                                 });
                                 document.body.appendChild(realmOptionsOverlayElement);
@@ -7652,7 +7890,14 @@ async function enableLitePlayScreen(noReload = false) {
                             editRealmButton_label.textContent = "More";
                             realmOptionsButton.appendChild(editRealmButton_label);
                             realmButtonContainer.appendChild(realmOptionsButton);
-                            if (realm.isOwner) {
+                            if (!oreUIEnums)
+                                await oreUIEnumsLoadedPromise;
+                            if (realm.isOwner ||
+                                (oreUIEnums &&
+                                    realmsRolesAndPermissionsQueriesFacet.currentUserRolesAndActionsForAllRealms
+                                        .find((r) => r.realmId === `${realm.world.id}`)
+                                        // TODO: Figure out what permissions are actually needed in order to access the /realms-settings/<REALM_ID> page for the realm.
+                                        ?.actions.includes(oreUIEnums.RealmsPermissionAction.ManageWorlds))) {
                                 const editRealmButton = document.createElement("button");
                                 // @ts-ignore: This is for browser compatibility.
                                 editRealmButton.type = "button";
@@ -8427,6 +8672,64 @@ async function enableLitePlayScreen(noReload = false) {
                         `${serverListIterables.length > 1 ? `${iterableTypeNameMap[serverListIterables.findIndex((v) => v.includes(server))]} | ` : ""}Players: ${server.playerCount}/${server.capacity}${server.msgOfTheDay ? ` | MOTD: ${server.msgOfTheDay}` : ""} | Ping: ${server.ping} | ${server.description ? `Description: ${server.description}` : ""}`;
                 }
             }
+        });
+    }
+    if (window.observingRealmsListForLitePlayScreenServersTab !== true) {
+        window.observingRealmsListForLitePlayScreenServersTab = true;
+        FacetManager.observeFacetData("vanilla.realmsListFacet", async (_realmsListFacet) => {
+            try {
+                const realmsListFacet = getAccessibleFacetSpyFacets()["vanilla.realmsListFacet"] ?? (await forceLoadFacet("vanilla.realmsListFacet"));
+                if (realmsListFacet.state === 2) {
+                    const realmsRolesAndPermissionsCommands = await forceLoadFacet("vanilla.realmsRolesAndPermissionsCommands");
+                    realmsRolesAndPermissionsCommands.refreshAllRealmRolesAndActionsForCurrentUser();
+                }
+            }
+            catch { }
+            if (currentTab !== "realms") {
+                try {
+                    const realmsListFacet = getAccessibleFacetSpyFacets()["vanilla.realmsListFacet"] ?? (await forceLoadFacet("vanilla.realmsListFacet"));
+                    /**
+                     * The realms tab button.
+                     *
+                     * @type {HTMLButtonElement | null}
+                     */
+                    //@ts-ignore
+                    const realmsTabButton = document.getElementById("litePlayScreen_realmsTabButton");
+                    if (realmsTabButton) {
+                        realmsTabButton.textContent = `Realms (${realmsListFacet?.state === 0 /* Unknown */ ? "??"
+                            : realmsListFacet?.state === 1 /* Loading */ ? "..."
+                                : realmsListFacet?.state === 3 /* Error */ ? "!"
+                                    : (realmsListFacet?.realms?.length ?? "...")})`;
+                    }
+                }
+                catch { }
+                return;
+            }
+            /**
+             * The realms tab button.
+             *
+             * @type {HTMLButtonElement | null}
+             */
+            //@ts-ignore
+            const realmsTabButton = document.getElementById("litePlayScreen_realmsTabButton");
+            if (realmsTabButton)
+                silentClick = true;
+            realmsTabButton?.dispatchEvent(new Event("click"));
+        });
+        FacetManager.observeFacetData("vanilla.realmsRolesAndPermissionsQueries", (realmsRolesAndPermissionsCommands) => {
+            if (currentTab !== "realms" || !realmsRolesAndPermissionsCommands?.currentUserRolesAndActionsForAllRealms.length) {
+                return;
+            }
+            /**
+             * The realms tab button.
+             *
+             * @type {HTMLButtonElement | null}
+             */
+            //@ts-ignore
+            const realmsTabButton = document.getElementById("litePlayScreen_realmsTabButton");
+            if (realmsTabButton)
+                silentClick = true;
+            realmsTabButton?.dispatchEvent(new Event("click"));
         });
     }
     if (window.observingFriendWorldListForLitePlayScreenFriendsTab !== true) {
@@ -9613,6 +9916,21 @@ Pixels Per Millimeter: ${pixelsPerMillimeter ?? "Loading..."}`;
             void changePerfGraphScale(GUIScale);
         }
     });
+    QueryManager.subscribeToQuery("core.device.display", function handleGUIScaleChangeForPerfGraph(displayInformation) {
+        if (!displayInformation || typeof displayInformation.guiScaleBase !== "number" || typeof displayInformation.guiScaleModifier !== "number")
+            return;
+        if (Number.isNaN(displayInformation.guiScaleBase) || Number.isNaN(displayInformation.guiScaleModifier))
+            return;
+        localStorage.setItem('facetValuePropertyCache:["core.deviceInformation","guiScaleBase"]', displayInformation.guiScaleBase.toString());
+        localStorage.setItem('facetValuePropertyCache:["core.deviceInformation","guiScaleModifier"]', displayInformation.guiScaleModifier.toString());
+        if (typeof displayInformation?.pixelsPerMillimeter === "number") {
+            localStorage.setItem('facetValuePropertyCache:["core.deviceInformation","pixelsPerMillimeter"]', `${displayInformation.pixelsPerMillimeter}`);
+        }
+        const GUIScale = Math.ceil(Math.max(1, displayInformation.guiScaleBase + displayInformation.guiScaleModifier) / 1.5);
+        if (GUIScale !== perfGraphScale) {
+            void changePerfGraphScale(GUIScale);
+        }
+    });
     statsCornerDebugOverlayElement.innerHTML = `<div style="display: contents;">Stats loading...</div>`;
     document.body.appendChild(statsCornerDebugOverlayElement);
     {
@@ -9812,6 +10130,7 @@ Pixels Per Millimeter: ${pixelsPerMillimeter ?? "Loading..."}`;
         });
     }
     // setInterval(()=>console.log(consoleOverlayInputFieldElement.value), 1000)
+    forceLoadFacet("core.router").catch((e) => void console.error(new Error("Error while force loading core.router facet."), e));
     // 8Crafter Utilities Main Menu, accessed with CTRL+M.
     const mainMenu8CrafterUtilitiesTempContainer = document.createElement("div");
     mainMenu8CrafterUtilitiesTempContainer.innerHTML = `<div id="mainMenu8CrafterUtilities" style="background-color: #00000080; color: #FFFFFFFF; width: 75vw; height: 75vh; position: fixed; top: 12.5vh; left: 12.5vw; z-index: 20000000; display: none; border: 5px solid #87CEEb;" draggable="true">
@@ -10193,25 +10512,31 @@ Pixels Per Millimeter: ${pixelsPerMillimeter ?? "Loading..."}`;
             return `rgb(${Math.round(r)},${Math.round(g)},0)`;
         };
         let maxFrameRate = NaN;
-        let currentFrameRateQueryID = 12527412642613253000n + BigInt(Date.now());
         const startMaxFrameRateMonitor = function startMaxFrameRateMonitor(delay) {
             async function queryMaxFrameRate() {
                 while (canvas_FPS_container?.style.display === "none")
                     await new Promise((resolve) => void setTimeout(resolve, delay));
-                const queryId = currentFrameRateQueryID++;
+                const queryId = QueryManager.nextQueryId++;
+                const queryCallbackInitial = (value) => {
+                    (EngineInterceptor.originalEngineMethods.off?.bind(engine) ?? engine.off.bind(engine))(`query:subscribed/${queryId}`, queryCallbackInitial);
+                    (EngineInterceptor.originalEngineMethods.off?.bind(engine) ?? engine.off.bind(engine))(`query:updated/${queryId}`, queryCallbackInitial);
+                    (EngineInterceptor.originalEngineMethods.on?.bind(engine) ?? engine.on.bind(engine))(`query:updated/${queryId}`, queryCallback);
+                    queryCallback(value);
+                    // setTimeout(queryMaxFrameRate, delay);
+                };
                 const queryCallback = (value) => {
                     const data = value;
                     maxFrameRate = parseInt(data.valueText, 10) || Infinity;
-                    (EngineInterceptor.originalEngineMethods.off?.bind(engine) ?? engine.off.bind(engine))(`query:subscribed/${queryId}`, queryCallback);
-                    setTimeout(queryMaxFrameRate, delay);
                 };
-                (EngineInterceptor.originalEngineMethods.on?.bind(engine) ?? engine.on.bind(engine))(`query:subscribed/${queryId}`, queryCallback);
+                (EngineInterceptor.originalEngineMethods.on?.bind(engine) ?? engine.on.bind(engine))(`query:subscribed/${queryId}`, queryCallbackInitial);
+                (EngineInterceptor.originalEngineMethods.on?.bind(engine) ?? engine.on.bind(engine))(`query:updated/${queryId}`, queryCallbackInitial);
                 (EngineInterceptor.originalEngineMethods.trigger?.bind(engine) ?? engine.trigger.bind(engine))("query:subscribe/vanilla.menus.settingsNumberQuery", queryId, "video.mode.fancy.framerate");
             }
             {
-                const queryId = currentFrameRateQueryID++;
+                const queryId = QueryManager.nextQueryId++;
                 const settingsGroupQueryCallback = function settingsGroupQueryCallback() {
                     (EngineInterceptor.originalEngineMethods.off?.bind(engine) ?? engine.off.bind(engine))(`query:subscribed/${queryId}`, settingsGroupQueryCallback);
+                    (EngineInterceptor.originalEngineMethods.trigger?.bind(engine) ?? engine.trigger.bind(engine))("query:unsubscribe", queryId);
                     void queryMaxFrameRate();
                 };
                 (EngineInterceptor.originalEngineMethods.on?.bind(engine) ?? engine.on.bind(engine))(`query:subscribed/${queryId}`, settingsGroupQueryCallback);

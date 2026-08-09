@@ -1903,7 +1903,7 @@ export const builtInPlugins = [
             }
             function forceLoadFacet(facetName, timeout = 5000, ignoreAlreadyLoadedData = false) {
                 return new Promise((resolve, reject) => {
-                    const currentFacetData = ignoreAlreadyLoadedData ? undefined : (globalThis.facetSpyData.sharedFacets[facetName] ?? accessedFacets[facetName]?.())?.get();
+                    const currentFacetData = ignoreAlreadyLoadedData ? undefined : (globalThis.facetSpyData.sharedFacets?.[facetName] ?? accessedFacets[facetName]?.())?.get();
                     if ((currentFacetData?.toString?.() ?? "Symbol(NoValue)") !== "Symbol(NoValue)") {
                         resolve(currentFacetData);
                         return;

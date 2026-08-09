@@ -1004,7 +1004,7 @@ export const PluginManager = new (class PluginManager extends EventEmitter<Plugi
 
 PluginManager.on("pluginImported", (importedPlugin: OreUICustomizerPlugin): void => {
     createToast({
-        title: `Successfully imported '${importedPlugin.metadata.name}'`,
+        title: `Successfully imported '${importedPlugin.name}'`,
         image: importedPlugin.icon || "resource://images/ui/glyphs/icon-settings.png",
     });
 });
