@@ -1369,6 +1369,13 @@ declare const GameModeIDMap: {
     9: string;
 };
 /**
+ * Takes an async callback function and wraps it in a wrapper to void the promise.
+ *
+ * @param callback The callback to wrap.
+ * @returns The wrapped callback.
+ */
+declare function voidAsyncCallback(callback: () => Promise<void>): () => void;
+/**
  * Enables the lite play screen.
  */
 declare function enableLitePlayScreen(noReload?: boolean): Promise<void>;

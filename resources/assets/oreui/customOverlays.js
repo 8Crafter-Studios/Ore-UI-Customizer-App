@@ -7315,6 +7315,15 @@ const GameModeIDMap = {
 };
 /* eslint-enable no-useless-computed-key */
 /**
+ * Takes an async callback function and wraps it in a wrapper to void the promise.
+ *
+ * @param callback The callback to wrap.
+ * @returns The wrapped callback.
+ */
+function voidAsyncCallback(callback) {
+    return () => void callback();
+}
+/**
  * Enables the lite play screen.
  */
 async function enableLitePlayScreen(noReload = false) {
@@ -7493,10 +7502,12 @@ async function enableLitePlayScreen(noReload = false) {
             tabListButtons[Math.max(0, tabIDs.indexOf(currentTab))].dispatchEvent(new Event("click"));
         }
     }
+    let currentRenderId = 0n;
     for (let i = 0; i < tabListButtons.length; i++) {
         const index = i;
         // eslint-disable-next-line @typescript-eslint/no-misused-promises -- This is intentional.
         tabListButtons[index].addEventListener("click", async () => {
+            const renderId = ++currentRenderId;
             if (tabListButtons[index].getAttribute("data-tab-id") !== currentTab) {
                 if (!silentClick) {
                     getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
@@ -7526,6 +7537,8 @@ async function enableLitePlayScreen(noReload = false) {
                     currentTab = "worlds";
                     const worldListIterable = (getAccessibleFacetSpyFacets()["vanilla.localWorldList"] ??
                         (await forceLoadFacet("vanilla.localWorldList").catch(() => undefined)))?.localWorlds ?? (await QueryManager.fetchQuery("vanilla.menus.localWorldListQuery").catch(() => undefined))?.worlds;
+                    if (renderId !== currentRenderId)
+                        return;
                     /**
                      * The worlds tab button.
                      *
@@ -7576,6 +7589,8 @@ async function enableLitePlayScreen(noReload = false) {
                         if ("lastSaved" in worldList[0])
                             worldList.sort((worldA, worldB) => worldB.lastSaved - worldA.lastSaved);
                         for (let i = currentPage * 5; i < Math.min(worldList.length, (currentPage + 1) * 5); i++) {
+                            if (renderId !== currentRenderId)
+                                return;
                             let world;
                             getWorldData: {
                                 const world_1 = worldList[i];
@@ -7593,19 +7608,32 @@ async function enableLitePlayScreen(noReload = false) {
                             // @ts-ignore: This is for browser compatibility.
                             worldButton.type = "button";
                             worldButton.classList.add("btn", "nsel");
-                            worldButton.style = "font-size: 2vw; line-height: 2.8571428572vw; flex-grow: 1; font-family: Minecraft Seven v2; text-align: left;";
+                            worldButton.style =
+                                "display: flex; flex-direction: row; font-size: 2vw; line-height: 2.8571428572vw; flex-grow: 1; font-family: Minecraft Seven v2; text-align: left;";
                             worldButton.id = `litePlayScreen_worldsTabWorldList_worldListContainer_worldButton_${world.id}`;
+                            // const worldButton_iconContainer = document.createElement("div");
+                            // worldButton_iconContainer.style =
+                            //     "height: 6vw; width: 10.6666666667vw; padding: 0.1vw 0.2555555556vw 0.1vw 0.1vw; margin: -6px 0 0 -12px; width: fit-content;";
+                            const worldButton_icon = document.createElement("img");
+                            worldButton_icon.src = world.previewImgPath || "/hbui/assets/thumbnail-default-d0210bba13d939ca9e72.jpg";
+                            worldButton_icon.style =
+                                "height: calc(6vw - 0.8rem); width: calc(10.6666666667vw - 1.4222222222rem); margin-top: 0.05vw; margin-left: 0.05vw; margin-right: 0.05vw; margin-bottom: 0.05vw; position: absolute; top: calc(-0.05vw + 0.2rem); left: calc(-0.05vw + 0.2rem);";
+                            // worldButton_iconContainer.appendChild(worldButton_icon);
+                            worldButton.appendChild(worldButton_icon);
+                            const worldButtonInner = document.createElement("div");
+                            worldButtonInner.style = "width: auto; height: 100%; flex: 1; padding-left: calc((6vw - 0.6rem) * 1.7777777778); margin-right: calc((6vw - 1.8rem) * -1.7777777778); min-width: 0; max-width: 100%;";
                             const worldButton_worldName = document.createElement("span");
                             worldButton_worldName.style = "text-overflow: ellipsis; white-space: nowrap; overflow: hidden; width: 90%; display: block;";
                             worldButton_worldName.textContent = world.name;
-                            worldButton.appendChild(worldButton_worldName);
+                            worldButtonInner.appendChild(worldButton_worldName);
                             const worldButton_worldDetails = document.createElement("span");
                             worldButton_worldDetails.style =
-                                "text-overflow: ellipsis; white-space: nowrap; overflow: hidden; width: 90%; display: block; position: absolute; bottom: 0; left: 0.4rem; font-size: 1vw; line-height: 1.4285714288vw;";
+                                "text-overflow: ellipsis; white-space: nowrap; overflow: hidden; width: 90%; display: block; position: absolute; bottom: 0; left: calc((6vw - 0.6rem) * 1.7777777778 + 0.4rem); font-size: 1vw; line-height: 1.4285714288vw;";
                             worldButton_worldDetails.textContent = `Size: ${world.fileSize} | Version: ${world.gameVersion.major}.${world.gameVersion.minor}.${world.gameVersion.patch}.${world.gameVersion.revision}${world.gameVersion.isBeta ? "-beta" : ""}${world.isMultiplayerEnabled ? " | Multiplayer" : " | Singleplayer"} | ${
                             //@ts-ignore
                             GameModeIDMap[world.gameMode]}${world.isHardcore ? " | Hardcore" : ""}${world.isExperimental ? " | Experimental" : ""}${world.playerHasDied ? " | Player Has Died" : ""}`;
-                            worldButton.appendChild(worldButton_worldDetails);
+                            worldButtonInner.appendChild(worldButton_worldDetails);
+                            worldButton.appendChild(worldButtonInner);
                             // eslint-disable-next-line @typescript-eslint/no-misused-promises -- This is intentional.
                             worldButton.addEventListener("click", async () => {
                                 getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
@@ -7642,6 +7670,8 @@ async function enableLitePlayScreen(noReload = false) {
                             worldListContainer.appendChild(worldButtonContainer);
                         }
                     }
+                    if (renderId !== currentRenderId)
+                        return;
                     tabContent.appendChild(worldListContainer);
                     const leftButtons = document.getElementById("litePlayScreen_worldsTabButtonBar_leftButtons");
                     if (!leftButtons)
@@ -7690,6 +7720,8 @@ async function enableLitePlayScreen(noReload = false) {
                     const realmsRolesAndPermissionsQueriesFacet = getAccessibleFacetSpyFacets()["vanilla.realmsRolesAndPermissionsQueries"] ??
                         (await forceLoadFacet("vanilla.realmsRolesAndPermissionsQueries"));
                     const realmsListFacet = getAccessibleFacetSpyFacets()["vanilla.realmsListFacet"] ?? (await forceLoadFacet("vanilla.realmsListFacet"));
+                    if (renderId !== currentRenderId)
+                        return;
                     const realmListIterable = realmsListFacet?.realms;
                     /**
                      * The realms tab button.
@@ -7724,7 +7756,17 @@ async function enableLitePlayScreen(noReload = false) {
                     // realmListContainer.style.display = "contents";
                     realmListContainer.style.width = "100%";
                     // realmListContainer.style.height = "100%";
-                    if (realmsListFacet?.state === 1 /* Loading */) {
+                    if (realmsListFacet?.state === 0 /* Unknown */) {
+                        const emptyListInfo = document.createElement("p");
+                        emptyListInfo.textContent = "Unknown state.";
+                        emptyListInfo.style.fontSize = "2vw";
+                        emptyListInfo.style.lineHeight = "2.8571428572vw";
+                        emptyListInfo.style.padding = "0.2rem 0";
+                        emptyListInfo.style.margin = "6px 0";
+                        emptyListInfo.style.fontFamily = "Minecraft Seven v2";
+                        realmListContainer.appendChild(emptyListInfo);
+                    }
+                    else if (realmsListFacet?.state === 1 /* Loading */) {
                         const emptyListInfo = document.createElement("p");
                         emptyListInfo.textContent = "Loading...";
                         emptyListInfo.style.fontSize = "2vw";
@@ -7734,7 +7776,30 @@ async function enableLitePlayScreen(noReload = false) {
                         emptyListInfo.style.fontFamily = "Minecraft Seven v2";
                         realmListContainer.appendChild(emptyListInfo);
                     }
-                    else if (!realmListIterable || pageCount === 0) {
+                    else if (realmsListFacet?.state === 3 /* Error */) {
+                        const emptyListInfo = document.createElement("p");
+                        emptyListInfo.textContent = `Error: ${realmsListFacet.error}`; // TODO: This needs to use the enum mapping for the error.
+                        emptyListInfo.style.fontSize = "2vw";
+                        emptyListInfo.style.lineHeight = "2.8571428572vw";
+                        emptyListInfo.style.padding = "0.2rem 0";
+                        emptyListInfo.style.margin = "6px 0";
+                        emptyListInfo.style.fontFamily = "Minecraft Seven v2";
+                        realmListContainer.appendChild(emptyListInfo);
+                    }
+                    if (pageCount === 0 && [0, 1, 3].includes(realmsListFacet?.state)) {
+                        /* empty */
+                    }
+                    else if (!realmListIterable) {
+                        const emptyListInfo = document.createElement("p");
+                        emptyListInfo.textContent = "Unable to load realms list.";
+                        emptyListInfo.style.fontSize = "2vw";
+                        emptyListInfo.style.lineHeight = "2.8571428572vw";
+                        emptyListInfo.style.padding = "0.2rem 0";
+                        emptyListInfo.style.margin = "6px 0";
+                        emptyListInfo.style.fontFamily = "Minecraft Seven v2";
+                        realmListContainer.appendChild(emptyListInfo);
+                    }
+                    else if (pageCount === 0) {
                         const emptyListInfo = document.createElement("p");
                         emptyListInfo.textContent = "No realms found.";
                         emptyListInfo.style.fontSize = "2vw";
@@ -7754,8 +7819,24 @@ async function enableLitePlayScreen(noReload = false) {
                             ...realmListA.filter((realm) => !realm.world.closed && !realm.world.expired),
                             ...realmListA.filter((realm) => realm.world.closed || realm.world.expired),
                         ];
-                        const realmList = [...realmListB.filter((realm) => realm.isOwner), ...realmListB.filter((realm) => !realm.isOwner)];
+                        const realmList = [
+                            ...realmListB.filter((realm) => realm.isOwner),
+                            ...realmListB.filter((realm) => !realm.isOwner &&
+                                oreUIEnums &&
+                                realmsRolesAndPermissionsQueriesFacet.currentUserRolesAndActionsForAllRealms
+                                    .find((r) => r.realmId === `${realm.world.id}`)
+                                    // TODO: Figure out what permissions are actually needed in order to access the /realms-settings/<REALM_ID> page for the realm.
+                                    ?.actions.includes(oreUIEnums.RealmsPermissionAction.ManageWorlds)),
+                            ...realmListB.filter((realm) => !realm.isOwner &&
+                                !(oreUIEnums &&
+                                    realmsRolesAndPermissionsQueriesFacet.currentUserRolesAndActionsForAllRealms
+                                        .find((r) => r.realmId === `${realm.world.id}`)
+                                        // TODO: Figure out what permissions are actually needed in order to access the /realms-settings/<REALM_ID> page for the realm.
+                                        ?.actions.includes(oreUIEnums.RealmsPermissionAction.ManageWorlds))),
+                        ];
                         for (let i = currentPage * 5; i < Math.min(realmList.length, (currentPage + 1) * 5); i++) {
+                            if (renderId !== currentRenderId)
+                                return;
                             const realm = realmList[i];
                             const realmButtonContainer = document.createElement("div");
                             realmButtonContainer.id = `litePlayScreen_realmsTabRealmList_realmListContainer_realmButtonContainer_${realm.world.id}`;
@@ -7775,6 +7856,7 @@ async function enableLitePlayScreen(noReload = false) {
                                 "text-overflow: ellipsis; white-space: nowrap; overflow: hidden; width: 90%; display: block; position: absolute; bottom: 0; left: 0.4rem; font-size: 1vw; line-height: 1.4285714288vw;";
                             realmButton_realmDetails.textContent = `Players: ${realm.world.onlinePlayers.length}/${realm.world.maxPlayers}${realm.world.full ? " (Full)" : ""}${realm.world.expired ? " | Expired"
                                 : realm.world.closed ? " | Closed"
+                                    // REVIEW: Maybe this should show for realms you have management permissions for too.
                                     : realm.isOwner ? ` | Days Left: ${realm.world.daysLeft}`
                                         : ""} | ${
                             //@ts-ignore
@@ -7925,6 +8007,8 @@ async function enableLitePlayScreen(noReload = false) {
                             realmListContainer.appendChild(realmButtonContainer);
                         }
                     }
+                    if (renderId !== currentRenderId)
+                        return;
                     tabContent.appendChild(realmListContainer);
                     const leftButtons = document.getElementById("litePlayScreen_realmsTabButtonBar_leftButtons");
                     if (!leftButtons)
@@ -7968,6 +8052,8 @@ async function enableLitePlayScreen(noReload = false) {
                         ...(getAccessibleFacetSpyFacets()["vanilla.friendworldlist"] ?? (await forceLoadFacet("vanilla.friendworldlist"))).friendWorlds.slice(0),
                         ...(getAccessibleFacetSpyFacets()["vanilla.lanWorldList"] ?? (await forceLoadFacet("vanilla.lanWorldList"))).lanWorlds.slice(0),
                     ];
+                    if (renderId !== currentRenderId)
+                        return;
                     /**
                      * The friends tab button.
                      *
@@ -8014,6 +8100,8 @@ async function enableLitePlayScreen(noReload = false) {
                             return;
                         }
                         for (let i = currentPage * 5; i < Math.min(friendWorldList.length, (currentPage + 1) * 5); i++) {
+                            if (renderId !== currentRenderId)
+                                return;
                             const world = friendWorldList[i];
                             const friendWorldButtonContainer = document.createElement("div");
                             friendWorldButtonContainer.id = `litePlayScreen_friendsTabFriendWorldList_friendWorldListContainer_friendWorldButtonContainer_${world.id}`;
@@ -8130,6 +8218,8 @@ async function enableLitePlayScreen(noReload = false) {
                             friendWorldListContainer.appendChild(friendWorldButtonContainer);
                         }
                     }
+                    if (renderId !== currentRenderId)
+                        return;
                     tabContent.appendChild(friendWorldListContainer);
                     const leftButtons = document.getElementById("litePlayScreen_friendsTabButtonBar_leftButtons");
                     if (!leftButtons)
@@ -8168,6 +8258,8 @@ async function enableLitePlayScreen(noReload = false) {
                 case "servers": {
                     currentTab = "servers";
                     const serverListIterable = (getAccessibleFacetSpyFacets()["vanilla.externalServerWorldList"] ?? (await forceLoadFacet("vanilla.externalServerWorldList")))?.externalServerWorlds.filter((server) => server.name !== "LitePlayScreenEnabled" && !server.name.startsWith("INTERNALSETTINGS:"));
+                    if (renderId !== currentRenderId)
+                        return;
                     /**
                      * The servers tab button.
                      *
@@ -8215,6 +8307,8 @@ async function enableLitePlayScreen(noReload = false) {
                         }
                         const serverList = Array.from(serverListIterable).sort((serverA, serverB) => Number(serverA.id) - Number(serverB.id));
                         for (let i = currentPage * 5; i < Math.min(serverList.length, (currentPage + 1) * 5); i++) {
+                            if (renderId !== currentRenderId)
+                                return;
                             const server = serverList[i];
                             const serverButtonContainer = document.createElement("div");
                             serverButtonContainer.id = `litePlayScreen_serversTabServerList_serverListContainer_serverButtonContainer_${server.id}`;
@@ -8344,6 +8438,8 @@ async function enableLitePlayScreen(noReload = false) {
                             serverListContainer.appendChild(serverButtonContainer);
                         }
                     }
+                    if (renderId !== currentRenderId)
+                        return;
                     tabContent.appendChild(serverListContainer);
                     const leftButtons = document.getElementById("litePlayScreen_serversTabButtonBar_leftButtons");
                     if (!leftButtons)
@@ -8381,6 +8477,8 @@ async function enableLitePlayScreen(noReload = false) {
                 case "featured": {
                     currentTab = "featured";
                     const thirdPartyWorldList = getAccessibleFacetSpyFacets()["vanilla.thirdPartyWorldList"] ?? (await forceLoadFacet("vanilla.thirdPartyWorldList"));
+                    if (renderId !== currentRenderId)
+                        return;
                     const serverListIterables = thirdPartyWorldList ?
                         "thirdPartyWorlds" in thirdPartyWorldList ?
                             [thirdPartyWorldList.thirdPartyWorlds]
@@ -8439,6 +8537,8 @@ async function enableLitePlayScreen(noReload = false) {
                             .flat()
                             .sort((serverA, serverB) => Number(serverA.id) - Number(serverB.id));
                         for (let i = currentPage * 5; i < Math.min(serverList.length, (currentPage + 1) * 5); i++) {
+                            if (renderId !== currentRenderId)
+                                return;
                             const server = serverList[i];
                             const serverButtonContainer = document.createElement("div");
                             serverButtonContainer.id = `litePlayScreen_featuredTabServerList_serverListContainer_serverButtonContainer_${server.id}`;
@@ -8565,6 +8665,8 @@ async function enableLitePlayScreen(noReload = false) {
                             serverListContainer.appendChild(serverButtonContainer);
                         }
                     }
+                    if (renderId !== currentRenderId)
+                        return;
                     tabContent.appendChild(serverListContainer);
                     const leftButtons = document.getElementById("litePlayScreen_featuredTabButtonBar_leftButtons");
                     if (!leftButtons)
@@ -8676,18 +8778,21 @@ async function enableLitePlayScreen(noReload = false) {
     }
     if (window.observingRealmsListForLitePlayScreenServersTab !== true) {
         window.observingRealmsListForLitePlayScreenServersTab = true;
-        FacetManager.observeFacetData("vanilla.realmsListFacet", async (_realmsListFacet) => {
-            try {
-                const realmsListFacet = getAccessibleFacetSpyFacets()["vanilla.realmsListFacet"] ?? (await forceLoadFacet("vanilla.realmsListFacet"));
-                if (realmsListFacet.state === 2) {
-                    const realmsRolesAndPermissionsCommands = await forceLoadFacet("vanilla.realmsRolesAndPermissionsCommands");
-                    realmsRolesAndPermissionsCommands.refreshAllRealmRolesAndActionsForCurrentUser();
+        let rolesAndActionsLoaded = false;
+        FacetManager.observeFacetData("vanilla.realmsListFacet", (realmsListFacet) => {
+            queueMicrotask(voidAsyncCallback(async () => {
+                try {
+                    if (realmsListFacet.state === 2 && !rolesAndActionsLoaded) {
+                        rolesAndActionsLoaded = true;
+                        const realmsRolesAndPermissionsCommands = getAccessibleFacetSpyFacets()["vanilla.realmsRolesAndPermissionsCommands"] ??
+                            (await forceLoadFacet("vanilla.realmsRolesAndPermissionsCommands"));
+                        realmsRolesAndPermissionsCommands.refreshAllRealmRolesAndActionsForCurrentUser();
+                    }
                 }
-            }
-            catch { }
+                catch { }
+            }));
             if (currentTab !== "realms") {
                 try {
-                    const realmsListFacet = getAccessibleFacetSpyFacets()["vanilla.realmsListFacet"] ?? (await forceLoadFacet("vanilla.realmsListFacet"));
                     /**
                      * The realms tab button.
                      *
@@ -9223,7 +9328,7 @@ queueMicrotask(setTimeout.bind(void 0, async function startEnablingLitePlayScree
             /** @returns {RouteHistoryItem | undefined} */ (v, i) => !v.pathname.startsWith("/ouic/") || i === router.history.list.length - 1 ? { ...v } : undefined);
             const routerObserveCallback = (async (router) => {
                 if (router.history.list.length < loadedRouterPositions.length) {
-                    loadedRouterPositions.splice(router.history.list.length - 1, loadedRouterPositions.length - router.history.list.length);
+                    loadedRouterPositions.splice(router.history.list.length, loadedRouterPositions.length - router.history.list.length);
                 }
                 else if (router.history.list.length > loadedRouterPositions.length) {
                     loadedRouterPositions.push(...router.history.list
@@ -9241,6 +9346,82 @@ queueMicrotask(setTimeout.bind(void 0, async function startEnablingLitePlayScree
                 }
                 if (router.history.location.pathname.startsWith("/ouic/") && loadedRouterPositions[loadedRouterPositions.length - 1] === undefined) {
                     await loadOUICScreen(router.history.location.pathname);
+                }
+                else if (router.history.location.pathname.startsWith("/play/")) {
+                    try {
+                        const localForceLoadedFacets = [];
+                        try {
+                            let forceLoadedExternalServerWorldListFacet = false;
+                            var externalServerWorldList = getAccessibleFacetSpyFacets()["vanilla.externalServerWorldList"] ??
+                                ((forceLoadedExternalServerWorldListFacet = true), await forceLoadFacet("vanilla.externalServerWorldList"));
+                            if (forceLoadedExternalServerWorldListFacet)
+                                localForceLoadedFacets.push("vanilla.externalServerWorldList");
+                        }
+                        catch (e) {
+                            if (e === "activate-facet-not-found") {
+                                try {
+                                    let forceLoadedInGameFacet = false;
+                                    const inGameFacet = getAccessibleFacetSpyFacets()["vanilla.inGame"] ??
+                                        ((forceLoadedInGameFacet = true), await forceLoadFacet("vanilla.inGame"));
+                                    if (forceLoadedInGameFacet)
+                                        localForceLoadedFacets.push("vanilla.inGame");
+                                    if (inGameFacet.isInGame) {
+                                        // localForceLoadedFacets.forEach((f) => unloadForceLoadedFacet(f));
+                                        return;
+                                    }
+                                    console.error(new ReferenceError('Unable to get "vanilla.externalServerWorldList" facet.'));
+                                    // localForceLoadedFacets.forEach((f) => unloadForceLoadedFacet(f));
+                                    return;
+                                }
+                                catch (e) {
+                                    if (e === "activate-facet-not-found") {
+                                        console.warn(new ReferenceError('Unable to get "vanilla.inGame" facet.'));
+                                        // localForceLoadedFacets.forEach((f) => unloadForceLoadedFacet(f));
+                                        return;
+                                    }
+                                    try {
+                                        FacetManager.unobserveFacetData("core.router", routerObserveCallback);
+                                    }
+                                    catch { }
+                                    throw e;
+                                }
+                            }
+                            try {
+                                FacetManager.unobserveFacetData("core.router", routerObserveCallback);
+                            }
+                            catch { }
+                            throw e;
+                        }
+                        const externalServerWorlds = externalServerWorldList.externalServerWorlds;
+                        if (localStorage.getItem("enableLitePlayScreen") !== null ||
+                            externalServerWorldList.externalServerWorlds.some((server) => server.name === "LitePlayScreenEnabled" || server.name === "LitePlayScreenEnabledNoReload")) {
+                            try {
+                                //@ts-expect-error
+                                document.getElementById("8CrafterUtilitiesMenu_button_toggleLitePlayScreen").textContent = "Disable Lite Play Screen";
+                            }
+                            catch (e) {
+                                console.error(e);
+                            }
+                            if (router.history.location.pathname.startsWith("/play/") /*  || /^\/ouic\/play/.test(router.history.location.pathname) */) {
+                                // const originalRouterLocation = { ...router.history.location };
+                                // router.history.replace(`/play/all` + router.history.location.search + router.history.location.hash);
+                                // If the router facet is available, enable the lite play screen.
+                                try {
+                                    externalServerWorlds.some((world) => world.name === "LitePlayScreenEnabledNoReload");
+                                }
+                                catch (e) {
+                                    console.error(e);
+                                }
+                                await enableLitePlayScreen(externalServerWorlds.some((world) => world.name === "LitePlayScreenEnabledNoReload"));
+                            }
+                        }
+                        return;
+                    }
+                    catch (e) {
+                        console.error(e instanceof Error ? e : new Error(String(e), ... /* For browsers only. */[{ cause: e }]));
+                        // await new Promise((resolve): void => void setTimeout(resolve, 10));
+                        // continue;
+                    }
                 }
             });
             FacetManager.observeFacetData("core.router", routerObserveCallback);
@@ -9274,9 +9455,17 @@ queueMicrotask(setTimeout.bind(void 0, async function startEnablingLitePlayScree
                             // localForceLoadedFacets.forEach((f) => unloadForceLoadedFacet(f));
                             return;
                         }
+                        try {
+                            FacetManager.unobserveFacetData("core.router", routerObserveCallback);
+                        }
+                        catch { }
                         throw e;
                     }
                 }
+                try {
+                    FacetManager.unobserveFacetData("core.router", routerObserveCallback);
+                }
+                catch { }
                 throw e;
             }
             const externalServerWorlds = externalServerWorldList.externalServerWorlds;
