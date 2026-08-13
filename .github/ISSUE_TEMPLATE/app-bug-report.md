@@ -4,6 +4,7 @@ about: Create a bug report for a bug with the app. If you are experiencing an is
   in-game after applying the Ore UI Customizer, choose "API bug report" instead.
 title: "[BUG] [app]"
 labels: app, bug
+type: Bug
 assignees: ''
 
 ---
