@@ -5,6 +5,7 @@ about: Create a bug report for a bug with the Ore UI Customizer itself. If you a
   option to choose.
 title: "[BUG] [API]"
 labels: API, bug
+type: Bug
 assignees: ''
 
 ---
@@ -27,7 +28,7 @@ If applicable, add screenshots to help explain your problem. It is recommended t
 
 **Desktop (please complete the following information):**
  - OS: [e.g. iOS/Android/Windows 10/Windows 11]
- - Customization Source: [e.g. App-1.0.0-beta.14 or Website]
+ - Customization Source: [e.g. App-1.0.0-beta.14, Website, or CLI-1.9.0]
  - Customizer Version: [e.g. 1.11.0 (in the app this can be found in the bottom right of the home screen; in-game this can be found on the "About" tab of the 8Crafter Utilities menu)]
  - Minecraft Version [e.g. 1.21.130 or 1.26.0-preview.28]
 
