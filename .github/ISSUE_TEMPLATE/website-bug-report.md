@@ -5,6 +5,7 @@ about: Create a bug report for a bug with the website version of the Ore UI Cust
   "API bug report" instead.
 title: "[BUG] [website]"
 labels: bug, website
+type: Bug
 assignees: ''
 
 ---
@@ -27,16 +28,16 @@ If applicable, add screenshots to help explain your problem.
 
 **Desktop (please complete the following information):**
  - OS: [e.g. iOS/Android/Windows 10/Windows 11]
- - App Version: [e.g. 1.0.0-beta.14]
- - Browser [e.g. stock browser, safari, chrome, edge]
- - Browser Version [e.g. 22]
+ - Customizer Version: [e.g. 1.11.0]
+ - Browser: [e.g. stock browser, safari, chrome, edge]
+ - Browser Version: [e.g. 22]
 
 **Smartphone (please complete the following information):**
  - Device: [e.g. iPhone6]
  - OS: [e.g. iOS8.1]
  - Customizer Version: [e.g. 1.11.0]
- - Browser [e.g. stock browser, safari, chrome, edge]
- - Browser Version [e.g. 22]
+ - Browser: [e.g. stock browser, safari, chrome, edge]
+ - Browser Version: [e.g. 22]
 
 **Additional context**
 Add any other context about the problem here.
