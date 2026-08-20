@@ -38,6 +38,40 @@
 				<key>LSHandlerRank</key>
 				<string>Default</string>
 			</dict>
+			<dict>
+				<key>CFBundleTypeExtensions</key>
+				<array>
+					<string>mcouicconfig</string>
+					<string>MCOUICCONFIG</string>
+					<string>ouicconfig</string>
+					<string>OUICCONFIG</string>
+				</array>
+				<key>CFBundleTypeIconFile</key>
+				<string>resources/icon.icns</string>
+				<key>CFBundleTypeName</key>
+				<string>Ore UI Customizer Config</string>
+				<key>CFBundleTypeRole</key>
+				<string>Viewer</string>
+				<key>LSHandlerRank</key>
+				<string>Default</string>
+			</dict>
+			<dict>
+				<key>CFBundleTypeExtensions</key>
+				<array>
+					<string>mcouicaddon</string>
+					<string>MCOUICADDON</string>
+					<string>ouicaddon</string>
+					<string>OUICADDON</string>
+				</array>
+				<key>CFBundleTypeIconFile</key>
+				<string>resources/icon.icns</string>
+				<key>CFBundleTypeName</key>
+				<string>Ore UI Customizer Add-On</string>
+				<key>CFBundleTypeRole</key>
+				<string>Viewer</string>
+				<key>LSHandlerRank</key>
+				<string>Default</string>
+			</dict>
 		</array>
 	</dict>
 </plist>
