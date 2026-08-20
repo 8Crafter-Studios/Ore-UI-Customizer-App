@@ -13,7 +13,7 @@
 					<string>OUICPLUGIN</string>
 				</array>
 				<key>CFBundleTypeIconFile</key>
-				<string>resources/icon.ico</string>
+				<string>resources/icon.icns</string>
 				<key>CFBundleTypeName</key>
 				<string>Ore UI Customizer Plugin</string>
 				<key>CFBundleTypeRole</key>
@@ -30,7 +30,7 @@
 					<string>OUICTHEME</string>
 				</array>
 				<key>CFBundleTypeIconFile</key>
-				<string>resources/icon.ico</string>
+				<string>resources/icon.icns</string>
 				<key>CFBundleTypeName</key>
 				<string>Ore UI Customizer Theme</string>
 				<key>CFBundleTypeRole</key>
