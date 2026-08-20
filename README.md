@@ -45,7 +45,7 @@ Configs allow you to change the settings of the customizer installation.
 
 #### Importing Configs
 
-If you are on windows and the config has a file extension of `.ouicconfig` or `.mcouicconfig`, just double click on the file (custom file type associations are currently only functional on Windows, they will be added for Linux and macOS in the future).
+If you are on Windows or macOS and the config has a file extension of `.ouicconfig` or `.mcouicconfig`, just double click on the file (custom file type associations are currently only functional on Windows and macOS, they will be added for Linux in the future).
 
 Otherwise, go to `File > Import > Config` in the menu bar or select the `Import Config` button on the configs tab.
 
@@ -77,11 +77,19 @@ To close the menu just click on the configs tab in the sidebar again.
 
 ### Plugins
 
-This section will be filled in soon!
+Plugins allow you to add functionality to the Ore UI Customizer. Plugins can modify the Ore UI files like the customizer does, so they can do everything the customizer does and more.
+
+#### Importing Plugins
+
+If you are on Windows or macOS and the plugin has a file extension of `.ouicplugin` or `.mcouicplugin`, just double click on the file (custom file type associations are currently only functional on Windows and macOS, they will be added for Linux in the future).
+
+Otherwise, go to `File > Import > Plugin` in the menu bar or select the `Import Plugin` button on the plugins tab.
+
+![File > Import > Plugin Button](.github/assets/importing_plugins_tutorial/file-import-plugin.png)
 
 ### Themes
 
-Themes are a planned feature, but have not been implemented yet.
+Themes are a planned feature, but have not been implemented yet. For now you can use plugins instead, as although they are more complicated, they can do everything a theme can.
 
 ### Marketplace
 
@@ -125,3 +133,4 @@ This is the installations page of the app.
 This is the configs page of the app.
 
 ![Plugins Page](.github/assets/plugins_page.png)
+This is the plugins page of the app.
