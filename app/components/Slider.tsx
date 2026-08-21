@@ -26,6 +26,7 @@ async function loadImageForCanvas(imageSource: string): Promise<{ data: ImageDat
             reject: (reason?: any) => void
         ): void => {
             const img: HTMLImageElement = new Image();
+            img.crossOrigin = "anonymous";
             img.onload = function (): void {
                 const canvas: HTMLCanvasElement = document.createElement("canvas");
                 canvas.width = img.width;
@@ -273,44 +274,39 @@ export default function Slider(options: SliderProps): JSX.SpecificElement<"div">
         if (!context) return;
         context.imageSmoothingEnabled = false;
         context.imageSmoothingQuality = "high";
-        let sliderBackgroundImage: { data: ImageData; image: HTMLImageElement } | undefined = isHovering
-            ? sliderImages.slider_background_hover
-            : sliderImages.slider_background;
+        let sliderBackgroundImage: { data: ImageData; image: HTMLImageElement } | undefined =
+            isHovering ? sliderImages.slider_background_hover : sliderImages.slider_background;
         if (!sliderBackgroundImage) {
             sliderBackgroundImage = await sliderImagePromises[isHovering ? "slider_background_hover" : "slider_background"];
             if (currentRenderIteration !== thisRenderIteration) return;
         }
-        let sliderProgressImage: { data: ImageData; image: HTMLImageElement } | undefined = locked
-            ? sliderImages.slider_progress
-            : isHovering
-            ? sliderImages.slider_progress_hover
+        let sliderProgressImage: { data: ImageData; image: HTMLImageElement } | undefined =
+            locked ? sliderImages.slider_progress
+            : isHovering ? sliderImages.slider_progress_hover
             : sliderImages.slider_progress;
         if (!sliderProgressImage) {
             sliderProgressImage = await sliderImagePromises[isHovering ? "slider_progress_hover" : "slider_progress"];
             if (currentRenderIteration !== thisRenderIteration) return;
         }
-        let sliderStepBackgroundImage: { data: ImageData; image: HTMLImageElement } | undefined = locked
-            ? sliderImages.slider_step_background
-            : isHovering
-            ? sliderImages.slider_step_background_hover
+        let sliderStepBackgroundImage: { data: ImageData; image: HTMLImageElement } | undefined =
+            locked ? sliderImages.slider_step_background
+            : isHovering ? sliderImages.slider_step_background_hover
             : sliderImages.slider_step_background;
         if (!sliderStepBackgroundImage) {
             sliderStepBackgroundImage = await sliderImagePromises[isHovering ? "slider_step_background_hover" : "slider_step_background"];
             if (currentRenderIteration !== thisRenderIteration) return;
         }
-        let sliderStepProgressImage: { data: ImageData; image: HTMLImageElement } | undefined = locked
-            ? sliderImages.slider_step_progress
-            : isHovering
-            ? sliderImages.slider_step_progress_hover
+        let sliderStepProgressImage: { data: ImageData; image: HTMLImageElement } | undefined =
+            locked ? sliderImages.slider_step_progress
+            : isHovering ? sliderImages.slider_step_progress_hover
             : sliderImages.slider_step_progress;
         if (!sliderStepProgressImage) {
             sliderStepProgressImage = await sliderImagePromises[isHovering ? "slider_step_progress_hover" : "slider_step_progress"];
             if (currentRenderIteration !== thisRenderIteration) return;
         }
-        let sliderButtonImage: { data: ImageData; image: HTMLImageElement } | undefined = locked
-            ? sliderImages.slider_button_locked
-            : isHovering
-            ? sliderImages.slider_button_hover
+        let sliderButtonImage: { data: ImageData; image: HTMLImageElement } | undefined =
+            locked ? sliderImages.slider_button_locked
+            : isHovering ? sliderImages.slider_button_hover
             : sliderImages.slider_button_default;
         if (!sliderButtonImage) {
             sliderButtonImage = await sliderImagePromises[isHovering ? "slider_button_hover" : "slider_button_default"];

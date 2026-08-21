@@ -767,6 +767,9 @@ ipcMain.on("register-ore-ui-preview-protocol-handlers", (event: IpcMainEvent, pa
             headers: {
                 ...request.headers,
                 "x-oreui-window-id": `${windowId}`,
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Headers": "*",
+                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
             },
             body: request.body,
         });
@@ -795,6 +798,9 @@ ipcMain.on("register-ore-ui-preview-protocol-handlers", (event: IpcMainEvent, pa
             headers: {
                 ...request.headers,
                 "x-oreui-window-id": `${windowId}`,
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Headers": "*",
+                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
             },
             body: request.body,
         });

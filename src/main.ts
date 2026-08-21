@@ -314,36 +314,36 @@ if (!startup) {
     protocol.registerSchemesAsPrivileged([
         {
             scheme: "ore-ui-customizer",
-            privileges: { bypassCSP: true, secure: true, standard: true, supportFetchAPI: true },
+            privileges: { bypassCSP: true, secure: true, standard: true, supportFetchAPI: true, corsEnabled: true },
         },
         {
             scheme: "resource",
-            privileges: { bypassCSP: true, secure: true, standard: true, supportFetchAPI: true },
+            privileges: { bypassCSP: true, secure: true, standard: true, supportFetchAPI: true, corsEnabled: true },
         },
         {
             scheme: "module",
-            privileges: { bypassCSP: true, secure: true, standard: true, supportFetchAPI: true },
+            privileges: { bypassCSP: true, secure: true, standard: true, supportFetchAPI: true, corsEnabled: true },
         },
         {
             scheme: "node",
-            privileges: { bypassCSP: true, secure: true, standard: true, supportFetchAPI: true },
+            privileges: { bypassCSP: true, secure: true, standard: true, supportFetchAPI: true, corsEnabled: true },
         },
         {
             scheme: "script",
-            privileges: { bypassCSP: true, secure: true, standard: true, supportFetchAPI: true },
+            privileges: { bypassCSP: true, secure: true, standard: true, supportFetchAPI: true, corsEnabled: true },
         },
         {
             scheme: "com.8crafter",
-            privileges: { bypassCSP: true, secure: true, standard: true, supportFetchAPI: true },
+            privileges: { bypassCSP: true, secure: true, standard: true, supportFetchAPI: true, corsEnabled: true },
         },
         // This is for the Ore UI preview.
         {
             scheme: "ui",
-            privileges: { bypassCSP: true, secure: true, standard: true, supportFetchAPI: true },
+            privileges: { bypassCSP: true, secure: true, standard: true, supportFetchAPI: true, corsEnabled: true },
         },
         {
             scheme: "local-file",
-            privileges: { bypassCSP: true, secure: true, standard: false, supportFetchAPI: true, stream: true },
+            privileges: { bypassCSP: true, secure: true, standard: false, supportFetchAPI: true, corsEnabled: true, stream: true },
         },
     ]);
 }
@@ -371,7 +371,10 @@ function createWindow(): void {
             preload: path.join(__dirname, "preload.js"),
             contextIsolation: false,
             nodeIntegration: true,
+            // webSecurity: !isDev,
+            allowRunningInsecureContent: false,
             // webSecurity: false,
+            nodeIntegrationInWorker: true,
         },
         resizable: true,
         darkTheme: nativeTheme.shouldUseDarkColorsForSystemIntegratedUI,
@@ -781,12 +784,26 @@ if (!startup && !started) {
                 );
             }); */
                 // return await fetch(new URL(path.posix.join("resources", url.hostname, url.pathname), MAIN_WINDOW_VITE_DEV_SERVER_URL));
-                return new Response(readFileSync(path.join(__dirname, "../../", "resources", url.hostname, url.pathname)));
+                return new Response(readFileSync(path.join(__dirname, "../../", "resources", url.hostname, url.pathname)), {
+                    headers: {
+                        "Content-Type": "application/octet-stream",
+                        "Access-Control-Allow-Origin": "*",
+                        "Access-Control-Allow-Headers": "*",
+                        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+                    },
+                });
             } else {
                 /* BrowserWindow.getAllWindows().forEach((window: BrowserWindow): void => {
                 window.webContents.send<1, "log">("console-action", "log", path.join(__dirname, "../", "resources", url.hostname, url.pathname));
             }); */
-                return new Response(readFileSync(path.join(__dirname, "../../../", "resources", url.hostname, url.pathname)));
+                return new Response(readFileSync(path.join(__dirname, "../../../", "resources", url.hostname, url.pathname)), {
+                    headers: {
+                        "Content-Type": "application/octet-stream",
+                        "Access-Control-Allow-Origin": "*",
+                        "Access-Control-Allow-Headers": "*",
+                        "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+                    },
+                });
             }
         });
         protocol.handle("module", async (request: GlobalRequest): Promise<GlobalResponse> => {
@@ -794,6 +811,9 @@ if (!startup && !started) {
             return new Response(`export default require(${JSON.stringify(request.url.replace(/^module:\/?\/?/, "").replace(/\/$/, ""))});`, {
                 headers: {
                     "Content-Type": "application/javascript",
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Headers": "*",
+                    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
                 },
             });
         });
@@ -802,6 +822,9 @@ if (!startup && !started) {
             return new Response(`export default require(${JSON.stringify(request.url.replace(/^node:\/?\/?/, "").replace(/\/$/, ""))});`, {
                 headers: {
                     "Content-Type": "application/javascript",
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Headers": "*",
+                    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
                 },
             });
         });
@@ -811,17 +834,26 @@ if (!startup && !started) {
             return new Response(readFileSync(pathname), {
                 headers: {
                     "Content-Type": "application/javascript",
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Headers": "*",
+                    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
                 },
             });
         });
         protocol.handle("com.8crafter", async (request: GlobalRequest): Promise<GlobalResponse> => {
             // console.log(request);
             const pathname: string = new URL(request.url).pathname;
-            return /* new Response( */ await fetch(new URL(pathname, "https://8crafter.com")); /* , {
+            const upstream: Response = await fetch(new URL(pathname, "https://8crafter.com"));
+
+            return new Response(upstream.body, {
+                status: upstream.status,
             headers: {
-                "Content-Type": "application/javascript",
+                    ...Object.fromEntries(upstream.headers.entries()),
+                    "Access-Control-Allow-Origin": "*",
+                    "Access-Control-Allow-Headers": "*",
+                    "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
             },
-        }); */
+            });
         });
         createWindow();
         ready = true;
@@ -1144,4 +1176,3 @@ if (!startup && !started) {
     // In this file you can include the rest of your app's specific main process
     // code. You can also put them in separate files and import them here.
 }
-
