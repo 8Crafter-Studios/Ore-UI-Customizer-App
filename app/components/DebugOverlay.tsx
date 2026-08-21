@@ -5,6 +5,51 @@ import os from "node:os";
 import v8 from "node:v8";
 import { existsSync } from "node:fs";
 import { format_version } from "../../src/utils/ore-ui-customizer-api";
+import { execSync } from "node:child_process";
+
+function getCleanOSInfo(): string {
+    const platform = os.platform();
+
+    if (platform === "darwin") {
+        const name: string = execSync("sw_vers -productName").toString().trim();
+        const version: string = execSync("sw_vers -productVersion").toString().trim();
+        const build: string = execSync("sw_vers -buildVersion").toString().trim();
+        return `${name} ${version} (${build})`;
+    }
+
+    if (platform === "win32") {
+        const name: string = os.version();
+        const kernel: string = os.release();
+        return `${name} ${kernel}`;
+    }
+
+    return `${platform} ${os.release()}`;
+}
+
+function cleanGPUString(raw: string): string {
+    if (!raw) return "Unknown GPU";
+
+    // ANGLE Metal (macOS)
+    const metal: RegExpMatchArray | null = raw.match(/Renderer:\s*([^,]+)/i);
+    if (metal) return metal[1]!.trim();
+
+    // ANGLE Direct3D (Windows)
+    const d3d: RegExpMatchArray | null = raw.match(/\(([^,]+),\s*([^()]+?)\s*(Direct3D|D3D)/i);
+    if (d3d) return d3d[2]!.trim();
+
+    // Mesa / Vulkan (Linux)
+    const mesa: RegExpMatchArray | null = raw.match(/^([^()]+)\s*\(/);
+    if (mesa) return mesa[1]!.trim();
+
+    // Fallback: strip parentheses and extra metadata
+    return raw
+        .replace(/\(.*?\)/g, "")
+        .replace(/ANGLE/g, "")
+        .replace(/Metal/g, "")
+        .replace(/Renderer/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+}
 
 /**
  * A debug overlay.
@@ -62,6 +107,7 @@ function DebugOverlayContents(props: DebugOverlayContentsProps): JSX.Element {
  * @returns The debug overlay element.
  */
 function DebugOverlay_Top(): JSX.Element {
+    const osInfo: string = getCleanOSInfo();
     const containerRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
     let GUIScale: number = config.actualGUIScale;
     function Contents(): JSX.Element {
@@ -81,7 +127,7 @@ function DebugOverlay_Top(): JSX.Element {
                     : os.type() === "Darwin" ?
                         "macOS"
                     :   os.type()}{" "}
-                    {os.arch()} Build, {os.version()} {os.release()}
+                    {os.arch()} Build, {osInfo}
                 </span>
                 <span
                     class="crispy"
@@ -89,8 +135,8 @@ function DebugOverlay_Top(): JSX.Element {
                         display: "block",
                     }}
                 >
-                    Mem:{Math.round(process_memoryUsage.rss / 1000 ** 2)}, Free Mem:
-                    {Math.round((v8_heapStatistics.heap_size_limit - process_memoryUsage.rss) / 1000 ** 2)}, GUI Scale:{GUIScale.toFixed(1)}
+                    Mem:{Math.round(process_memoryUsage.heapUsed / 1000 ** 2)}, Free Mem:
+                    {Math.round((v8_heapStatistics.heap_size_limit - process_memoryUsage.heapUsed) / 1000 ** 2)}
                 </span>
             </>
         );
@@ -305,9 +351,11 @@ let GPUInfo: GPUInfo | undefined = undefined;
  * @returns The debug overlay element.
  */
 function DebugOverlay_Basic(): JSX.Element {
+    const osInfo: string = getCleanOSInfo();
     const rightContainerRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
     // await app.getGPUInfo("complete");
-    const currentWindow: Electron.BrowserWindow = getCurrentWindow();
+    // const currentWindow: Electron.BrowserWindow = getCurrentWindow();
+    // IDEA: Add a Window ID line, and maybe lines for other currentWindow details too.
     function LeftContents(): JSX.Element {
         return (
             <>
@@ -349,6 +397,8 @@ function DebugOverlay_Basic(): JSX.Element {
     function RightContents(): JSX.Element {
         const process_memoryUsage: NodeJS.MemoryUsage = process.memoryUsage();
         const v8_heapStatistics: v8.HeapInfo = v8.getHeapStatistics();
+        const processUptime: number = Math.floor(process.uptime());
+        const systemUptime: number = Math.floor(os.uptime());
         return (
             <>
                 <span
@@ -357,7 +407,7 @@ function DebugOverlay_Basic(): JSX.Element {
                         display: "block",
                     }}
                 >
-                    OS: {os.version()} {os.release()}
+                    OS: {osInfo}
                 </span>
                 {/* {<span
                     class="crispy"
@@ -373,8 +423,8 @@ function DebugOverlay_Basic(): JSX.Element {
                         display: "block",
                     }}
                 >
-                    Mem: {Math.round((process_memoryUsage.rss / v8_heapStatistics.heap_size_limit) * 100)}% {Math.round(process_memoryUsage.rss / 1024 ** 2)}/
-                    {Math.round(v8_heapStatistics.heap_size_limit / 1024 ** 2)}MiB
+                    Mem (Heap): {Math.round((process_memoryUsage.heapUsed / v8_heapStatistics.heap_size_limit) * 100)}%{" "}
+                    {Math.round(process_memoryUsage.heapUsed / 1024 ** 2)}/{Math.round(v8_heapStatistics.heap_size_limit / 1024 ** 2)}MiB
                 </span>
                 <span
                     class="crispy"
@@ -382,7 +432,24 @@ function DebugOverlay_Basic(): JSX.Element {
                         display: "block",
                     }}
                 >
-                    CPU: {os.cpus()[0] ? `${os.cpus()[0]!.model} (${os.arch()})` : `Unknown (${os.arch()})`}
+                    Mem (Heap (Total)): {Math.round((process_memoryUsage.heapTotal / v8_heapStatistics.heap_size_limit) * 100)}%{" "}
+                    {Math.round(process_memoryUsage.heapTotal / 1024 ** 2)}/{Math.round(v8_heapStatistics.heap_size_limit / 1024 ** 2)}MiB
+                </span>
+                <span
+                    class="crispy"
+                    style={{
+                        display: "block",
+                    }}
+                >
+                    Mem (RSS): {Math.round(process_memoryUsage.rss / 1024 ** 2)}MiB
+                </span>
+                <span
+                    class="crispy"
+                    style={{
+                        display: "block",
+                    }}
+                >
+                    CPU: {os.cpus().length}x {os.cpus()[0] ? `${os.cpus()[0]!.model} (${os.arch()})` : `Unknown (${os.arch()})`}
                 </span>
                 <span
                     class="crispy"
@@ -407,9 +474,11 @@ function DebugOverlay_Basic(): JSX.Element {
                     }}
                 >
                     GPU:{" "}
-                    {GPUInfo?.gpuDevice?.find(
-                        (gpuDevice: NonNullable<GPUInfo["gpuDevice"]>[number]): string | false | undefined => gpuDevice.active && gpuDevice.deviceString
-                    )?.deviceString ?? "Unknown"}
+                    {cleanGPUString(
+                        GPUInfo?.gpuDevice?.find(
+                            (gpuDevice: NonNullable<GPUInfo["gpuDevice"]>[number]): string | false | undefined => gpuDevice.active && gpuDevice.deviceString
+                        )?.deviceString ?? ""
+                    )}
                 </span>
                 <span
                     class="crispy"
@@ -417,7 +486,22 @@ function DebugOverlay_Basic(): JSX.Element {
                         display: "block",
                     }}
                 >
-                    Process Uptime: {Math.floor(process.uptime())}
+                    Process Uptime:{" "}
+                    {Math.round(processUptime / 60 / 60 / 24)
+                        .toString()
+                        .padStart(2, "0")}
+                    :
+                    {Math.round((processUptime / 60 / 60) % 24)
+                        .toString()
+                        .padStart(2, "0")}
+                    :
+                    {Math.round((processUptime / 60) % 60)
+                        .toString()
+                        .padStart(2, "0")}
+                    :
+                    {Math.round(processUptime % 60)
+                        .toString()
+                        .padStart(2, "0")}
                 </span>
                 <span
                     class="crispy"
@@ -425,7 +509,22 @@ function DebugOverlay_Basic(): JSX.Element {
                         display: "block",
                     }}
                 >
-                    System Uptime: {Math.floor(os.uptime())}
+                    System Uptime:{" "}
+                    {Math.round(systemUptime / 60 / 60 / 24)
+                        .toString()
+                        .padStart(2, "0")}
+                    :
+                    {Math.round((systemUptime / 60 / 60) % 24)
+                        .toString()
+                        .padStart(2, "0")}
+                    :
+                    {Math.round((systemUptime / 60) % 60)
+                        .toString()
+                        .padStart(2, "0")}
+                    :
+                    {Math.round(systemUptime % 60)
+                        .toString()
+                        .padStart(2, "0")}
                 </span>
                 <span
                     class="crispy"
