@@ -228,6 +228,13 @@ export default function PreferencesPage(): JSX.SpecificElement<"center"> {
                 </SettingsSidebarSection>
             </SettingsSidebar>
             <SettingsSectionContainer sectionWidth="60%" sectionID="general" sidebarRadioID="perferences_section" default>
+                <Toggle
+                    label="Enable Automatic Updates (Requires Restart)"
+                    checked={config.autoUpdateEnabled}
+                    onChange={(event: JSX.TargetedEvent<HTMLInputElement, Event>): void => {
+                        config.autoUpdateEnabled = event.currentTarget.checked;
+                    }}
+                ></Toggle>
                 {/* <Toggle
                     label="Test Toggle"
                     onChange={(event: JSX.TargetedEvent<HTMLInputElement, Event>): void => {
