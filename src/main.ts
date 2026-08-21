@@ -289,8 +289,32 @@ if (started) {
     app.quit();
 }
 
-if (process.platform !== "darwin") {
-    updateElectronApp();
+if (!isSecondInstance && (process.platform === "win32" || process.platform === "darwin")) {
+    if (!config.shownDialogs.includes("allow_automatic_updates")) {
+        app.whenReady().then((): void => {
+            const result: number = dialog.showMessageBoxSync({
+                type: "question",
+                title: "Enable Automatic Updates?",
+                message: "Would you like to enable automatic updates?",
+                detail: "The app will only check for updates while it is open, it does not install any background processes.",
+                buttons: ["Enable", "Disable", "Cancel"],
+                noLink: true,
+                defaultId: 0,
+                cancelId: 2,
+            });
+            if (result === 2) return;
+            // XXX: This push only saves because the autoUpdateEnabled setter is triggered afterwards.
+            config.shownDialogs.push("allow_automatic_updates");
+            config.autoUpdateEnabled = result === 0;
+            if (config.autoUpdateEnabled) {
+                // TODO: Add an option to allow changing the update check interval.
+                updateElectronApp();
+            }
+        });
+    } else if (config.autoUpdateEnabled) {
+        // TODO: Add an option to allow changing the update check interval.
+        updateElectronApp();
+    }
 }
 
 if (!startup) {
@@ -847,12 +871,12 @@ if (!startup && !started) {
 
             return new Response(upstream.body, {
                 status: upstream.status,
-            headers: {
+                headers: {
                     ...Object.fromEntries(upstream.headers.entries()),
                     "Access-Control-Allow-Origin": "*",
                     "Access-Control-Allow-Headers": "*",
                     "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
-            },
+                },
             });
         });
         createWindow();
@@ -1122,55 +1146,58 @@ if (!startup && !started) {
                 ]);
             }
         }
-        new Octokit().repos.listReleases({ owner: "8Crafter-Studios", repo: "Ore-UI-Customizer-App" }).then(
-            (releases): void => {
-                const latestRelease: (typeof releases.data)[number] | null = releases.data
-                    .filter(
-                        (release: (typeof releases.data)[number]): boolean =>
-                            !!semver.valid(release.tag_name) &&
-                            // TO-DO: Add an option to allow showing draft releases.
-                            !release.draft /* && config.notifyForPrereleaseUpdates ? true : !release.prerelease */
-                    )
-                    .reduce(
-                        (a: (typeof releases.data)[number] | null, b: (typeof releases.data)[number]): (typeof releases.data)[number] | null =>
-                            a ?
-                                semver.compareBuild(a.tag_name, b.tag_name) < 0 ?
-                                    b
-                                :   a
-                            :   (b ?? null),
-                        null
-                    );
-                if (!latestRelease) return;
-                if (semver.compareBuild(app.getVersion(), latestRelease.tag_name) < 0) {
-                    dialog
-                        .showMessageBox({
-                            type: "info",
-                            title: "Update Available",
-                            message: `A new version of 8Crafter's Ore UI Customizer is available.\n\nCurrent Version: ${app.getVersion()}\nLatest Version: ${
-                                latestRelease.tag_name
-                            }`,
-                            detail:
-                                latestRelease.body ?
-                                    `Release Notes:\n${
-                                        latestRelease.body.split("\n").length > 15 ?
-                                            [...latestRelease.body.split("\n").slice(0, 15), "..."].join("\n")
-                                        :   latestRelease.body
-                                    }`
-                                :   undefined,
-                            buttons: ["Open", "Cancel"],
-                            noLink: true,
-                            cancelId: 1,
-                            defaultId: 0,
-                        })
-                        .then((result: Electron.MessageBoxReturnValue): void => {
-                            if (result.response === 0) {
-                                shell.openExternal(latestRelease.html_url);
-                            }
-                        });
-                }
-            },
-            (): void => {}
-        );
+        if (!config.autoUpdateEnabled) {
+            new Octokit().repos.listReleases({ owner: "8Crafter-Studios", repo: "Ore-UI-Customizer-App" }).then(
+                (releases): void => {
+                    const latestRelease: (typeof releases.data)[number] | null = releases.data
+                        .filter(
+                            (release: (typeof releases.data)[number]): boolean =>
+                                !!semver.valid(release.tag_name) &&
+                                // TO-DO: Add an option to allow showing draft releases.
+                                !release.draft /* && config.notifyForPrereleaseUpdates ? true : !release.prerelease */
+                        )
+                        .reduce(
+                            (a: (typeof releases.data)[number] | null, b: (typeof releases.data)[number]): (typeof releases.data)[number] | null =>
+                                a ?
+                                    semver.compareBuild(a.tag_name, b.tag_name) < 0 ?
+                                        b
+                                    :   a
+                                :   (b ?? null),
+                            null
+                        );
+                    if (!latestRelease) return;
+                    if (semver.compareBuild(app.getVersion(), latestRelease.tag_name) < 0) {
+                        dialog
+                            .showMessageBox({
+                                type: "info",
+                                title: "Update Available",
+                                message: `A new version of 8Crafter's Ore UI Customizer is available.\n\nCurrent Version: ${app.getVersion()}\nLatest Version: ${
+                                    latestRelease.tag_name
+                                }`,
+                                detail:
+                                    latestRelease.body ?
+                                        `Release Notes:\n${
+                                            latestRelease.body.split("\n").length > 15 ?
+                                                [...latestRelease.body.split("\n").slice(0, 15), "..."].join("\n")
+                                            :   latestRelease.body
+                                        }`
+                                    :   undefined,
+                                // IDEA: Add a checkbox for "Don't show again", or maybe for "Skip this version", or options for both.
+                                buttons: ["Open", "Cancel"],
+                                noLink: true,
+                                cancelId: 1,
+                                defaultId: 0,
+                            })
+                            .then((result: Electron.MessageBoxReturnValue): void => {
+                                if (result.response === 0) {
+                                    shell.openExternal(latestRelease.html_url);
+                                }
+                            });
+                    }
+                },
+                (): void => {}
+            );
+        }
     }
 
     // In this file you can include the rest of your app's specific main process

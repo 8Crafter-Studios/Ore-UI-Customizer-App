@@ -134,6 +134,9 @@ namespace exports {
             panoramaRotateDirection: "counterclockwise",
             panoramaRotateSpeed: 2.5,
             volume: { master: 100, ui: 100 },
+            shownDialogs: [],
+            autoUpdateEnabled: true,
+            // TODO: Implement build numbers, like how it is implemented for Bedrock World Editor.
             version: VERSION,
         } as const satisfies ConfigJSON);
         /**
@@ -337,6 +340,20 @@ namespace exports {
             );
         }
         /**
+         * The list of dialogs that have been shown.
+         *
+         * @default
+         * ```typescript
+         * []
+         * ```
+         */
+        public get shownDialogs(): LooseAutocomplete<ConfigConstants.DialogId>[] {
+            return this.getConfigData().shownDialogs ?? Config.defaults.shownDialogs;
+        }
+        public set shownDialogs(value: LooseAutocomplete<ConfigConstants.DialogId>[] | undefined) {
+            this.saveChanges({ shownDialogs: value ?? Config.defaults.shownDialogs });
+        }
+        /**
          * The GUI scale of the app.
          *
          * This is added to {@link baseGUIScale} to get the actual GUI scale.
@@ -498,6 +515,19 @@ namespace exports {
             this.saveChanges({ panoramaRotateSpeed: value ?? Config.defaults.panoramaRotateSpeed });
         }
         /**
+         * Whether or not to try to automatically update the app when a new version is available.
+         *
+         * @platform darwin,win32
+         *
+         * @default true
+         */
+        public get autoUpdateEnabled(): boolean {
+            return this.getConfigData().autoUpdateEnabled ?? Config.defaults.autoUpdateEnabled;
+        }
+        public set autoUpdateEnabled(value: boolean | undefined) {
+            this.saveChanges({ autoUpdateEnabled: value ?? Config.defaults.autoUpdateEnabled });
+        }
+        /**
          * The volume options.
          *
          * Each category *should* be between 0 and 100 (inclusive).
@@ -557,6 +587,7 @@ namespace exports {
     const subConfigValueClasses = [VolumeConfig] as const;
 
     namespace ConfigConstants {
+        export type DialogId = "allow_automatic_updates";
         export const debugOverlayModeList = ["none", "top", "basic", "config"] as const;
         export const debugOverlayModes = {
             none: "Off",

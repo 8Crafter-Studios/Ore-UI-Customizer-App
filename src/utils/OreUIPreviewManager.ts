@@ -1,9 +1,28 @@
-import { net, session } from "@electron/remote";
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
+const mime = require("mime-types") as typeof import("mime-types");
 
 export class OreUIPreviewManager {
+    protected static PORT_RANGES: readonly (readonly [from: number, to: number])[] = [[8927, 9000]];
     public static activePreviews: OreUIPreview[] = [];
+    public static getNextPort(): number | undefined {
+        const activePorts: number[] = [];
+        for (const preview of this.activePreviews) {
+            if (preview.status === "closed") continue;
+            activePorts.push(preview.port);
+        }
+        activePorts.sort((a: number, b: number): number => a - b);
+        for (const [from, to] of this.PORT_RANGES) {
+            for (let port = from; port <= to; port++) {
+                const activePortIndex: number = activePorts.indexOf(port);
+                if (activePortIndex !== -1) {
+                    activePorts.splice(activePortIndex, 1);
+                    continue;
+                }
+                return port;
+            }
+        }
+    }
     public static createPreview(...args: ConstructorParameters<typeof OreUIPreview>): OreUIPreview {
         const preview: OreUIPreview = new OreUIPreview(...args);
         this.activePreviews.push(preview);
@@ -15,6 +34,12 @@ export class OreUIPreviewManager {
 //     guiDistPath: String.raw`C:\XboxGames\Minecraft Preview for Windows\Content\data\gui\dist`,
 //     vanillaResourcePacksContainerFolderPath: String.raw`C:\XboxGames\Minecraft Preview for Windows\Content\data\resource_packs`,
 //     textsPath: String.raw`C:\XboxGames\Minecraft Preview for Windows\Content\data\resource_packs`,
+// });
+
+// globalifiedRendererImports.OreUIPreviewManager.createPreview(8927, {
+//     guiDistPath: String.raw`C:\Users\ander\AppData\Roaming\levilauncher.exe\versions\1.26.42.01\data\gui\dist`,
+//     vanillaResourcePacksContainerFolderPath: String.raw`C:\Users\ander\AppData\Roaming\levilauncher.exe\versions\1.26.42.01\data\resource_packs`,
+//     textsPath: String.raw`C:\Users\ander\AppData\Roaming\levilauncher.exe\versions\1.26.42.01\data\resource_packs`,
 // });
 
 declare global {
@@ -50,11 +75,35 @@ export class OreUIPreview {
          */
         readonly [option: string]: any;
     };
+    public readonly additionalOptions: Readonly<{
+        /**
+         * A proxy to modify hbui UI files before they are sent to the preview.
+         *
+         * @param fileContents The contents of the file as a string.
+         * @param filePath The file path relative to the `gui/dist` folder (with a starting `/`).
+         * @param req
+         * @param res
+         * @returns The modified file contents, or `null` if the file should be handled by the next middleware function.
+         */
+        hbuiUIFileEntryProxy?(
+            fileContents: string,
+            filePath: `/hbui/${string}.${"js" | "css" | "html"}`,
+            req: import("express-serve-static-core").Request<
+                import("express-serve-static-core").ParamsDictionary,
+                any,
+                any,
+                import("qs").ParsedQs,
+                Record<string, any>
+            >,
+            res: import("express-serve-static-core").Response<any, Record<string, any>, number>
+        ): string | null;
+    }>;
     #status: "loading" | "running" | "closed" | "error" = "loading";
     public get status(): "loading" | "running" | "closed" | "error" {
         return this.#status;
     }
-    private httpServer?: import("node:http").Server;
+    private httpServer: import("node:http").Server;
+    private expressServer: import("express").Express;
     private window?: Electron.BrowserWindow;
     public constructor(
         /**
@@ -66,7 +115,8 @@ export class OreUIPreview {
             readonly textsPath?: string | undefined;
             readonly vanillaResourcePacksContainerFolderPath?: string | undefined;
         },
-        previewOptions: OreUIPreview["previewOptions"] = {}
+        previewOptions: OreUIPreview["previewOptions"] = {},
+        additionalOptions: OreUIPreview["additionalOptions"] = {}
     ) {
         this.previewOptions = {
             ...previewOptions,
@@ -76,11 +126,12 @@ export class OreUIPreview {
             use_translation: !!paths.textsPath && (previewOptions.use_translation ?? true),
             locale: previewOptions.locale ?? "en_US",
         };
+        this.additionalOptions = additionalOptions;
         const { app, BrowserWindow, globalShortcut, Menu } = require("@electron/remote") as typeof import("@electron/remote");
         const express = require("express") as typeof import("express");
-        const server = express();
-        server.get("/hbui/@ore-ui-types/enums", (req, res) => {
-            const moduleFilePath = path.join(paths.guiDistPath, "hbui", "@ore-ui-types", "enums");
+        this.expressServer = express();
+        this.expressServer.get("/hbui/@ore-ui-types/enums", (req, res) => {
+            const moduleFilePath: string = path.join(paths.guiDistPath, "hbui", "@ore-ui-types", "enums");
 
             if (existsSync(moduleFilePath)) {
                 res.setHeader("Content-Type", "application/javascript");
@@ -89,11 +140,34 @@ export class OreUIPreview {
 
             res.sendStatus(404);
         });
-        server.use("/__vgmstream__", express.static(path.join(process.env.resourcesPath ?? process.resourcesPath, "ore-ui-viewer/libs/vgmstream")));
-        server.use(express.static(paths.guiDistPath));
-        server.use(express.static(path.join(process.env.resourcesPath ?? process.resourcesPath, "ore-ui-viewer")));
+        this.expressServer.use("/__vgmstream__", express.static(path.join(process.env.resourcesPath ?? process.resourcesPath, "ore-ui-viewer/libs/vgmstream")));
+        if (this.additionalOptions.hbuiUIFileEntryProxy)
+            this.expressServer.get(/^\/hbui\/.+\.(?:js|css|html)$/, (req, res, next) => {
+                const filePath: string = path.join(paths.guiDistPath, req.path);
+                // console.log(7, filePath); // DEBUG // TEST
+
+                const mimeType: string | false = mime.lookup(path.extname(req.path));
+                if (mimeType === false) return next();
+
+                if (existsSync(filePath)) {
+                    const fileContents: string = readFileSync(filePath, "utf8");
+                    const result: string | null = this.additionalOptions.hbuiUIFileEntryProxy!(
+                        fileContents,
+                        req.path as `/hbui/${string}.${"js" | "css" | "html"}`,
+                        req,
+                        res
+                    );
+                    if (result === null) return next();
+                    res.setHeader("Content-Type", mimeType);
+                    return res.send(result);
+                }
+
+                next();
+            });
+        this.expressServer.use(express.static(paths.guiDistPath));
+        this.expressServer.use(express.static(path.join(process.env.resourcesPath ?? process.resourcesPath, "ore-ui-viewer")));
         if (paths.vanillaResourcePacksContainerFolderPath) {
-            server.get(/rp\/.+/, (req, res) => {
+            this.expressServer.get(/rp\/.+/, (req, res) => {
                 const folders = readdirSync(paths.vanillaResourcePacksContainerFolderPath!, { withFileTypes: true })
                     .filter((dirent) => dirent.isDirectory())
                     .toSorted((a, b) =>
@@ -148,7 +222,7 @@ export class OreUIPreview {
         // console.log("\x1B[0m" + new Date().toLocaleTimeString() + " \x1B[33m\x1B[1m[INFO] \x1B[0m- Starting.");
 
         if (!debug) registerShortcuts();
-        this.httpServer = server.listen(port, (error?: Error): void => {
+        this.httpServer = this.expressServer.listen(port, (error?: Error): void => {
             // console.log(
             //     "\x1B[0m" +
             //         new Date().toLocaleTimeString() +
@@ -249,13 +323,16 @@ export class OreUIPreview {
             // }
             // </script>\`);`);
             this.window.on("closed", (): void => {
-                this.httpServer?.close((error?: Error): void => {
+                this.httpServer.close((error?: Error): void => {
                     if (error) {
                         console.error(error);
                         this.#status = "error";
                         return;
                     }
                     this.#status = "closed";
+                    if (OreUIPreviewManager.activePreviews.includes(this)) {
+                        OreUIPreviewManager.activePreviews.splice(OreUIPreviewManager.activePreviews.indexOf(this), 1);
+                    }
                 });
             });
         };
