@@ -1,4 +1,4 @@
-// Copied from @ore-ui-types/enums v1.5.0
+// Copied from @ore-ui-types/enums v1.7.0
 // TODO: Switch all the constants to actual enums.
 export const JoinRealmsServerError = {
     RealmsAPIUnavailable: 0,
@@ -113,13 +113,20 @@ export const RealmPlayerRoleEnum = {
     OPERATOR: 2,
     OWNER: 3,
 };
-export const FriendPresence = {
+export const RealmsPlayerListPlayerPermission = {
+    NONMEMBER: 0,
+    VISITOR: 1,
+    MEMBER: 2,
+    OPERATOR: 3,
+    OWNER: 4,
+};
+export const SocialPresence = {
     Unknown: 0,
     Online: 1,
     Away: 2,
     Offline: 3,
 };
-export const FriendFavoriteStatus = {
+export const FavoriteStatusEnum = {
     UNKNOWN: 0,
     FAVORITE: 1,
     NOT_FAVORITE: 2,
@@ -156,7 +163,7 @@ export const PlayerRelation = {
 //     NumberEnumToObject<typeof PlayerRelation>,
 //     Mode
 // >;
-export const PlayerPartyPresence = {
+export const PartyPresence = {
     NotInParty: 0,
     InParty: 1,
     Disconnecting: 2,
@@ -187,9 +194,9 @@ export const RealmsPermissionAction = {
     InteractWithStories: 17,
 };
 export const RealmsPermissionRole = {
-    Unknown: 0,
-    NotPlayed: 1,
-    HasPlayed: 2,
+    Player: 0,
+    Admin: 1,
+    Owner: 2,
 };
 export const VanillaGameplayContainerChestType = {
     Chest: 0,
@@ -211,7 +218,7 @@ export const VanillaGameplayUIProfile = {
     Pocket: 1,
     None: 2,
 };
-export const WebBrowserFacetLinkType = {
+export const WebBrowserLink = {
     NewWorldCreationFeedbackPage: 0,
     PlayScreenFeedbackPage: 1,
     EditWorldScreenFeedbackPage: 2,
@@ -248,6 +255,162 @@ export const WebBrowserFacetLinkType = {
     AndroidGooglePlay: 33,
     AndroidAmazonAppStore: 34,
     XboxOneStore: 35,
+};
+export const FetchStatus = {
+    Idle: 0,
+    InProgress: 1,
+    Success: 2,
+    InternalError: 3,
+    FetchFailed: 4,
+    RateLimit: 5,
+};
+export const PostStatus = {
+    Idle: 0,
+    InProgress: 1,
+    Success: 2,
+    InternalError: 3,
+    InputInvalid: 4,
+    Uploading: 5,
+    UploadFailed: 6,
+    PostingFailed: 7,
+    RateLimit: 8,
+};
+export const DeletionStatus = {
+    Idle: 0,
+    DeleteComment: 1,
+    DeletePost: 2,
+    Dismiss: 3,
+    isDeleting: 4,
+    isDismissing: 5,
+};
+export const NetworkWorldType = {
+    ThirdParty: 0,
+    External: 1,
+    Realm: 2,
+    LAN: 3,
+};
+export const WorldPingStatus = {
+    Unavailable: 0,
+    Low: 1,
+    Medium: 2,
+    High: 3,
+};
+export const ProfileImageState = {
+    Undefined: 0,
+    Requested: 1,
+    Success: 2,
+    Failure: 3,
+};
+export const FriendsLoadingState = {
+    Unavailable: 0,
+    Loading: 1,
+    Ready: 2,
+    Error: 3,
+};
+export const WorldCloudSyncResult = {
+    Ok: 0,
+    Unsupported: 1,
+    WorldNotCloudStored: 2,
+    UnableToGetManifest: 3,
+    UnableToSyncWorld: 4,
+};
+/**
+ * Represents the state of a command invocation.
+ */
+export const InvocationState = {
+    Idle: 0,
+    Working: 1,
+    Done: 2,
+};
+export const InvocationResult = {
+    Invalid: -1,
+    Success: 0,
+    Fail: 1,
+};
+/**
+ * Represents the state of a facet method execution.
+ *
+ * A facet that has a method that should be possible to sequence using
+ * `useFacetCoroutine` should expose a corresponding state property of this
+ * type that is updated by the facet when the method is running.
+ *
+ * example:
+ * ```
+ * type NetworkFacet = {
+ *  uploadToServer(): void
+ *  uploadToServerProgress: FacetTaskState
+ * }
+ * ```
+ */
+export const FacetTaskState = {
+    IDLE: 0,
+    RUNNING: 1,
+    DONE: 2,
+    CANCELLED: 3,
+    FAILED: 4,
+};
+export const DuplicateWorldError = {
+    Ok: 0,
+    IncorrectWorldId: 1,
+    InsufficientDiskSpace: 2,
+    UnknownError: 3,
+};
+export const ExportWorldFlags = {
+    None: 0,
+    ClearPlayerData: 2,
+    ForceHardcoreMode: 4,
+    All: -1,
+};
+export const ExportWorldResult = {
+    IncorrectWorldId: 1,
+    NoFile: 2,
+    ZipError: 3,
+    PremiumContent: 4,
+    EditionMismatch: 5,
+    EditorMismatch: 6,
+    ZipDepthError: 7,
+    UnknownError: 8,
+    Cancelled: 9,
+};
+export const ClearPlayerDataType = {
+    SkipLocalUser: 0,
+    IncludeLocalUser: 1,
+};
+export const ExportWorldStatus = {
+    Idle: 0,
+    Setup: 1,
+    SelectingFileDestination: 2,
+    Exporting: 3,
+};
+export const StartClearPlayerDataError = {
+    FailedToOpenDatabase: 0,
+};
+export const WorldSizeConvertResult = {
+    Ok: 0,
+    InvalidLevel: 1,
+};
+export const DownloadWorldTemplateStatus = {
+    Initialiing: 0,
+    Downloading: 1,
+    Importing: 2,
+    Success: 3,
+    Fail: 4,
+};
+export const ImportFailure = {
+    UnknownFileType: 0,
+    Duplicate: 1,
+    MalformedZip: 2,
+    Default: 3,
+    Incompatible: 4,
+    Cancelled: 5,
+};
+export const DownloadWorldTemplateError = {
+    AlreadyDownloaded: 0,
+    DownloadAlreadyInProgress: 1,
+    DownloadFailed: 2,
+    ItemNotOwned: 3,
+    CancelledByUser: 4,
+    InsufficientStorage: 5,
 };
 /**
  * Reverses a numeric enum mapping.

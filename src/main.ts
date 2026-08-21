@@ -34,9 +34,10 @@ import semver from "semver";
 const openAboutWindow_function = require("about-window").default as typeof import("about-window").default;
 function openAboutWindow(parentWindow?: BrowserWindow): BrowserWindow {
     return openAboutWindow_function({
-        icon_path: isDev
-            ? path.join(__dirname, "../../resources/icon.png")
-            : path.join(process.resourcesPath, "resources/icon.png") /* path.join(__dirname, (isDev ? "../../" : "") + "resources/icon.png"), */,
+        icon_path:
+            isDev ?
+                path.join(__dirname, "../../resources/icon.png")
+            :   path.join(process.resourcesPath, "resources/icon.png") /* path.join(__dirname, (isDev ? "../../" : "") + "resources/icon.png"), */,
         product_name: "8Crafter's Ore UI Customizer",
         adjust_window_size: true,
         use_version_info: [
@@ -334,6 +335,15 @@ if (!startup) {
         {
             scheme: "com.8crafter",
             privileges: { bypassCSP: true, secure: true, standard: true, supportFetchAPI: true },
+        },
+        // This is for the Ore UI preview.
+        {
+            scheme: "ui",
+            privileges: { bypassCSP: true, secure: true, standard: true, supportFetchAPI: true },
+        },
+        {
+            scheme: "local-file",
+            privileges: { bypassCSP: true, secure: true, standard: false, supportFetchAPI: true, stream: true },
         },
     ]);
 }
@@ -1033,7 +1043,12 @@ if (!startup && !started) {
         }
         const filePath: string | undefined = argv.find((arg: string): boolean => arg !== "." && /^(?!-)/.test(arg));
         if (filePath && existsSync(filePath)) {
-            handleFileOpen(filePath, argv.includes("--edit") ? "edit" : argv.includes("--preview") ? "preview" : "open");
+            handleFileOpen(
+                filePath,
+                argv.includes("--edit") ? "edit"
+                : argv.includes("--preview") ? "preview"
+                : "open"
+            );
         }
     }
     if (webContentsLoaded) {
@@ -1086,7 +1101,11 @@ if (!startup && !started) {
                     )
                     .reduce(
                         (a: (typeof releases.data)[number] | null, b: (typeof releases.data)[number]): (typeof releases.data)[number] | null =>
-                            a ? (semver.compareBuild(a.tag_name, b.tag_name) < 0 ? b : a) : b ?? null,
+                            a ?
+                                semver.compareBuild(a.tag_name, b.tag_name) < 0 ?
+                                    b
+                                :   a
+                            :   (b ?? null),
                         null
                     );
                 if (!latestRelease) return;
@@ -1098,13 +1117,14 @@ if (!startup && !started) {
                             message: `A new version of 8Crafter's Ore UI Customizer is available.\n\nCurrent Version: ${app.getVersion()}\nLatest Version: ${
                                 latestRelease.tag_name
                             }`,
-                            detail: latestRelease.body
-                                ? `Release Notes:\n${
-                                      latestRelease.body.split("\n").length > 15
-                                          ? [...latestRelease.body.split("\n").slice(0, 15), "..."].join("\n")
-                                          : latestRelease.body
-                                  }`
-                                : undefined,
+                            detail:
+                                latestRelease.body ?
+                                    `Release Notes:\n${
+                                        latestRelease.body.split("\n").length > 15 ?
+                                            [...latestRelease.body.split("\n").slice(0, 15), "..."].join("\n")
+                                        :   latestRelease.body
+                                    }`
+                                :   undefined,
                             buttons: ["Open", "Cancel"],
                             noLink: true,
                             cancelId: 1,

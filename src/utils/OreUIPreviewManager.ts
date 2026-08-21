@@ -1,4 +1,5 @@
-import { existsSync, readdirSync } from "node:fs";
+import { net, session } from "@electron/remote";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 export class OreUIPreviewManager {
@@ -78,6 +79,17 @@ export class OreUIPreview {
         const { app, BrowserWindow, globalShortcut, Menu } = require("@electron/remote") as typeof import("@electron/remote");
         const express = require("express") as typeof import("express");
         const server = express();
+        server.get("/hbui/@ore-ui-types/enums", (req, res) => {
+            const moduleFilePath = path.join(paths.guiDistPath, "hbui", "@ore-ui-types", "enums");
+
+            if (existsSync(moduleFilePath)) {
+                res.setHeader("Content-Type", "application/javascript");
+                return res.sendFile(moduleFilePath);
+            }
+
+            res.sendStatus(404);
+        });
+        server.use("/__vgmstream__", express.static(path.join(process.env.resourcesPath ?? process.resourcesPath, "ore-ui-viewer/libs/vgmstream")));
         server.use(express.static(paths.guiDistPath));
         server.use(express.static(path.join(process.env.resourcesPath ?? process.resourcesPath, "ore-ui-viewer")));
         if (paths.vanillaResourcePacksContainerFolderPath) {
@@ -166,6 +178,11 @@ export class OreUIPreview {
         const createWindow = () => {
             // console.log("\x1B[0m" + new Date().toLocaleTimeString() + " \x1B[33m\x1B[1m[INFO] \x1B[0m- Creating the window");
 
+            const windowId = port; /* Math.random().toString(36).substring(2, 9) */
+            const uniquePartition = `ui-preview-${windowId}`;
+
+            // const isolatedSession = session.fromPartition(uniquePartition);
+
             this.window = new BrowserWindow({
                 minWidth: 1010,
                 minHeight: 640,
@@ -180,8 +197,9 @@ export class OreUIPreview {
                     preload: require("path").join(process.env.resourcesPath ?? process.resourcesPath, "ore-ui-viewer/engine.js"),
                     devTools: debug,
                     webgl: true,
-                    webSecurity: true,
+                    webSecurity: false /* true */, // TEMP // DEBUG
                     nodeIntegration: true,
+                    nodeIntegrationInWorker: true,
                     contextIsolation: false,
                     additionalArguments: [
                         `--config-data=${JSON.stringify(JSON.stringify(this.previewOptions))}`,
@@ -190,9 +208,15 @@ export class OreUIPreview {
                         ...(paths.vanillaResourcePacksContainerFolderPath ?
                             [`--ddui-path=${JSON.stringify(paths.vanillaResourcePacksContainerFolderPath)}`]
                         :   []),
+                        ...(paths.vanillaResourcePacksContainerFolderPath ?
+                            [`--vanilla-resource-packs-path=${JSON.stringify(paths.vanillaResourcePacksContainerFolderPath)}`]
+                        :   []),
                     ],
+                    partition: uniquePartition,
                 },
             });
+
+            ipcRenderer.sendSync<1>("register-ore-ui-preview-protocol-handlers", uniquePartition, `${windowId}`, port);
 
             const baseMenu = Menu.getApplicationMenu();
 
@@ -217,6 +241,13 @@ export class OreUIPreview {
 
             this.window.show();
             this.window.loadURL(`http://localhost:${port}/hbui`);
+            //             this.window.webContents.executeJavaScript(`document.head.insertAdjacentHTML("afterbegin", \`<script type="importmap">
+            // {
+            //   "imports": {
+            //     "@ore-ui-types/enums": "/hbui/@ore-ui-types/enums"
+            //   }
+            // }
+            // </script>\`);`);
             this.window.on("closed", (): void => {
                 this.httpServer?.close((error?: Error): void => {
                     if (error) {

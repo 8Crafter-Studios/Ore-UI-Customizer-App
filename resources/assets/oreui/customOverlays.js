@@ -1534,7 +1534,6 @@ var globalThis;
         __OUICInternals__.FacetManagerInstance = _FacetManagerInstance;
         // export const FacetManagerInstance: FacetManager = new (FacetManager as new () => FacetManager)();
         let _QueryManagerInstance;
-        // TODO: Implement a thing to notify of new discovered queries.
         /**
          * @alpha This class is still in early development.
          * @hideconstructor
@@ -1557,6 +1556,79 @@ var globalThis;
              * @todo Document this.
              */
             activeQueryManagerQueryIds = {};
+            /**
+             * The list of known queries.
+             */
+            knownQueries = [
+                "core.animation",
+                "core.input",
+                "core.locale",
+                "core.safeZone",
+                "core.screenReader",
+                "vanilla.gameplay.furnace",
+                "core.splitScreen",
+                "core.cloudStorage",
+                "core.commandState",
+                "core.device.display",
+                "core.device.network",
+                "core.device.platform",
+                "core.device.storage",
+                "core.staticFeatureFlag",
+                "core.flightingConfig.bool",
+                "core.flightingToggle",
+                "vanilla.core.dataDrivenUICompositionQuery",
+                "vanillaCoreDataDrivenUIDefinitionQuery",
+                "vanillaCoreDataDrivenUIScreenIdQuery",
+                "vanillaCoreDataStoreNumberQuery",
+                "vanillaCoreDataStoreStringQuery",
+                "vanillaCoreDataStoreBoolQuery",
+                "vanillaGameplayContainerSizeQuery",
+                "vanillaGameplayContainerItemQuery",
+                "vanillaGameplayContainerNameQuery",
+                "vanillaGameplayContainerChestTypeQuery",
+                "vanillaGameplayRecipeBookSearchStringQuery",
+                "vanillaGameplayRecipeBookFilteringQuery",
+                "vanillaGameplayUIProfile",
+                "vanillaGameplayAnvilQuery",
+                "vanillaGameplayTradeOverviewQuery",
+                "vanillaGameplayTradeTierQuery",
+                "vanillaGameplayTradeOfferQuery",
+                "vanilla.menus.settingsGroupQuery",
+                "vanilla.menus.settingsGroupInfoQuery",
+                "vanilla.menus.settingsUiDebugQuery",
+                "vanilla.menus.settingsTextQuery",
+                "vanilla.menus.settingsBooleanQuery",
+                "vanilla.menus.settingsNumberQuery",
+                "vanilla.menus.settingsOptionQuery",
+                "vanilla.menus.settingsActionQuery",
+                "vanilla.menus.buildInfoQuery",
+                "vanilla.menus.localWorldListQuery",
+                "vanilla.menus.localWorldQuery",
+                "realmsServerSettingsQuery",
+                "vanilla.currentParty.dataQuery",
+                "vanilla.currentParty.destinationQuery",
+                "vanilla.currentParty.membersQuery",
+                "vanilla.menus.realms.adminLogQuery",
+                "vanilla.menus.realms.realmsBackupDownloadQuery",
+                "vanilla.menus.realms.realmsSavesQuery",
+                "vanilla.partyChat.unreadMessagesQuery",
+                "vanilla.playerFriendList",
+                "vanilla.realms.currentRealm",
+                "vanilla.receivedFriendRequests",
+                "vanilla.CoreDataDrivenUIDefinitionQuery",
+                "vanillaGameplayImmediateRespawnQuery",
+                "vanillaGameplayActiveLevelHardcoreModeQuery",
+                "vanillaGameplayPlayerDeathInfoQuery",
+                "vanillaGameplayIsLocalPlayerAliveQuery",
+            ];
+            /**
+             * The list of facets that have been loaded that are new (as in not yet in the {@link knownQueries}).
+             */
+            discoveredNewLoadedQueries = [];
+            /**
+             * The list of facets that have been requested that are new (as in not yet in the {@link knownQueries}).
+             */
+            discoveredNewRequestedQueries = [];
             constructor() {
                 if (QueryManager.#constructed)
                     throw new TypeError("Illegal constructor");
@@ -1675,6 +1747,15 @@ var globalThis;
         __decorate([
             writable(false)
         ], QueryManager.prototype, "activeQueryManagerQueryIds", void 0);
+        __decorate([
+            writable(false)
+        ], QueryManager.prototype, "knownQueries", void 0);
+        __decorate([
+            writable(false)
+        ], QueryManager.prototype, "discoveredNewLoadedQueries", void 0);
+        __decorate([
+            writable(false)
+        ], QueryManager.prototype, "discoveredNewRequestedQueries", void 0);
         __decorate([
             writable(false)
         ], QueryManager.prototype, "fetchQuery", null);
@@ -1985,7 +2066,42 @@ const originalEngineMethods = {
             };
         },
     };
+    // EngineInterceptor.addEventListener("beforeMethodCall", (ev) => {
+    //     if (ev.method !== "trigger") return;
+    //     const args = ev.args;
+    //     if (args[0] !== "query:subscribe/vanillaCoreDataDrivenUIScreenIdQuery") return;
+    //     ev.preventDefault();
+    //     ev.stopImmediatePropagation();
+    //     originalEngineMethods.trigger(`query:subscribed/${args[1]}`, {
+    //         __Type: `vanillaCoreDataDrivenUIScreenIdQuery$_$${Date.now()}`,
+    //         screenId: "minecraft:message_box",
+    //     });
+    // });
     engineHookTriggerCallbacks.trigger.before.push(function beforeQuerySubscribeCallback(id, ...args) {
+        if (id.startsWith("query:subscribe/")) {
+            const [queryId] = args;
+            const queryName = id.slice("query:subscribe/".length);
+            if (!QueryManager.activeVanillaNonParameterizedQueriesIdMap[`${queryId}`] &&
+                !QueryManager.knownQueries.includes(queryName) &&
+                !QueryManager.discoveredNewRequestedQueries.includes(queryName)) {
+                // this.dispatchEvent(new FacetNewNotedLoadedFacetEvent(facetName)); // TODO
+                QueryManager.discoveredNewRequestedQueries.push(queryName);
+                const callback = (_value) => {
+                    //@ts-ignore
+                    originalEngineMethods.off(`query:subscribed/${queryId}`, callback);
+                    //@ts-ignore
+                    originalEngineMethods.off(`query:updated/${queryId}`, callback);
+                    if (QueryManager.discoveredNewLoadedQueries.includes(queryName))
+                        return;
+                    QueryManager.discoveredNewLoadedQueries.push(queryName);
+                    console.info(`New query discovered (loaded)!: ${queryName}`);
+                };
+                //@ts-ignore
+                originalEngineMethods.on(`query:subscribed/${queryId}`, callback);
+                //@ts-ignore
+                originalEngineMethods.on(`query:updated/${queryId}`, callback);
+            }
+        }
         if (id === "query:subscribe/core.input") {
             // console.debug(6, id, ...args);
             originalEngineMethods.on(`query:subscribed/${args[0]}`, 
@@ -2019,7 +2135,7 @@ const originalEngineMethods = {
         else if (id.startsWith("query:subscribe/")) {
             if (args.length > 1)
                 return; // Don't mess with queries that have parameters.
-            const facetID = id.slice("query:subscribe/".length);
+            const queryName = id.slice("query:subscribe/".length);
             // ~DEBUG: This is for overriding these queries.
             // if (__queryResolvers__[facetID]) {
             //     originalEngineMethods.trigger(`query:subscribed/${args[0]}`, __queryResolvers__[facetID](...args.slice(1)));
@@ -2028,12 +2144,12 @@ const originalEngineMethods = {
             //@ts-ignore
             originalEngineMethods.on(`query:subscribed/${args[0]}`, (value) => {
                 // console.debug(7, arguments);
-                cachedFacetQueryData[facetID] = value;
+                cachedFacetQueryData[queryName] = value;
             });
             //@ts-ignore
             originalEngineMethods.on(`query:updated/${args[0]}`, (value) => {
                 // console.debug(7, arguments);
-                cachedFacetQueryData[facetID] = value;
+                cachedFacetQueryData[queryName] = value;
             });
         }
     });
@@ -7621,7 +7737,8 @@ async function enableLitePlayScreen(noReload = false) {
                             // worldButton_iconContainer.appendChild(worldButton_icon);
                             worldButton.appendChild(worldButton_icon);
                             const worldButtonInner = document.createElement("div");
-                            worldButtonInner.style = "width: auto; height: 100%; flex: 1; padding-left: calc((6vw - 0.6rem) * 1.7777777778); margin-right: calc((6vw - 1.8rem) * -1.7777777778); min-width: 0; max-width: 100%;";
+                            worldButtonInner.style =
+                                "width: auto; height: 100%; flex: 1; padding-left: calc((6vw - 0.6rem) * 1.7777777778); margin-right: calc((6vw - 1.8rem) * -1.7777777778); min-width: 0; max-width: 100%;";
                             const worldButton_worldName = document.createElement("span");
                             worldButton_worldName.style = "text-overflow: ellipsis; white-space: nowrap; overflow: hidden; width: 90%; display: block;";
                             worldButton_worldName.textContent = world.name;

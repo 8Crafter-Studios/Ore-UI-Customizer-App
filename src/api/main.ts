@@ -1,4 +1,4 @@
-import { BrowserWindow, ipcMain, ipcRenderer, type IpcMainEvent, type IpcMainInvokeEvent } from "electron";
+import { BrowserWindow, ipcMain, ipcRenderer, net, session, type IpcMainEvent, type IpcMainInvokeEvent } from "electron";
 
 ipcMain.on("window-eval", (event: IpcMainEvent, script: string): void => {
     const sourceWindow: BrowserWindow = BrowserWindow.fromWebContents(event.sender)!;
@@ -743,13 +743,63 @@ ipcMain.on("get-is-404-response", async (event: IpcMainEvent, uri: string): Prom
     }
 });
 
-ipcMain.handle("get-is-404-response", async (event: IpcMainInvokeEvent, uri: string): Promise<boolean> => {
+ipcMain.handle("get-is-404-response", async (_event: IpcMainInvokeEvent, uri: string): Promise<boolean> => {
     try {
         const response = await fetch(uri);
         return response.status === 404;
     } catch (e) {
         return true;
     }
+});
+
+ipcMain.on("register-ore-ui-preview-protocol-handlers", (event: IpcMainEvent, partition: string, windowId: string, port: number): void => {
+    const isolatedSession: Electron.Session = session.fromPartition(partition);
+    if (isolatedSession.protocol.isProtocolHandled("ui")) isolatedSession.protocol.unhandle("ui");
+    if (isolatedSession.protocol.isProtocolHandled("resource")) isolatedSession.protocol.unhandle("resource");
+    if (isolatedSession.protocol.isProtocolHandled("local-file")) isolatedSession.protocol.unhandle("local-file");
+    isolatedSession.protocol.handle("ui", (request: Request): Promise<Response> => {
+        const url = new URL(request.url);
+
+        const targetUrl = `http://localhost:${port}${url.hostname ? `/${url.hostname}` : ""}${url.pathname}${url.search}`;
+
+        return net.fetch(targetUrl, {
+            method: request.method,
+            headers: {
+                ...request.headers,
+                "x-oreui-window-id": `${windowId}`,
+            },
+            body: request.body,
+        });
+    });
+    isolatedSession.protocol.handle("resource", (request: Request): Promise<Response> => {
+        const url = new URL(request.url);
+
+        const targetUrl = `resource://${url.hostname}${url.pathname}${url.search}`;
+
+        return net.fetch(targetUrl, {
+            method: request.method,
+            headers: {
+                ...request.headers,
+                "x-oreui-window-id": `${windowId}`,
+            },
+            body: request.body,
+        });
+    });
+    isolatedSession.protocol.handle("local-file", (request: Request): Promise<Response> => {
+        const url = new URL(request.url);
+
+        const targetUrl = `file://${url.hostname}${url.pathname}${url.search}`;
+
+        return net.fetch(targetUrl, {
+            method: request.method,
+            headers: {
+                ...request.headers,
+                "x-oreui-window-id": `${windowId}`,
+            },
+            body: request.body,
+        });
+    });
+    event.returnValue = void true;
 });
 
 declare global {
@@ -834,6 +884,7 @@ declare global {
             sendSync<_T extends 1>(channel: "open-about-window", parentWindowID?: number): number;
             sendSync<_T extends 1>(channel: "get-is-404-response", uri: string): boolean;
             invoke<_T extends 1>(channel: "get-is-404-response", uri: string): Promise<boolean>;
+            sendSync<_T extends 1>(channel: "register-ore-ui-preview-protocol-handlers", partition: string, windowId: string, port: number): void;
         }
     }
 }

@@ -31,6 +31,6 @@
         "checkJs": true,
         "allowJs": true
     },
-    "include": ["src", "./app/renderer.tsx", "app"],
+    "include": ["src", "./app/renderer.tsx", "app", "./node_modules/vite/client.d.ts"],
     "exclude": ["deprecated/*"]
 }

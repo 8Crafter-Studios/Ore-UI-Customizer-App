@@ -433,6 +433,18 @@ declare namespace globalThis {
             readonly activeQueryManagerQueryIds: {
                 [queryId: `${number | bigint}`]: ((result: EngineQueryResult<keyof EngineQueryNonFacetResultMap>) => void)[];
             };
+            /**
+             * The list of known queries.
+             */
+            readonly knownQueries: readonly ["core.animation", "core.input", "core.locale", "core.safeZone", "core.screenReader", "vanilla.gameplay.furnace", "core.splitScreen", "core.cloudStorage", "core.commandState", "core.device.display", "core.device.network", "core.device.platform", "core.device.storage", "core.staticFeatureFlag", "core.flightingConfig.bool", "core.flightingToggle", "vanilla.core.dataDrivenUICompositionQuery", "vanillaCoreDataDrivenUIDefinitionQuery", "vanillaCoreDataDrivenUIScreenIdQuery", "vanillaCoreDataStoreNumberQuery", "vanillaCoreDataStoreStringQuery", "vanillaCoreDataStoreBoolQuery", "vanillaGameplayContainerSizeQuery", "vanillaGameplayContainerItemQuery", "vanillaGameplayContainerNameQuery", "vanillaGameplayContainerChestTypeQuery", "vanillaGameplayRecipeBookSearchStringQuery", "vanillaGameplayRecipeBookFilteringQuery", "vanillaGameplayUIProfile", "vanillaGameplayAnvilQuery", "vanillaGameplayTradeOverviewQuery", "vanillaGameplayTradeTierQuery", "vanillaGameplayTradeOfferQuery", "vanilla.menus.settingsGroupQuery", "vanilla.menus.settingsGroupInfoQuery", "vanilla.menus.settingsUiDebugQuery", "vanilla.menus.settingsTextQuery", "vanilla.menus.settingsBooleanQuery", "vanilla.menus.settingsNumberQuery", "vanilla.menus.settingsOptionQuery", "vanilla.menus.settingsActionQuery", "vanilla.menus.buildInfoQuery", "vanilla.menus.localWorldListQuery", "vanilla.menus.localWorldQuery", "realmsServerSettingsQuery", "vanilla.currentParty.dataQuery", "vanilla.currentParty.destinationQuery", "vanilla.currentParty.membersQuery", "vanilla.menus.realms.adminLogQuery", "vanilla.menus.realms.realmsBackupDownloadQuery", "vanilla.menus.realms.realmsSavesQuery", "vanilla.partyChat.unreadMessagesQuery", "vanilla.playerFriendList", "vanilla.realms.currentRealm", "vanilla.receivedFriendRequests", "vanilla.CoreDataDrivenUIDefinitionQuery", "vanillaGameplayImmediateRespawnQuery", "vanillaGameplayActiveLevelHardcoreModeQuery", "vanillaGameplayPlayerDeathInfoQuery", "vanillaGameplayIsLocalPlayerAliveQuery"];
+            /**
+             * The list of facets that have been loaded that are new (as in not yet in the {@link knownQueries}).
+             */
+            readonly discoveredNewLoadedQueries: string[];
+            /**
+             * The list of facets that have been requested that are new (as in not yet in the {@link knownQueries}).
+             */
+            readonly discoveredNewRequestedQueries: string[];
             private constructor();
             /**
              * Gets the query ID for a query name and paramters using the same hashing function as the vanilla UI files do.

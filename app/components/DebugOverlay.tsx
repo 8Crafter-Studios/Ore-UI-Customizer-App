@@ -75,8 +75,13 @@ function DebugOverlay_Top(): JSX.Element {
                         display: "block",
                     }}
                 >
-                    {"v" + VERSION} {os.type() === "Windows_NT" ? "Windows" : os.type() === "Darwin" ? "macOS" : os.type()} {os.arch()} Build, {os.version()}{" "}
-                    {os.release()}
+                    {"v" + VERSION}{" "}
+                    {os.type() === "Windows_NT" ?
+                        "Windows"
+                    : os.type() === "Darwin" ?
+                        "macOS"
+                    :   os.type()}{" "}
+                    {os.arch()} Build, {os.version()} {os.release()}
                 </span>
                 <span
                     class="crispy"
@@ -773,21 +778,19 @@ function DebugOverlay_Config(): JSX.Element {
                                 display: "block",
                             }}
                         >
-                            {parsedVersionFolderSearchLocations[index] ? (
-                                existingVersionFolderSearchLocations[index] ? (
+                            {parsedVersionFolderSearchLocations[index] ?
+                                existingVersionFolderSearchLocations[index] ?
                                     <CrispyDropShadowSpan class="debug-overlay-config-mode-item-value" data-color="#54FF54FF">
                                         [E]
                                     </CrispyDropShadowSpan>
-                                ) : (
-                                    <CrispyDropShadowSpan class="debug-overlay-config-mode-item-value" data-color="#FF5454FF">
+                                :   <CrispyDropShadowSpan class="debug-overlay-config-mode-item-value" data-color="#FF5454FF">
                                         [X]
                                     </CrispyDropShadowSpan>
-                                )
-                            ) : (
-                                <CrispyDropShadowSpan class="debug-overlay-config-mode-item-value" data-color="#FFA854FF">
+
+                            :   <CrispyDropShadowSpan class="debug-overlay-config-mode-item-value" data-color="#FFA854FF">
                                     [?]
                                 </CrispyDropShadowSpan>
-                            )}{" "}
+                            }{" "}
                             <CrispyDropShadowSpan class="debug-overlay-config-mode-item-value">{`[${location}]`}</CrispyDropShadowSpan>
                         </span>
                     )
@@ -819,15 +822,14 @@ function DebugOverlay_Config(): JSX.Element {
                                 display: "block",
                             }}
                         >
-                            {existingVersionFolderSearchLocations[index] ? (
+                            {existingVersionFolderSearchLocations[index] ?
                                 <CrispyDropShadowSpan class="debug-overlay-config-mode-item-value" data-color="#54FF54FF">
                                     [E]
                                 </CrispyDropShadowSpan>
-                            ) : (
-                                <CrispyDropShadowSpan class="debug-overlay-config-mode-item-value" data-color="#FF5454FF">
+                            :   <CrispyDropShadowSpan class="debug-overlay-config-mode-item-value" data-color="#FF5454FF">
                                     [X]
                                 </CrispyDropShadowSpan>
-                            )}{" "}
+                            }{" "}
                             <CrispyDropShadowSpan class="debug-overlay-config-mode-item-value">{`[${location}]`}</CrispyDropShadowSpan>
                         </span>
                     )
