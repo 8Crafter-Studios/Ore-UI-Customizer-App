@@ -136,7 +136,7 @@ function DebugOverlay_Top(): JSX.Element {
                     }}
                 >
                     Mem:{Math.round(process_memoryUsage.heapUsed / 1000 ** 2)}, Free Mem:
-                    {Math.round((v8_heapStatistics.heap_size_limit - process_memoryUsage.heapUsed) / 1000 ** 2)}
+                    {Math.round((v8_heapStatistics.heap_size_limit - process_memoryUsage.heapUsed) / 1000 ** 2)}, GUI Scale:{GUIScale.toFixed(1)}
                 </span>
             </>
         );
