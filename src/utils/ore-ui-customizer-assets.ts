@@ -81,6 +81,7 @@ export const defaultOreUICustomizerSettings: OreUICustomizerSettings = {
         "add-exact-ping-count-to-servers-tab": true,
         "add-max-player-count-to-servers-tab": true,
         "facet-spy": true,
+        "make-export-world-button-visible": true,
     },
     /**
      * These are replacements for the UI colors.
@@ -1609,6 +1610,7 @@ export const builtInPlugins = [
         min_engine_version: "0.25.0",
     },
     {
+        // DEPRECATED
         name: "Facet spy.",
         id: "facet-spy",
         namespace: "built-in",
@@ -2280,6 +2282,33 @@ export const builtInPlugins = [
         ],
         format_version: "1.0.0",
         min_engine_version: "1.0.0",
+    },
+    {
+        name: "Make export world button visible.",
+        id: "make-export-world-button-visible",
+        namespace: "built-in",
+        version: "1.0.0",
+        uuid: "69e1926b-f1d6-4744-8fe7-a64aed9d6d91",
+        description: "A built-in plugin that makes the export world button visible on non-Windows platforms, such as Android.",
+        actions: [
+            {
+                id: "make-export-world-button-visible",
+                context: "per_text_file",
+                action: async (currentFileContent: string, file: zip.ZipFileEntry<any, any>): Promise<string> => {
+                    if (!/index-[0-9a-f]{5,20}\.js$/.test(file.data?.filename!)) return currentFileContent;
+                    if (!/(?<=createElement\([a-zA-Z0-9_$]{3},\{[a-zA-Z0-9_$:,\s]*,showExportButton:)[a-zA-Z0-9_$]{1}(?=,|\})/g.test(currentFileContent)) {
+                        throw new Error("Unable to find binding variable target.");
+                    }
+                    currentFileContent = currentFileContent.replace(
+                        /(?<=createElement\([a-zA-Z0-9_$]{3},\{[a-zA-Z0-9_$:,\s]*,showExportButton:)[a-zA-Z0-9_$]{1}(?=,|\})/g,
+                        "true"
+                    );
+                    return currentFileContent;
+                },
+            },
+        ],
+        format_version: "0.25.0",
+        min_engine_version: "0.25.0",
     },
 ] as const satisfies (Plugin & { namespace: "built-in" })[];
 
