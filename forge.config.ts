@@ -10,12 +10,11 @@ import { FuseV1Options, FuseVersion } from "@electron/fuses";
 import { type ChildProcess, spawn } from "node:child_process";
 import { existsSync, readdirSync, renameSync, rmSync } from "node:fs";
 import path from "node:path";
-// TODO
-// import { loadEnvFile } from "node:process";
+import { loadEnvFile } from "node:process";
 
-// if (existsSync(path.join(__dirname, ".env"))) loadEnvFile(path.join(__dirname, ".env"));
+if (existsSync(path.join(__dirname, ".env"))) loadEnvFile(path.join(__dirname, ".env"));
 
-// const osxSigningEnabled = !!(process.env.APPLE_TEAM_ID && process.env.APPLE_ID && process.env.APPLE_ID_APP_SPECIFIC_PASSWORD);
+const osxSigningEnabled = !!(process.env.APPLE_TEAM_ID && process.env.APPLE_ID && process.env.APPLE_ID_APP_SPECIFIC_PASSWORD);
 
 const config: ForgeConfig = {
     packagerConfig: {
@@ -32,20 +31,19 @@ const config: ForgeConfig = {
         icon: "./resources/icon",
         overwrite: true,
         extraResource: ["./resources"],
-        // TODO
-        // osxSign:
-        //     osxSigningEnabled ?
-        //         {
-        //             identity: "Developer ID Application: Alexander Zahn (3FUJBBPY76)",
-        //         }
-        //     :   undefined,
-        // osxNotarize: /* osxSigningEnabled ?
-        //         {
-        //             appleId: process.env.APPLE_ID!,
-        //             appleIdPassword: process.env.APPLE_ID_APP_SPECIFIC_PASSWORD!,
-        //             teamId: process.env.APPLE_TEAM_ID!,
-        //         }
-        //     :   */ undefined,
+        osxSign:
+            osxSigningEnabled ?
+                {
+                    identity: "Developer ID Application: Alexander Zahn (3FUJBBPY76)",
+                }
+            :   undefined,
+        osxNotarize: /* osxSigningEnabled ?
+                {
+                    appleId: process.env.APPLE_ID!,
+                    appleIdPassword: process.env.APPLE_ID_APP_SPECIFIC_PASSWORD!,
+                    teamId: process.env.APPLE_TEAM_ID!,
+                }
+            :   */ undefined,
         appBundleId: "com.8crafter.ore-ui-customizer-app",
         appCategoryType: "public.app-category.developer-tools",
         appCopyright: "Copyright © 2025-2026 8Crafter Studios",
@@ -219,14 +217,13 @@ const config: ForgeConfig = {
                 renameSync(targetPath, newPath);
             }
 
-            // TODO
-            // if (!osxSigningEnabled) return;
-            // const { spawn } = require("child_process") as typeof import("child_process");
+            if (!osxSigningEnabled) return;
+            const { spawn } = require("child_process") as typeof import("child_process");
 
-            // await new Promise((resolve: (value: void) => void, reject) => {
-            //     const p = spawn("./scripts/notarize.sh", [], { stdio: "inherit" });
-            //     p.on("exit", (code) => (code === 0 ? resolve() : reject(new Error(`notarize failed: ${code}`))));
-            // });
+            await new Promise((resolve: (value: void) => void, reject) => {
+                const p = spawn("./scripts/notarize.sh", [], { stdio: "inherit" });
+                p.on("exit", (code) => (code === 0 ? resolve() : reject(new Error(`notarize failed: ${code}`))));
+            });
         },
     },
 };
