@@ -89,7 +89,7 @@ const config: ForgeConfig = {
                     owner: "8Crafter-Studios",
                     name: "Ore-UI-Customizer-App",
                 },
-                prerelease: true,
+                prerelease: false,
                 generateReleaseNotes: true,
                 draft: true,
             },
