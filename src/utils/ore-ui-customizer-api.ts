@@ -13,8 +13,8 @@ import "./zip.js";
 /**
  * The version of the Ore UI Customizer API.
  */
-// BUILD 18
-export const format_version = "1.16.0";
+// BUILD 1
+export const format_version = "1.17.0+BUILD.1";
 
 /**
  * The result of the {@link applyMods} function.
@@ -165,6 +165,37 @@ export function resolveOreUICustomizerSettings(
         });
     });
     return resolvedSettings;
+}
+
+/**
+ * Applies color replacements to the provided file contents.
+ * 
+ * @param distData The file contents.
+ * @param _filePath The file path.
+ * @param settings The Ore UI Customizer settings.
+ * @returns The modified file contents.
+ *
+ * @todo Add separate handling for gameplay-theme-*.css, it should have its own unique color options for variables in it.
+ * @todo Add theme support.
+ */
+export function applyColorReplacementsToFileContents(distData: string, _filePath: string, settings: OreUICustomizerSettings): string {
+    const keys: string[] = [];
+    for (const [key, value] of Object.entries(settings.colorReplacements)) {
+        if (value === "" || value === undefined || value === null || value === key) continue;
+        keys.push(key);
+    }
+
+    const pattern = new RegExp(keys.map((k: string): string => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"), "g");
+
+    distData = distData.replace(pattern, (match: string): string => {
+        if (!(match in settings.colorReplacements)) {
+            console.error(`Unknown color replacement: ${match}`);
+            return match;
+        }
+        const replacement: string = settings.colorReplacements[match as keyof typeof settings.colorReplacements];
+        return replacement ?? match;
+    });
+    return distData;
 }
 
 /**
@@ -1344,11 +1375,7 @@ export async function applyMods(file: Blob, options: ApplyModsOptions = {}): Pro
                     }
                 }
             }
-            Object.entries(settings.colorReplacements).forEach(([key, value]) => {
-                if (value !== "" && value !== undefined && value !== null && value !== key) {
-                    distData = distData.replaceAll(key, value);
-                }
-            });
+            distData = applyColorReplacementsToFileContents(distData, filePath, settings);
             distData = distData
                 .replace(
                     /(?=<script defer="defer" src="\/hbui\/(?:index|gameplay|editor)-[a-zA-Z0-9]+\.js"><\/script>)/,
