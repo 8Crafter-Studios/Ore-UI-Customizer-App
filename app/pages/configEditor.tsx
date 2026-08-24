@@ -1504,6 +1504,16 @@ export default function ConfigEditorPage(): JSX.SpecificElement<"center"> {
                             event.preventDefault();
                             event.currentTarget.blur();
                             if (event.currentTarget.disabled) return;
+                            const result: MessageBoxReturnValue = await dialog.showMessageBox(getCurrentWindow(), {
+                                type: "warning",
+                                buttons: ["Confirm", "Cancel"],
+                                defaultId: 1,
+                                cancelId: 1,
+                                message: "Are you sure you want to discard you changes? This action cannot be undone.",
+                                noLink: true,
+                                title: "Confirm Discard Changes",
+                            });
+                            if (result.response === 1) return;
                             config.refresh();
                             createToast({
                                 title: "Changes discarded",
