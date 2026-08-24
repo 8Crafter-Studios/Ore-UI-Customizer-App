@@ -5,6 +5,7 @@
  * @supports Renderer
  */
 import path from "node:path";
+import semver, { type SemVer } from "semver";
 import { APP_DATA_FOLDER_PATH, PLUGIN_FOLDER_PATH } from "./URLs.ts";
 import EventEmitter from "node:events";
 import { Dirent, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -17,6 +18,7 @@ import { app, dialog } from "@electron/remote";
 import type { MessageBoxReturnValue } from "electron";
 import "./zip.js";
 import { createToast } from "../../app/components/Toast.tsx";
+import { format_version } from "./ore-ui-customizer-api.ts";
 
 interface PluginManagerEventMap {
     pluginImported: [newPlugin: OreUICustomizerPlugin];
@@ -220,9 +222,24 @@ export class OreUICustomizerPlugin implements Omit<Plugin_Type, "actions"> {
      */
     public getMessages<
         T extends ("info" | "warning" | "error")[] | "all" = "all",
-        T2 extends "info" | "warning" | "error" = T extends "all" ? "info" | "warning" | "error" : T[number]
+        T2 extends "info" | "warning" | "error" = T extends "all" ? "info" | "warning" | "error" : T[number],
     >(types: T = "all" as T): OreUICustomizerPluginMessageInfo<T2>[] {
         const messages: OreUICustomizerPluginMessageInfo[] = [];
+        // IDEA: Maybe add a warning if the plugin's format_version is older than the current format_version, since that means the plugin may be broken, or maybe have a list of versions with breaking changes and only show the warning if a version with breaking changes is between the two versions.
+        minEngineVerisonCheck: {
+            if (this.min_engine_version === undefined) break minEngineVerisonCheck;
+            const v1: SemVer | null = semver.parse(format_version!);
+            const v2: SemVer | null = semver.parse(this.min_engine_version);
+            if (v1 !== null && v2 !== null && v1.version === v2.version && !v1.build.length !== !v2.build.length) {
+                if (v1.build.length === 0) break minEngineVerisonCheck;
+            } else if (semver.compareBuild(format_version!, this.min_engine_version) !== -1) break minEngineVerisonCheck;
+            messages.push({
+                message: `The property '/header/min_engine_version' has a version of '${this.min_engine_version}' which is too high. The highest value we accept is '${format_version}'.`,
+                messageFormat: "text",
+                plugin: this,
+                type: "error",
+            });
+        }
         if (types === "all") return messages as OreUICustomizerPluginMessageInfo<T2>[];
         return messages.filter((message: OreUICustomizerPluginMessageInfo): message is OreUICustomizerPluginMessageInfo<T2> =>
             types.includes(message.type as T2)
@@ -232,13 +249,11 @@ export class OreUICustomizerPlugin implements Omit<Plugin_Type, "actions"> {
         if (!this.dependencies) return undefined;
         const list: MissingOreUICustomizerPluginDependencyData[] = this.dependencies
             .map((dependency: OreUICustomizerPluginDependencyData): MissingOreUICustomizerPluginDependencyData | undefined =>
-                "uuid" in dependency
-                    ? PluginManager.getPluginFromUUIDAndVersion(dependency.uuid, dependency.version)
-                        ? undefined
-                        : PluginManager.getPluginFromUUID(dependency.uuid)
-                        ? { ...dependency, missingType: "noMatchingVersion" }
-                        : { ...dependency, missingType: "noMatchingUUID" }
-                    : undefined
+                "uuid" in dependency ?
+                    PluginManager.getPluginFromUUIDAndVersion(dependency.uuid, dependency.version) ? undefined
+                    : PluginManager.getPluginFromUUID(dependency.uuid) ? { ...dependency, missingType: "noMatchingVersion" }
+                    : { ...dependency, missingType: "noMatchingUUID" }
+                :   undefined
             )
             .filter(
                 (
@@ -263,9 +278,9 @@ export class OreUICustomizerPlugin implements Omit<Plugin_Type, "actions"> {
             .map((content: Dirent<string>): string => path.join(path.relative(this.folderPath, content.parentPath), content.name));
     }
     public getColorReplacements(): OreUICustomizerSettings["colorReplacements"] | undefined {
-        return existsSync(path.join(this.folderPath, "color-replacements.json"))
-            ? (CommentJSON.parse(readFileSync(path.join(this.folderPath, "color-replacements.json"), { encoding: "utf-8" }), null, true) as any)
-            : undefined;
+        return existsSync(path.join(this.folderPath, "color-replacements.json")) ?
+                (CommentJSON.parse(readFileSync(path.join(this.folderPath, "color-replacements.json"), { encoding: "utf-8" }), null, true) as any)
+            :   undefined;
     }
     public async getZip(): Promise<Blob> {
         const zipFs = new zip.fs.FS();
@@ -375,13 +390,11 @@ export const PluginManager = new (class PluginManager extends EventEmitter<Plugi
                     (this.loadedPlugins.find(
                         (loadedPlugin: OreUICustomizerPlugin): boolean => loadedPlugin.uuid === plugin.uuid && loadedPlugin.version === plugin.version
                     ) ??
-                        (excludeMissing
-                            ? undefined
-                            : this.loadedPlugins.some((loadedPlugin: OreUICustomizerPlugin): boolean => loadedPlugin.uuid === plugin.uuid)
-                            ? { ...plugin, missingType: "noMatchingVersion" }
-                            : { ...plugin, missingType: "noMatchingUUID" })) as E extends true
-                        ? OreUICustomizerPlugin | undefined
-                        : OreUICustomizerPlugin | MissingPluginInfo
+                        (excludeMissing ? undefined
+                        : this.loadedPlugins.some((loadedPlugin: OreUICustomizerPlugin): boolean => loadedPlugin.uuid === plugin.uuid) ?
+                            { ...plugin, missingType: "noMatchingVersion" }
+                        :   { ...plugin, missingType: "noMatchingUUID" })) as E extends true ? OreUICustomizerPlugin | undefined
+                    :   OreUICustomizerPlugin | MissingPluginInfo
             )
             .filter(
                 (
@@ -392,9 +405,9 @@ export const PluginManager = new (class PluginManager extends EventEmitter<Plugi
     public setActivePlugins(activePlugins: (OreUICustomizerPlugin | PluginInfo)[]): void {
         const parsedActivePlugins: (OreUICustomizerPlugin | PluginInfo)[] = activePlugins.map(
             (v: OreUICustomizerPlugin | PluginInfo): OreUICustomizerPlugin | PluginInfo =>
-                v instanceof OreUICustomizerPlugin
-                    ? v
-                    : (Object.fromEntries(Object.entries(v).filter(([key]: [key: string, value: any]): boolean => key !== "missingType")) as PluginInfo)
+                v instanceof OreUICustomizerPlugin ? v : (
+                    (Object.fromEntries(Object.entries(v).filter(([key]: [key: string, value: any]): boolean => key !== "missingType")) as PluginInfo)
+                )
         );
         writeFileSync(path.join(APP_DATA_FOLDER_PATH, "active_plugins.json"), JSON.stringify(parsedActivePlugins, null, 4), { encoding: "utf-8" });
         this.emit("activePluginsChanged", this.getActivePlugins());
@@ -612,9 +625,10 @@ export const PluginManager = new (class PluginManager extends EventEmitter<Plugi
                 ) as any;
                 if (this.getPluginFromUUIDAndVersion(manifest.header.uuid, manifest.header.version)) {
                     createToast({
-                        image: zipFs.getChildByName("pack_icon.png")
-                            ? await (zipFs.getChildByName("pack_icon.png") as zip.ZipFileEntry<any, any>).getData64URI("image/png")
-                            : manifest.icon_data_uri || "resource://images/ui/glyphs/icon-settings.png",
+                        image:
+                            zipFs.getChildByName("pack_icon.png") ?
+                                await (zipFs.getChildByName("pack_icon.png") as zip.ZipFileEntry<any, any>).getData64URI("image/png")
+                            :   manifest.icon_data_uri || "resource://images/ui/glyphs/icon-settings.png",
                         title: `Failed to import '${manifest.header.name}'`,
                         message: "Duplicate pack detected",
                     });
@@ -641,9 +655,10 @@ export const PluginManager = new (class PluginManager extends EventEmitter<Plugi
                 ) as any;
                 if (this.getPluginFromUUIDAndVersion(manifest.header.uuid, manifest.header.version)) {
                     createToast({
-                        image: zipFs.getChildByName("pack_icon.png")
-                            ? await (zipFs.getChildByName("pack_icon.png") as zip.ZipFileEntry<any, any>).getData64URI("image/png")
-                            : manifest.icon_data_uri || "resource://images/ui/glyphs/icon-settings.png",
+                        image:
+                            zipFs.getChildByName("pack_icon.png") ?
+                                await (zipFs.getChildByName("pack_icon.png") as zip.ZipFileEntry<any, any>).getData64URI("image/png")
+                            :   manifest.icon_data_uri || "resource://images/ui/glyphs/icon-settings.png",
                         title: `Failed to import '${manifest.header.name}'`,
                         message: "Duplicate pack detected",
                     });
@@ -840,9 +855,10 @@ export const PluginManager = new (class PluginManager extends EventEmitter<Plugi
                 ) as any;
                 if (this.getPluginFromUUIDAndVersion(manifest.header.uuid, manifest.header.version)) {
                     createToast({
-                        image: zipFs.getChildByName("pack_icon.png")
-                            ? await (zipFs.getChildByName("pack_icon.png") as zip.ZipFileEntry<any, any>).getData64URI("image/png")
-                            : manifest.icon_data_uri || "resource://images/ui/glyphs/icon-settings.png",
+                        image:
+                            zipFs.getChildByName("pack_icon.png") ?
+                                await (zipFs.getChildByName("pack_icon.png") as zip.ZipFileEntry<any, any>).getData64URI("image/png")
+                            :   manifest.icon_data_uri || "resource://images/ui/glyphs/icon-settings.png",
                         title: `Failed to import '${manifest.header.name}'`,
                         message: "Duplicate pack detected",
                     });
@@ -869,9 +885,10 @@ export const PluginManager = new (class PluginManager extends EventEmitter<Plugi
                 ) as any;
                 if (this.getPluginFromUUIDAndVersion(manifest.header.uuid, manifest.header.version)) {
                     createToast({
-                        image: zipFs.getChildByName("pack_icon.png")
-                            ? await (zipFs.getChildByName("pack_icon.png") as zip.ZipFileEntry<any, any>).getData64URI("image/png")
-                            : manifest.icon_data_uri || "resource://images/ui/glyphs/icon-settings.png",
+                        image:
+                            zipFs.getChildByName("pack_icon.png") ?
+                                await (zipFs.getChildByName("pack_icon.png") as zip.ZipFileEntry<any, any>).getData64URI("image/png")
+                            :   manifest.icon_data_uri || "resource://images/ui/glyphs/icon-settings.png",
                         title: `Failed to import '${manifest.header.name}'`,
                         message: "Duplicate pack detected",
                     });
@@ -905,9 +922,10 @@ export const PluginManager = new (class PluginManager extends EventEmitter<Plugi
             ) as any;
             if (this.getPluginFromUUIDAndVersion(manifest.header.uuid, manifest.header.version)) {
                 createToast({
-                    image: zipFs.getChildByName("pack_icon.png")
-                        ? await (zipFs.getChildByName("pack_icon.png") as zip.ZipFileEntry<any, any>).getData64URI("image/png")
-                        : manifest.icon_data_uri || "resource://images/ui/glyphs/icon-settings.png",
+                    image:
+                        zipFs.getChildByName("pack_icon.png") ?
+                            await (zipFs.getChildByName("pack_icon.png") as zip.ZipFileEntry<any, any>).getData64URI("image/png")
+                        :   manifest.icon_data_uri || "resource://images/ui/glyphs/icon-settings.png",
                     title: `Failed to import '${manifest.header.name}'`,
                     message: "Duplicate pack detected",
                 });

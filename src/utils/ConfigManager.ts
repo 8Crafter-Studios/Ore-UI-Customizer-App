@@ -7,9 +7,7 @@
 import path from "node:path";
 import { APP_DATA_FOLDER_PATH, CONFIG_FOLDER_PATH } from "./URLs.ts";
 import EventEmitter from "node:events";
-import {
-    defaultOreUICustomizerSettings,
-} from "./ore-ui-customizer-assets.ts";
+import { defaultOreUICustomizerSettings } from "./ore-ui-customizer-assets.ts";
 import type { OreUICustomizerSettings, OreUICustomizerConfig as OreUICustomizerConfig_Type, LegacyOreUICustomizerConfigJSON } from "ore-ui-customizer-types";
 import { format_version, resolveOreUICustomizerSettings } from "./ore-ui-customizer-api.ts";
 import { Dirent, existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -134,7 +132,7 @@ export class OreUICustomizerConfig implements PartialOreUICustomizerConfig_Type 
             ...manifest.metadata,
             product_type: "config",
         };
-        (manifest as SavedOreUICustomizerConfig_Type).readonly = "readonly" in manifest ? manifest.readonly ?? false : false;
+        (manifest as SavedOreUICustomizerConfig_Type).readonly = "readonly" in manifest ? (manifest.readonly ?? false) : false;
         this.manifest = manifest as SavedOreUICustomizerConfig_Type;
         this.icon = this.manifest.metadata.pack_icon_data_uri ?? undefined;
         if (saveAfterLoading) this.saveChanges();
@@ -165,7 +163,7 @@ export class OreUICustomizerConfig implements PartialOreUICustomizerConfig_Type 
      */
     public getMessages<
         T extends ("info" | "warning" | "error")[] | "all" = "all",
-        T2 extends "info" | "warning" | "error" = T extends "all" ? "info" | "warning" | "error" : T[number]
+        T2 extends "info" | "warning" | "error" = T extends "all" ? "info" | "warning" | "error" : T[number],
     >(types: T = "all" as T): OreUICustomizerConfigMessageInfo<T2>[] {
         const messages: OreUICustomizerConfigMessageInfo[] = [];
         if (types === "all") return messages as OreUICustomizerConfigMessageInfo<T2>[];
@@ -218,19 +216,19 @@ export const ConfigManager = new (class ConfigManager extends EventEmitter<Confi
         const activeConfigs: OreUICustomizerConfig[] = this.getActiveConfigs().filter(
             (v: OreUICustomizerConfig | ConfigInfo): v is OreUICustomizerConfig => v instanceof OreUICustomizerConfig
         );
-        return activeConfigs.length === 0
-            ? {
-                  oreUICustomizerConfig: defaultOreUICustomizerSettings,
-                  oreUICustomizerVersion: format_version,
-              }
-            : {
-                  oreUICustomizerConfig: deepMerge(
-                      {},
-                      defaultOreUICustomizerSettings,
-                      ...activeConfigs.map((v: OreUICustomizerConfig): Partial<OreUICustomizerSettings> => v.oreUICustomizerConfig)
-                  ),
-                  oreUICustomizerVersion: format_version,
-              };
+        return activeConfigs.length === 0 ?
+                {
+                    oreUICustomizerConfig: defaultOreUICustomizerSettings,
+                    oreUICustomizerVersion: format_version,
+                }
+            :   {
+                    oreUICustomizerConfig: deepMerge(
+                        {},
+                        defaultOreUICustomizerSettings,
+                        ...activeConfigs.map((v: OreUICustomizerConfig): Partial<OreUICustomizerSettings> => v.oreUICustomizerConfig)
+                    ),
+                    oreUICustomizerVersion: format_version,
+                };
     }
     public constructor() {
         super();
@@ -264,11 +262,9 @@ export const ConfigManager = new (class ConfigManager extends EventEmitter<Confi
             }, 1);
         const loadedConfigsHighestNumber: number = this.loadedConfigs.reduce(
             (previousValue: number, config: OreUICustomizerConfig): number =>
-                config.metadata?.name === undefined || config.metadata.name === "Unnamed Config"
-                    ? (undefinedCount++, previousValue)
-                    : config.metadata.name.match(/^Unnamed Config (\d+)$/)?.[1]
-                    ? Number(config.metadata.name.match(/^Unnamed Config (\d+)$/)?.[1]) + 1
-                    : previousValue,
+                config.metadata?.name === undefined || config.metadata.name === "Unnamed Config" ? (undefinedCount++, previousValue)
+                : config.metadata.name.match(/^Unnamed Config (\d+)$/)?.[1] ? Number(config.metadata.name.match(/^Unnamed Config (\d+)$/)?.[1]) + 1
+                : previousValue,
             1
         );
         return Math.max(directoryHighestNumber, loadedConfigsHighestNumber);
@@ -291,13 +287,11 @@ export const ConfigManager = new (class ConfigManager extends EventEmitter<Confi
                         (loadedConfig: OreUICustomizerConfig): boolean =>
                             loadedConfig.metadata.uuid === config.uuid && loadedConfig.metadata.version === config.version
                     ) ??
-                        (excludeMissing
-                            ? undefined
-                            : this.loadedConfigs.some((loadedConfig: OreUICustomizerConfig): boolean => loadedConfig.metadata.uuid === config.uuid)
-                            ? { ...config, missingType: "noMatchingVersion" }
-                            : { ...config, missingType: "noMatchingUUID" })) as E extends true
-                        ? OreUICustomizerConfig | undefined
-                        : OreUICustomizerConfig | MissingConfigInfo
+                        (excludeMissing ? undefined
+                        : this.loadedConfigs.some((loadedConfig: OreUICustomizerConfig): boolean => loadedConfig.metadata.uuid === config.uuid) ?
+                            { ...config, missingType: "noMatchingVersion" }
+                        :   { ...config, missingType: "noMatchingUUID" })) as E extends true ? OreUICustomizerConfig | undefined
+                    :   OreUICustomizerConfig | MissingConfigInfo
             )
             .filter(
                 (
@@ -308,9 +302,9 @@ export const ConfigManager = new (class ConfigManager extends EventEmitter<Confi
     public setActiveConfigs(activeConfigs: (OreUICustomizerConfig | ConfigInfo)[]): void {
         const parsedActiveConfigs: (OreUICustomizerConfig | ConfigInfo)[] = activeConfigs.map(
             (v: OreUICustomizerConfig | ConfigInfo): OreUICustomizerConfig | ConfigInfo =>
-                v instanceof OreUICustomizerConfig
-                    ? v
-                    : (Object.fromEntries(Object.entries(v).filter(([key]: [key: string, value: any]): boolean => key !== "missingType")) as ConfigInfo)
+                v instanceof OreUICustomizerConfig ? v : (
+                    (Object.fromEntries(Object.entries(v).filter(([key]: [key: string, value: any]): boolean => key !== "missingType")) as ConfigInfo)
+                )
         );
         writeFileSync(this.activeConfigsJSONPath, JSON.stringify(parsedActiveConfigs, null, 4), { encoding: "utf-8" });
         this.emit("activeConfigsChanged", this.getActiveConfigs());
