@@ -1643,7 +1643,7 @@ export const builtInPlugins = [
                             /([a-zA-Z0-9_$])\.createElement\((?:[a-zA-Z0-9_$]),\{visible:(?:[a-zA-Z0-9_$]),alwaysMounted:(?:[a-zA-Z0-9_$]),/
                         )![1]!}.createElement(facetSpy,null)`
                     );
-                    const isEditorMode: boolean = /editor-(?:menu|project)?[0-9a-f]{5,20}\.js$/.test(file.data?.filename!);
+                    const isEditorMode: boolean = /editor(?:-menu|-project)?-[0-9a-f]{5,20}\.js$/.test(file.data?.filename!);
                     /**
                      * The facet spy function that will be injected into the file.
                      */

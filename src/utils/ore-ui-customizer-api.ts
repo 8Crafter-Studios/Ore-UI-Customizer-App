@@ -13,8 +13,8 @@ import "./zip.js";
 /**
  * The version of the Ore UI Customizer API.
  */
-// BUILD 1
-export const format_version = "1.17.0+BUILD.1";
+// BUILD 2
+export const format_version = "1.17.0+BUILD.2";
 
 /**
  * The result of the {@link applyMods} function.
@@ -169,7 +169,7 @@ export function resolveOreUICustomizerSettings(
 
 /**
  * Applies color replacements to the provided file contents.
- * 
+ *
  * @param distData The file contents.
  * @param _filePath The file path.
  * @param settings The Ore UI Customizer settings.
@@ -178,12 +178,18 @@ export function resolveOreUICustomizerSettings(
  * @todo Add separate handling for gameplay-theme-*.css, it should have its own unique color options for variables in it.
  * @todo Add theme support.
  */
-export function applyColorReplacementsToFileContents(distData: string, _filePath: string, settings: OreUICustomizerSettings): string {
+export function applyColorReplacementsToFileContents(
+    distData: string,
+    _filePath: string,
+    settings: Partial<Omit<OreUICustomizerSettings, "colorReplacements">> & { colorReplacements: Partial<OreUICustomizerSettings["colorReplacements"]> }
+): string {
     const keys: string[] = [];
     for (const [key, value] of Object.entries(settings.colorReplacements)) {
         if (value === "" || value === undefined || value === null || value === key) continue;
         keys.push(key);
     }
+
+    if (!keys.length) return distData;
 
     const pattern = new RegExp(keys.map((k: string): string => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"), "g");
 
@@ -192,7 +198,7 @@ export function applyColorReplacementsToFileContents(distData: string, _filePath
             console.error(`Unknown color replacement: ${match}`);
             return match;
         }
-        const replacement: string = settings.colorReplacements[match as keyof typeof settings.colorReplacements];
+        const replacement: string | undefined = settings.colorReplacements[match as keyof typeof settings.colorReplacements];
         return replacement ?? match;
     });
     return distData;
