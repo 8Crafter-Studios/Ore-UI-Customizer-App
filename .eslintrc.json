@@ -1,3 +1,4 @@
+// TODO: Copy some of the config options from Bedrock World Editor.
 {
     "env": {
         "browser": true,
@@ -28,6 +29,29 @@
         "@typescript-eslint/no-unnecessary-type-constraint": "off",
         "@typescript-eslint/no-require-imports": "off",
         "@typescript-eslint/triple-slash-reference": "off",
+        "@typescript-eslint/no-restricted-imports": [
+            "error",
+            {
+                "paths": [
+                    {
+                        "name": "preact",
+                        "importNames": ["render"],
+                        "message": "Please use render from preact/compat instead."
+                    },
+                    {
+                        "name": "preact",
+                        "importNames": ["hydrate"],
+                        "message": "Please use hydrate from preact/compat instead."
+                    }
+                ],
+                "patterns": [
+                    {
+                        "group": ["**/globalify_renderer_imports", "**/globalify_renderer_imports.*"],
+                        "message": "Don't import from globalify_renderer_imports, these exports are unstable and could be changed at any time."
+                    }
+                ]
+            }
+        ],
         "import/no-unresolved": "off",
         "no-inner-declarations": "off",
         "prefer-const": "off",
