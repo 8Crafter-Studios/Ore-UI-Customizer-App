@@ -17,6 +17,13 @@ import type { OreUICustomizerSettings } from "ore-ui-customizer-types";
 import TextBox from "../components/TextBox";
 import { createToast } from "../components/Toast";
 import type tinycolor from "../../src/tinycolor2";
+import { OreUIPreviewManager, type OreUIPreview } from "../../src/utils/OreUIPreviewManager";
+import { applyColorReplacementsToFileContents } from "../../src/utils/ore-ui-customizer-api";
+import { VersionFolder } from "../../src/utils/InstallationManager";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
+import path from "node:path";
+import { CustomizerAppPage } from "../../src/utils/pageList";
+import { showSelectVersionFolderOverlayPage } from "../overlay_pages/SelectVersionFolderOverlayPage";
 
 const generalSectionOptions = [
     {
@@ -616,6 +623,7 @@ const colorReplacements = {
     };
 };
 export default function ConfigEditorPage(): JSX.SpecificElement<"center"> {
+    const oreUIPreviews: OreUIPreview[] = [];
     const sectionRefs = {
         generalSectionRef: useRef<HTMLDivElement>(null),
         colorsSectionRef: useRef<HTMLDivElement>(null),
@@ -820,6 +828,7 @@ export default function ConfigEditorPage(): JSX.SpecificElement<"center"> {
                                         "data-configColorReplacementsKey"
                                     )! as (typeof colorReplacements)[keyof typeof colorReplacements]["configColorReplacementsKey"]
                                 ] = element.value;
+                                oreUIPreviews.forEach((preview: OreUIPreview): void => void preview.window?.reload());
                             },
                         })
                 );
@@ -856,6 +865,291 @@ export default function ConfigEditorPage(): JSX.SpecificElement<"center"> {
                         https://bgdocs.netlify.app/#/ore_ui_colors/home
                     </a>
                 </p>
+                <div style={{ display: "flex", flexDirection: "row" }}>
+                    <button
+                        type="button"
+                        class="btn nsel"
+                        onClick={(_event: JSX.TargetedMouseEvent<HTMLButtonElement>): void => {
+                            try {
+                                const port: number | undefined = OreUIPreviewManager.getNextPort();
+                                if (port === undefined) {
+                                    dialog.showMessageBox({
+                                        type: "error",
+                                        title: "No Ports Available",
+                                        message: "There are no ports available for the Ore UI Preview.",
+                                        buttons: ["Okay"],
+                                        noLink: true,
+                                    });
+                                    return;
+                                }
+                                const versionFolder = globalThis.config.defaultPreviewVersionFolder;
+                                if (versionFolder === null) {
+                                    // TODO: This should show the option to select a version folder.
+                                    dialog.showMessageBox({
+                                        type: "error",
+                                        title: "No Default Preview Version Folder",
+                                        message: "There is no defualt version folder configured for the Ore UI Preview. Please set one in settings.",
+                                        buttons: ["Okay"],
+                                        noLink: true,
+                                    });
+                                    return;
+                                }
+                                // TEMP: Remove this once support is implemented.
+                                if (versionFolder.type === "isolated") {
+                                    dialog.showMessageBox({
+                                        type: "error",
+                                        title: "Not Implemented Yet",
+                                        message: "Support for isolated preview version folders is not implemented yet.",
+                                        buttons: ["Okay"],
+                                        noLink: true,
+                                    });
+                                    return;
+                                }
+                                if (!existsSync(versionFolder.path)) {
+                                    dialog.showMessageBox({
+                                        type: "error",
+                                        title: "Version Folder Not Found",
+                                        message: "The configured version folder for the Ore UI Preview does not exist.",
+                                        buttons: ["Okay"],
+                                        noLink: true,
+                                    });
+                                    return;
+                                }
+                                const resolvedVersionFolder: VersionFolder = new VersionFolder(versionFolder.path);
+                                let useBackup = false;
+                                checkShouldUseBackup: switch (globalThis.config.defaultPreviewVersionFolder_useBackup) {
+                                    case "never":
+                                        break;
+                                    case "always":
+                                        useBackup = true;
+                                        break;
+                                    case "if_ouic_installed": {
+                                        const installationStatus = resolvedVersionFolder.installationStatus;
+                                        switch (installationStatus) {
+                                            case "Not Installed":
+                                                useBackup = false;
+                                                break checkShouldUseBackup;
+                                            case "Installed":
+                                            case "Partially Failed Installation":
+                                            case "Installing":
+                                            case "Uninstalling":
+                                            case "Corrupted (By Minecraft Update) (Backup Available)":
+                                            case "Corrupted (By Minecraft Update)":
+                                            case "Missing (Backup Available)":
+                                            case "Unknown (Backup Available)":
+                                            case "Unknown":
+                                                useBackup = true;
+                                                break checkShouldUseBackup;
+                                            default:
+                                                throw new Error(`Unknown installation status: ${installationStatus}`);
+                                        }
+                                    }
+                                }
+                                const guiFolderPath: string =
+                                    useBackup ?
+                                        (resolvedVersionFolder.getBackupFolderPath() ?? resolvedVersionFolder.guiFolderPath)
+                                    :   resolvedVersionFolder.guiFolderPath;
+                                const dataFolderSubpath = resolvedVersionFolder.getDataFolderSubpath();
+                                const resourcePacksPath: string | undefined =
+                                    dataFolderSubpath && path.join(resolvedVersionFolder.path, dataFolderSubpath, "resource_packs");
+                                const resourcePacksPathExists: boolean = !!resourcePacksPath && existsSync(resourcePacksPath);
+                                oreUIPreviews.push(
+                                    OreUIPreviewManager.createPreview(
+                                        port,
+                                        // {
+                                        //     guiDistPath: String.raw`C:\Users\ander\AppData\Roaming\levilauncher.exe\versions\1.26.42.01\data\gui\dist`,
+                                        //     vanillaResourcePacksContainerFolderPath: String.raw`C:\Users\ander\AppData\Roaming\levilauncher.exe\versions\1.26.42.01\data\resource_packs`,
+                                        //     textsPath: String.raw`C:\Users\ander\AppData\Roaming\levilauncher.exe\versions\1.26.42.01\data\resource_packs`,
+                                        // },
+                                        {
+                                            guiDistPath: path.join(guiFolderPath, "dist"),
+                                            vanillaResourcePacksContainerFolderPath: resourcePacksPathExists ? resourcePacksPath : undefined,
+                                            textsPath: resourcePacksPathExists ? resourcePacksPath : undefined,
+                                        },
+                                        {
+                                            /* pathname: "/vanilla/achievements"  */
+                                        },
+                                        {
+                                            hbuiUIFileEntryProxy(fileContents, filePath, _req, _res) {
+                                                if (
+                                                    !/^hbui\/(?:index|gameplay|editor(?:-menu|-project)?)-[a-zA-Z0-9]+\.(?:js|css)$/.test(filePath) &&
+                                                    !/^hbui\/(?:index|gameplay|editor(?:-menu|-project)?).html$/.test(filePath) &&
+                                                    !/^hbui\/(?:menus|gameplay)-theme-[a-zA-Z0-9]+\.css$/.test(filePath)
+                                                )
+                                                    return null;
+                                                return applyColorReplacementsToFileContents(fileContents, filePath, {
+                                                    ...config!.oreUICustomizerConfig,
+                                                    colorReplacements: config!.oreUICustomizerConfig.colorReplacements ?? {},
+                                                });
+                                            },
+                                        }
+                                    )
+                                );
+                            } catch (e) {
+                                console.error(e);
+                                dialog.showMessageBox({
+                                    type: "error",
+                                    title: "Error",
+                                    message: "An error occurred while starting the Ore UI Preview.",
+                                    detail: String(e),
+                                    buttons: ["Okay"],
+                                    noLink: true,
+                                });
+                            }
+                        }}
+                    >
+                        Show Preview
+                    </button>
+                    <button
+                        type="button"
+                        class="btn nsel"
+                        title="Select version"
+                        onClick={(_event: JSX.TargetedMouseEvent<HTMLButtonElement>): void => {
+                            try {
+                                const port: number | undefined = OreUIPreviewManager.getNextPort();
+                                if (port === undefined) {
+                                    dialog.showMessageBox({
+                                        type: "error",
+                                        title: "No Ports Available",
+                                        message: "There are no ports available for the Ore UI Preview.",
+                                        buttons: ["Okay"],
+                                        noLink: true,
+                                    });
+                                    return;
+                                }
+                                // TODO: Add a way to select isolated version folders, and options for selecting folders manually via the folder picker dialog, and one to select the 3 individual folders rather than the version folder.
+                                showSelectVersionFolderOverlayPage({
+                                    onSelected(versionFolder: VersionFolder): void {
+                                        try {
+                                            if (!existsSync(versionFolder.path)) {
+                                                dialog.showMessageBox({
+                                                    type: "error",
+                                                    title: "Version Folder Not Found",
+                                                    message: "The configured version folder for the Ore UI Preview does not exist.",
+                                                    buttons: ["Okay"],
+                                                    noLink: true,
+                                                });
+                                                return;
+                                            }
+                                            const resolvedVersionFolder: VersionFolder = new VersionFolder(versionFolder.path);
+                                            let useBackup = false;
+                                            // TODO: This option should be able to be specified in a prompt.
+                                            checkShouldUseBackup: switch (globalThis.config.defaultPreviewVersionFolder_useBackup) {
+                                                case "never":
+                                                    break;
+                                                case "always":
+                                                    useBackup = true;
+                                                    break;
+                                                case "if_ouic_installed": {
+                                                    const installationStatus = resolvedVersionFolder.installationStatus;
+                                                    switch (installationStatus) {
+                                                        case "Not Installed":
+                                                            useBackup = false;
+                                                            break checkShouldUseBackup;
+                                                        case "Installed":
+                                                        case "Partially Failed Installation":
+                                                        case "Installing":
+                                                        case "Uninstalling":
+                                                        case "Corrupted (By Minecraft Update) (Backup Available)":
+                                                        case "Corrupted (By Minecraft Update)":
+                                                        case "Missing (Backup Available)":
+                                                        case "Unknown (Backup Available)":
+                                                        case "Unknown":
+                                                            useBackup = true;
+                                                            break checkShouldUseBackup;
+                                                        default:
+                                                            throw new Error(`Unknown installation status: ${installationStatus}`);
+                                                    }
+                                                }
+                                            }
+                                            const guiFolderPath: string =
+                                                useBackup ?
+                                                    (resolvedVersionFolder.getBackupFolderPath() ?? resolvedVersionFolder.guiFolderPath)
+                                                :   resolvedVersionFolder.guiFolderPath;
+                                            const dataFolderSubpath = resolvedVersionFolder.getDataFolderSubpath();
+                                            const resourcePacksPath: string | undefined =
+                                                dataFolderSubpath && path.join(resolvedVersionFolder.path, dataFolderSubpath, "resource_packs");
+                                            const resourcePacksPathExists: boolean = !!resourcePacksPath && existsSync(resourcePacksPath);
+                                            oreUIPreviews.push(
+                                                OreUIPreviewManager.createPreview(
+                                                    port,
+                                                    // {
+                                                    //     guiDistPath: String.raw`C:\Users\ander\AppData\Roaming\levilauncher.exe\versions\1.26.42.01\data\gui\dist`,
+                                                    //     vanillaResourcePacksContainerFolderPath: String.raw`C:\Users\ander\AppData\Roaming\levilauncher.exe\versions\1.26.42.01\data\resource_packs`,
+                                                    //     textsPath: String.raw`C:\Users\ander\AppData\Roaming\levilauncher.exe\versions\1.26.42.01\data\resource_packs`,
+                                                    // },
+                                                    {
+                                                        guiDistPath: path.join(guiFolderPath, "dist"),
+                                                        vanillaResourcePacksContainerFolderPath: resourcePacksPathExists ? resourcePacksPath : undefined,
+                                                        textsPath: resourcePacksPathExists ? resourcePacksPath : undefined,
+                                                    },
+                                                    {
+                                                        /* pathname: "/vanilla/achievements"  */
+                                                    },
+                                                    {
+                                                        hbuiUIFileEntryProxy(fileContents, filePath, _req, _res) {
+                                                            if (
+                                                                !/^hbui\/(?:index|gameplay|editor(?:-menu|-project)?)-[a-zA-Z0-9]+\.(?:js|css)$/.test(
+                                                                    filePath
+                                                                ) &&
+                                                                !/^hbui\/(?:index|gameplay|editor(?:-menu|-project)?).html$/.test(filePath) &&
+                                                                !/^hbui\/(?:menus|gameplay)-theme-[a-zA-Z0-9]+\.css$/.test(filePath)
+                                                            )
+                                                                return null;
+                                                            return applyColorReplacementsToFileContents(fileContents, filePath, {
+                                                                ...config!.oreUICustomizerConfig,
+                                                                colorReplacements: config!.oreUICustomizerConfig.colorReplacements ?? {},
+                                                            });
+                                                        },
+                                                    }
+                                                )
+                                            );
+                                        } catch (e) {
+                                            console.error(e);
+                                            dialog.showMessageBox({
+                                                type: "error",
+                                                title: "Error",
+                                                message: "An error occurred while starting the Ore UI Preview.",
+                                                detail: String(e),
+                                                buttons: ["Okay"],
+                                                noLink: true,
+                                            });
+                                        }
+                                    },
+                                });
+                            } catch (e) {
+                                console.error(e);
+                                dialog.showMessageBox({
+                                    type: "error",
+                                    title: "Error",
+                                    message: "An error occurred while starting the Ore UI Preview.",
+                                    detail: String(e),
+                                    buttons: ["Okay"],
+                                    noLink: true,
+                                });
+                            }
+                        }}
+                    >
+                        <only_visible_on_themes light blue>
+                            <img
+                                width="16"
+                                height="16"
+                                src="resource://images/ui/glyphs/Options-Horizontal.png"
+                                style="image-rendering: pixelated; filter: invert(); width: calc(8px * var(--gui-scale)); height: calc(8px * var(--gui-scale));"
+                                aria-hidden="true"
+                            ></img>
+                        </only_visible_on_themes>
+                        <only_visible_on_themes dark>
+                            <img
+                                width="16"
+                                height="16"
+                                src="resource://images/ui/glyphs/Options-Horizontal.png"
+                                style="image-rendering: pixelated; width: calc(8px * var(--gui-scale)); height: calc(8px * var(--gui-scale));"
+                                aria-hidden="true"
+                            ></img>
+                        </only_visible_on_themes>
+                    </button>
+                </div>
                 <form id="colors_options_box" style="text-align: left; width: fit-content" ref={colorsSectionRef}>
                     {...(
                         Object.entries(colorReplacements) as [
@@ -895,17 +1189,6 @@ export default function ConfigEditorPage(): JSX.SpecificElement<"center"> {
                         }
                     )}
                 </form>
-                <button
-                    type="button"
-                    class="btn nsel"
-                    onClick={(event: JSX.TargetedMouseEvent<HTMLButtonElement>): void => {
-                        // TO-DO: Show picker to select Minecraft version, then use Ore UI Viewer to show preview.
-                    }}
-                    disabled
-                >
-                    Show Preview (COMING SOON!)
-                </button>
-                <br />
             </>
         );
     }
@@ -1337,6 +1620,7 @@ export default function ConfigEditorPage(): JSX.SpecificElement<"center"> {
         return (): void => {
             ConfigManager.off("configEdited", configUpdatedCallback);
             ConfigManager.off("configRefreshed", configUpdatedCallback);
+            oreUIPreviews.forEach((preview: OreUIPreview): void => void preview.forceClose());
         };
     }, []);
 

@@ -110,6 +110,13 @@ export interface RoutesJSON {
                     transition: "RouteInstantTransition";
                 },
                 {
+                    route: "/select-version-folder";
+                    modes: ["overlay", "blocking-background", "close-overlay-on-background-click", "close-overlay-on-escape"];
+                    regexp: "^\\/select-version-folder(?:\\/)?$";
+                    params: [];
+                    transition: "RouteInstantTransition";
+                },
+                {
                     route: "/theme-details";
                     modes: ["overlay", "blocking-background", "close-overlay-on-background-click", "close-overlay-on-escape"];
                     regexp: "^\\/theme-details(?:\\/)?$";
@@ -130,11 +137,11 @@ export interface RoutesJSON {
                     params: [
                         { name: "tab"; prefix: "/"; delimiter: "/"; optional: false; repeat: false; pattern: "[^\\/]+?" },
                         { name: "id"; prefix: "/"; delimiter: "/"; optional: true; repeat: false; pattern: "[^\\/]+?" },
-                        { name: "type"; prefix: "/"; delimiter: "/"; optional: true; repeat: false; pattern: "[^\\/]+?" }
+                        { name: "type"; prefix: "/"; delimiter: "/"; optional: true; repeat: false; pattern: "[^\\/]+?" },
                     ];
                     transition: "RouteSlideTransition";
-                }
+                },
             ];
-        }
+        },
     ];
 }

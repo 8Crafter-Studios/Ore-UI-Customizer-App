@@ -1790,6 +1790,11 @@ body.overlay_page_visible .possible_scroll_y {
         line-height: inherit;
         box-sizing: border-box;
     }
+    & .dialog-inner-elem-default-styles,
+    & .dialog-inner-elem-default-styles * {
+        line-height: 1em;
+        box-sizing: content-box;
+    }
 }
 
 .dialog-hollow-4-thin {
@@ -1802,6 +1807,11 @@ body.overlay_page_visible .possible_scroll_y {
         line-height: inherit;
         box-sizing: border-box;
     }
+    & .dialog-inner-elem-default-styles,
+    & .dialog-inner-elem-default-styles * {
+        line-height: 1em;
+        box-sizing: content-box;
+    }
 }
 
 .dialog-hollow-4 {
@@ -1813,6 +1823,11 @@ body.overlay_page_visible .possible_scroll_y {
     & * {
         line-height: inherit;
         box-sizing: border-box;
+    }
+    & .dialog-inner-elem-default-styles,
+    & .dialog-inner-elem-default-styles * {
+        line-height: 1em;
+        box-sizing: content-box;
     }
 }
 
@@ -2063,4 +2078,3 @@ div:has(> .text-box-popup-help-info-label:hover) > div:has(> purple-border_backg
     /* Standard syntax */
     -webkit-user-drag: none;
 }
-

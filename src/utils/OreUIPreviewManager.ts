@@ -102,9 +102,9 @@ export class OreUIPreview {
     public get status(): "loading" | "running" | "closed" | "error" {
         return this.#status;
     }
-    private httpServer: import("node:http").Server;
-    private expressServer: import("express").Express;
-    private window?: Electron.BrowserWindow;
+    public httpServer: import("node:http").Server;
+    public expressServer: import("express").Express;
+    public window?: Electron.BrowserWindow;
     public constructor(
         /**
          * @example 8927
@@ -118,14 +118,25 @@ export class OreUIPreview {
         previewOptions: OreUIPreview["previewOptions"] = {},
         additionalOptions: OreUIPreview["additionalOptions"] = {}
     ) {
-        this.previewOptions = {
-            ...previewOptions,
-            pathname: previewOptions.pathname ?? "/play",
-            file: previewOptions.file ?? "/hbui/index.html",
-            panorama: previewOptions.panorama ?? "chase-the-skies",
-            use_translation: !!paths.textsPath && (previewOptions.use_translation ?? true),
-            locale: previewOptions.locale ?? "en_US",
-        };
+        {
+            let panorama: (typeof globalThis.config.constants.panoramaList)[number] | undefined =
+                previewOptions.panorama !== undefined ? undefined : globalThis.config.panorama;
+            applyPanorama: try {
+                if (panorama === undefined) break applyPanorama;
+                if (panorama === "off" || panorama === "latest") {
+                    panorama = config.constants.latestConfig;
+                    break applyPanorama;
+                }
+            } catch {}
+            this.previewOptions = {
+                ...previewOptions,
+                pathname: previewOptions.pathname ?? "/play",
+                file: previewOptions.file ?? "/hbui/index.html",
+                panorama: previewOptions.panorama ?? panorama,
+                use_translation: !!paths.textsPath && (previewOptions.use_translation ?? true),
+                locale: previewOptions.locale ?? "en_US",
+            };
+        }
         this.additionalOptions = additionalOptions;
         const { app, BrowserWindow, globalShortcut, Menu } = require("@electron/remote") as typeof import("@electron/remote");
         const express = require("express") as typeof import("express");

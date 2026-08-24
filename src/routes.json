@@ -117,6 +117,13 @@
                     "transition": "RouteInstantTransition"
                 },
                 {
+                    "route": "/select-version-folder",
+                    "modes": ["overlay", "blocking-background", "close-overlay-on-background-click", "close-overlay-on-escape"],
+                    "regexp": "^\\/select-version-folder(?:\\/)?$",
+                    "params": [],
+                    "transition": "RouteInstantTransition"
+                },
+                {
                     "route": "/tutorial",
                     "modes": [],
                     "regexp": "^\\/tutorial(?:\\/)?$",

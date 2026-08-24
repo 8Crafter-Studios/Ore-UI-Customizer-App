@@ -1,19 +1,17 @@
-/* eslint-disable import/no-unresolved */
-// @ts-expect-error This is a valid import.
 import "./index.css";
-// @ts-expect-error This is a valid import.
 import "overlayscrollbars/overlayscrollbars.css";
 import "../src/importjQueryUtils.ts";
-import { render } from "preact";
+import { render } from "preact/compat";
 import App from "./app.tsx";
 import "jquery";
 
 declare module "preact" {
     namespace JSX {
+        // eslint-disable-next-line @typescript-eslint/no-empty-object-type
         interface SpecificElement<
             V extends keyof JSX.IntrinsicElements | HTMLAttributes<any>,
             P = V extends keyof IntrinsicElements ? IntrinsicElements[V] : V,
-            T = P extends HTMLAttributes<infer T> ? T : never
+            T = P extends HTMLAttributes<infer T> ? T : never,
         > extends VNode<ClassAttributes<T> & P> {}
         interface OnlyVisibleOnThemesHTMLAttributes<T extends EventTarget = HTMLUnknownElement> extends HTMLAttributes<T> {
             /**
@@ -88,4 +86,3 @@ customElements.define("purple-border_background", PurpleBorderBackgroundElement)
 render(<App />, document.getElementById("app")!);
 
 // console.log(document.getElementById("app"));
-

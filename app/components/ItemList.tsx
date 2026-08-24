@@ -25,6 +25,8 @@ export interface ItemListOptions {
         | undefined;
     tableHeaders?: ItemListTableHeader[] | undefined;
     children?: any;
+    listStyle?: JSX.CSSProperties;
+    listViewportStyle?: JSX.CSSProperties;
 }
 
 interface ItemListHeaderInfoLabel {
@@ -95,7 +97,11 @@ export default function ItemList(options: ItemListOptions): JSX.HTMLAttributes<H
         };
     }, []);
     return (
-        <div id={options.wrapperId} class="d-contents item-list" style="width: 100%; background-color: #000000; color: #00ffff; text-align: center;">
+        <div
+            id={options.wrapperId}
+            class="d-contents item-list"
+            style={{ width: "100%", backgroundColor: "#000000", color: "#00ffff", textAlign: "center", ...options.listStyle }}
+        >
             {(options.headerTitle !== undefined || options.headerInfoLabels !== undefined) && (
                 <div class="item-list-header" style="text-align: center; padding: 10px; border: 1px solid #ffffff;">
                     {options.headerTitle !== undefined && <span class="item-list-header-title">{options.headerTitle}</span>}
@@ -125,7 +131,7 @@ export default function ItemList(options: ItemListOptions): JSX.HTMLAttributes<H
                 ref={headersContainerRef}
             >
                 {options.tableHeaders?.map((header: ItemListTableHeader, index: number): JSX.HTMLAttributes<HTMLDivElement> | undefined =>
-                    index === 0 ? (
+                    index === 0 ?
                         <div
                             style={`width: ${
                                 header.width ?? (options.tableHeaders!.length === 1 ? "100%" : `${40 * (2 / options.tableHeaders!.length)}%`)
@@ -133,7 +139,7 @@ export default function ItemList(options: ItemListOptions): JSX.HTMLAttributes<H
                         >
                             <span style={{ padding: header.paddingOverride ?? "8.5px 0px" }}>{header.label}</span>
                         </div>
-                    ) : index === options.tableHeaders!.length - 1 ? (
+                    : index === options.tableHeaders!.length - 1 ?
                         <div
                             style={{
                                 width: `calc(${header.width ?? `${60 * (2 / options.tableHeaders!.length)}%`} - 11px)`,
@@ -148,8 +154,7 @@ export default function ItemList(options: ItemListOptions): JSX.HTMLAttributes<H
                         >
                             {header.label}
                         </div>
-                    ) : (
-                        <div
+                    :   <div
                             style={{
                                 width: `calc(${header.width ?? `${100 / options.tableHeaders!.length}%`} - 11px)`,
                                 "font-size": "var(--base-font-size)",
@@ -163,23 +168,28 @@ export default function ItemList(options: ItemListOptions): JSX.HTMLAttributes<H
                         >
                             {header.label}
                         </div>
-                    )
                 )}
             </div>
             <div
                 class="d-contents item-list-items"
-                style="min-height: 300px; max-height: 600px; overflow-y: auto; border: solid #ffffff; border-width: 0px 1px 1px 1px;"
+                style={{
+                    minHeight: "300px",
+                    maxHeight: "600px",
+                    overflowY: "auto",
+                    border: "solid #ffffff",
+                    borderWidth: "0px 1px 1px 1px",
+                    ...options.listViewportStyle,
+                }}
                 data-header-sizes={JSON.stringify(
                     options.tableHeaders?.map(
                         (header: ItemListTableHeader, index: number): string =>
                             header.width ??
-                            (index === 0
-                                ? options.tableHeaders!.length === 1
-                                    ? "100%"
-                                    : `${40 * (2 / options.tableHeaders!.length)}%`
-                                : index === options.tableHeaders!.length - 1
-                                ? `${60 * (2 / options.tableHeaders!.length)}%`
-                                : `${100 / options.tableHeaders!.length}%`)
+                            (index === 0 ?
+                                options.tableHeaders!.length === 1 ?
+                                    "100%"
+                                :   `${40 * (2 / options.tableHeaders!.length)}%`
+                            : index === options.tableHeaders!.length - 1 ? `${60 * (2 / options.tableHeaders!.length)}%`
+                            : `${100 / options.tableHeaders!.length}%`)
                     )
                 )}
                 onResize={(): void => {

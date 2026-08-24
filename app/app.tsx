@@ -16,6 +16,7 @@ import ConfigDetailsOverlayPage from "./overlay_pages/ConfigDetailsOverlayPage";
 import DebugOverlay from "./components/DebugOverlay";
 import { Cubemap } from "../src/libs/@hatchibombotar-cubemap/index.ts";
 import "../src/libs/@hatchibombotar-cubemap/index.css";
+import SelectVersionFolderOverlayPage from "./overlay_pages/SelectVersionFolderOverlayPage.tsx";
 
 let isClosing: boolean = false;
 let closeCanceled: boolean = false;
@@ -440,6 +441,8 @@ export function OverlayPageContents(props: OverlayPageContentsProps): JSX.Elemen
             return <PluginDetailsOverlayPage folderPath={props.routerHistoryLocation.searchParams.get("folderPath")!} />;
         case "/theme-details":
             return <>The theme details page is not implemented yet.</>;
+        case "/select-version-folder":
+            return <SelectVersionFolderOverlayPage id={props.routerHistoryLocation.searchParams.get("id")!} />;
         default:
             return <>Unknown Overlay Page: {props.routerHistoryLocation.pathname}</>;
     }
@@ -535,6 +538,7 @@ export function reloadMainPageContents(): void {
     if (!targetElement) {
         throw new Error("No target element found.");
     }
+    render(null, targetElement);
     targetElement.replaceChildren();
     hydrate(<MainPageContents />, targetElement);
 }
@@ -587,6 +591,8 @@ export function getMainPageContentPathID(): string {
             return "config-editor";
         case page[0] === CustomizerAppPage.ThemeEditor:
             return "theme-editor";
+        case page[0] === CustomizerAppPage.SelectVersionFolder:
+            return "select-version-folder";
         default:
             return "unknown";
     }

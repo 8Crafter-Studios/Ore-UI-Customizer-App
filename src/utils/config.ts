@@ -29,7 +29,7 @@ namespace exports {
         /**
          * Emitted when the corresponding setting is changed.
          */
-        [key in PropertyPathsWithoutOuterContainingProperties<ConfigJSON> as `settingChanged:${Join<key, ".">}`]: [
+        [key in PropertyPathsWithoutOuterContainingProperties<ConfigJSON> as `settingChanged:${Join<{ [index in keyof key]: `${key[index]}` }, ".">}`]: [
             value: GetPropertyValueAtPath<ConfigJSON, key>,
         ];
     };
@@ -42,11 +42,14 @@ namespace exports {
          * Emitted when a setting is changed.
          */
         settingChanged: {
-            [key in PropertyPathsWithoutOuterContainingProperties<ConfigJSON> as Join<key, ".">]: [
-                key: Join<key, ".">,
+            [key in PropertyPathsWithoutOuterContainingProperties<ConfigJSON> as Join<{ [index in keyof key]: `${key[index]}` }, ".">]: [
+                key: Join<{ [index in keyof key]: `${key[index]}` }, ".">,
                 value: GetPropertyValueAtPath<ConfigJSON, key>,
             ];
-        }[Join<PropertyPathsWithoutOuterContainingProperties<ConfigJSON>, ".">];
+        }[Join<
+            PropertyPathsWithoutOuterContainingProperties<ConfigJSON> extends infer key2 extends any[] ? { [index in keyof key2]: `${key2[index]}` } : never,
+            "."
+        >];
     }
     type GetBaseJSONTypeOfConfig_Inner<T extends Config | SubConfigValueTypes> = Omit<
         ExcludeMethods<ExcludeReadonlyProps<T>>,
@@ -134,6 +137,8 @@ namespace exports {
             panoramaRotateDirection: "counterclockwise",
             panoramaRotateSpeed: 2.5,
             volume: { master: 100, ui: 100 },
+            defaultPreviewVersionFolder: null,
+            defaultPreviewVersionFolder_useBackup: "if_ouic_installed",
             shownDialogs: [],
             autoUpdateEnabled: true,
             // TODO: Implement build numbers, like how it is implemented for Bedrock World Editor.
@@ -338,6 +343,52 @@ namespace exports {
                     .replaceAll(/%public%/gi, process.env.PUBLIC!)
                     .replaceAll(/\\/g, "/")
             );
+        }
+        /**
+         * The default version folder that is used for Ore UI previews, like the live preview for the colors tab of the config editor.
+         *
+         * @default
+         * ```typescript
+         * null
+         * ```
+         */
+        public get defaultPreviewVersionFolder(): {
+            type: "minecraft" | "isolated";
+            path: string;
+        } | null {
+            return this.getConfigData().defaultPreviewVersionFolder ?? Config.defaults.defaultPreviewVersionFolder;
+        }
+        public set defaultPreviewVersionFolder(
+            value:
+                | {
+                      type: "minecraft" | "isolated";
+                      path: string;
+                  }
+                | null
+                | undefined
+        ) {
+            this.saveChanges({ defaultPreviewVersionFolder: value ?? Config.defaults.defaultPreviewVersionFolder });
+        }
+        /**
+         * Whether to use the backup of the UI for the default version folder that is used for Ore UI previews, if available.
+         *
+         * @todo Make this functional.
+         *
+         * @default
+         * ```typescript
+         * "if_ouic_installed"
+         * ```
+         */
+        public get defaultPreviewVersionFolder_useBackup():
+            | "never"
+            | "always"
+            | "if_ouic_installed" /* | "if_installed_config_has_color_customizations" */ /* TODO */ {
+            return this.getConfigData().defaultPreviewVersionFolder_useBackup ?? Config.defaults.defaultPreviewVersionFolder_useBackup;
+        }
+        public set defaultPreviewVersionFolder_useBackup(
+            value: "never" | "always" | "if_ouic_installed" /* | "if_installed_config_has_color_customizations" */ /* TODO */ | undefined
+        ) {
+            this.saveChanges({ defaultPreviewVersionFolder_useBackup: value ?? Config.defaults.defaultPreviewVersionFolder_useBackup });
         }
         /**
          * The list of dialogs that have been shown.
@@ -633,6 +684,11 @@ namespace exports {
             "windows-10-edition-beta": "Windows 10 Edition Beta",
             latest: "Latest",
         } satisfies { [key in (typeof config)["panorama"]]: string };
+        export const defaultPreviewVersionFolderUseBackupDisplayMapping = {
+            never: "Never",
+            always: "Always",
+            if_ouic_installed: "If OUIC Installed (Default)",
+        } satisfies { [key in (typeof config)["defaultPreviewVersionFolder_useBackup"]]: string };
         export const latestConfig: Exclude<(typeof panoramaList)[number], "off" | "latest"> = "chaos-cubed";
     }
 

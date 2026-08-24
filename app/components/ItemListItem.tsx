@@ -3,7 +3,9 @@ import _React from "preact/compat";
 
 export interface ItemListItemOptions<HeaderSizes extends string[]> {
     headerSizes: HeaderSizes;
-    children: { [index in keyof HeaderSizes]?: JSX.SpecificElement<JSX.HTMLAttributes<HTMLDivElement> & ItemListItemColumnOptions> | undefined };
+    children:
+        | ({ [index in keyof HeaderSizes]?: JSX.SpecificElement<JSX.HTMLAttributes<HTMLDivElement> & ItemListItemColumnOptions> | undefined } & unknown[])
+        | (HeaderSizes extends [string] ? JSX.SpecificElement<JSX.HTMLAttributes<HTMLDivElement> & ItemListItemColumnOptions> | undefined : never);
 }
 
 export interface ItemListItemColumnOptions {
@@ -24,13 +26,16 @@ export function ItemListItemColumn(options: ItemListItemColumnOptions): JSX.Spec
 export default function ItemListItem<HeaderSizes extends string[] | []>(options: ItemListItemOptions<HeaderSizes>): JSX.SpecificElement<"div"> {
     return (
         <div style="width: calc(100% - 20px); padding: 0px 10px; border: solid #ffffff; border-width: 0px 0px 1px 0px; text-align: left; font-size: 0; display: flex">
-            {...options.children.map(
+            {...(Array.isArray(options.children) ?
+                (options.children as Extract<ItemListItemOptions<[string]>["children"], unknown[]>)
+            :   [options.children]
+            ).map(
                 (
                     child: JSX.SpecificElement<JSX.HTMLAttributes<HTMLDivElement> & ItemListItemColumnOptions> | undefined,
                     index: number,
                     array: (JSX.SpecificElement<JSX.HTMLAttributes<HTMLDivElement> & ItemListItemColumnOptions> | undefined)[]
                 ): JSX.SpecificElement<"div"> =>
-                    index === 0 ? (
+                    index === 0 ?
                         <div
                             class={`item-list-item-column item-list-item-column-${index}`}
                             style={`width: ${
@@ -40,18 +45,19 @@ export default function ItemListItem<HeaderSizes extends string[] | []>(options:
                             };`}
                             data-item-list-item-column={index}
                             dangerouslySetInnerHTML={
-                                child && child.props.containerType === "None" && child.props.contentType === "RawHTML"
-                                    ? { __html: child.props.children }
-                                    : undefined
+                                child && child.props.containerType === "None" && child.props.contentType === "RawHTML" ?
+                                    { __html: child.props.children }
+                                :   undefined
                             }
                             title={child?.props.title}
                         >
-                            {!child ? undefined : child.props.containerType === "None" ? (
-                                child.props.contentType === "RawHTML" ? undefined : (
-                                    child.props.children
-                                )
-                            ) : (
-                                <span
+                            {!child ?
+                                undefined
+                            : child.props.containerType === "None" ?
+                                child.props.contentType === "RawHTML" ?
+                                    undefined
+                                :   child.props.children
+                            :   <span
                                     style="padding: 8.5px 0px;"
                                     data-item-list-item-column={index}
                                     class="item-list-item-column-text"
@@ -60,10 +66,9 @@ export default function ItemListItem<HeaderSizes extends string[] | []>(options:
                                 >
                                     {child.props.contentType === "RawHTML" ? undefined : child.props.children}
                                 </span>
-                            )}
+                            }
                         </div>
-                    ) : (
-                        <div
+                    :   <div
                             class={`item-list-item-column item-list-item-column-${index}`}
                             style={`width: ${
                                 index === array.length - 1 ? 0 : `calc(${options.headerSizes[index]} - 1px)`
@@ -72,22 +77,22 @@ export default function ItemListItem<HeaderSizes extends string[] | []>(options:
                             };`}
                             data-item-list-item-column={index}
                             dangerouslySetInnerHTML={
-                                child && child.props.containerType === "None" && child.props.contentType === "RawHTML"
-                                    ? { __html: child.props.children }
-                                    : undefined
+                                child && child.props.containerType === "None" && child.props.contentType === "RawHTML" ?
+                                    { __html: child.props.children }
+                                :   undefined
                             }
                         >
-                            {!child ? undefined : child.props.containerType === "None" ? (
-                                child.props.contentType === "RawHTML" ? undefined : (
-                                    child.props.children
-                                )
-                            ) : (
-                                <span style="padding: 8.5px 0px;" data-item-list-item-column={index} class="item-list-item-column-text">
+                            {!child ?
+                                undefined
+                            : child.props.containerType === "None" ?
+                                child.props.contentType === "RawHTML" ?
+                                    undefined
+                                :   child.props.children
+                            :   <span style="padding: 8.5px 0px;" data-item-list-item-column={index} class="item-list-item-column-text">
                                     {child.props.contentType === "RawHTML" ? undefined : child.props.children}
                                 </span>
-                            )}
+                            }
                         </div>
-                    )
             )}
         </div>
     );

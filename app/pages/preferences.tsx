@@ -1,5 +1,5 @@
-import { render, type JSX, type RefObject } from "preact";
-import _React, { hydrate, useEffect, useRef } from "preact/compat";
+import { type JSX, type RefObject } from "preact";
+import _React, { hydrate, render, useEffect, useRef } from "preact/compat";
 import Toggle from "../components/Toggle";
 import Slider, { type SliderInnerHTMLInputElement } from "../components/Slider";
 import { updateGUIScale } from "../app";
@@ -11,6 +11,9 @@ import mergeRefs from "merge-refs";
 import { APP_DATA_FOLDER_PATH } from "../../src/utils/URLs";
 import { createToast } from "../components/Toast";
 import TextBox from "../components/TextBox";
+import ItemListItem, { ItemListItemColumn } from "../components/ItemListItem";
+import { VersionFolder } from "../../src/utils/InstallationManager";
+import { showSelectVersionFolderOverlayPage } from "../overlay_pages/SelectVersionFolderOverlayPage";
 
 export default function PreferencesPage(): JSX.SpecificElement<"center"> {
     const GUIScaleSliderRef: RefObject<SliderInnerHTMLInputElement> = useRef<SliderInnerHTMLInputElement>(null);
@@ -235,6 +238,7 @@ export default function PreferencesPage(): JSX.SpecificElement<"center"> {
                         config.autoUpdateEnabled = event.currentTarget.checked;
                     }}
                 ></Toggle>
+                <LiveUIPreviewDefaultVersionFolderOption />
                 {/* <Toggle
                     label="Test Toggle"
                     onChange={(event: JSX.TargetedEvent<HTMLInputElement, Event>): void => {
@@ -881,6 +885,293 @@ export function VersionFolderSearchLocationsOption(): JSX.SpecificElement<"div">
                 </button>
             </div>
         </div>
+    );
+}
+
+export function LiveUIPreviewDefaultVersionFolderOption(): JSX.SpecificElement<"div"> {
+    const liveUIPreviewDefaultVersionFolderLabelPopupHelpInfoRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
+    const liveUIPreviewDefaultVersionFolderListContainerRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
+    const defaultPreviewVersionFolderUseBackupDropdownSelectedOptionTextDisplayRef: RefObject<HTMLSpanElement> = useRef<HTMLSpanElement>(null);
+    const defaultPreviewVersionFolderUseBackupDropdownContentsRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
+    useEffect((): (() => void) => {
+        function defaultPreviewVersionFolderUseBackupChangeCallback(value: typeof config.defaultPreviewVersionFolder_useBackup): void {
+            if (
+                defaultPreviewVersionFolderUseBackupDropdownSelectedOptionTextDisplayRef.current &&
+                defaultPreviewVersionFolderUseBackupDropdownContentsRef.current
+            ) {
+                const valueOption: HTMLInputElement | null = defaultPreviewVersionFolderUseBackupDropdownContentsRef.current.querySelector(
+                    `input[value="${value}"]`
+                );
+                if (valueOption) {
+                    valueOption.checked = true;
+                } else {
+                    const selectedValueOption: HTMLInputElement | null =
+                        defaultPreviewVersionFolderUseBackupDropdownContentsRef.current.querySelector(`input:checked`);
+                    if (selectedValueOption) {
+                        selectedValueOption.checked = false;
+                    }
+                }
+                defaultPreviewVersionFolderUseBackupDropdownSelectedOptionTextDisplayRef.current!.textContent =
+                    config.constants.defaultPreviewVersionFolderUseBackupDisplayMapping[value] ?? value;
+            }
+        }
+        config.addListener("settingChanged:defaultPreviewVersionFolder_useBackup", defaultPreviewVersionFolderUseBackupChangeCallback);
+        return (): void => {
+            config.removeListener("settingChanged:defaultPreviewVersionFolder_useBackup", defaultPreviewVersionFolderUseBackupChangeCallback);
+        };
+    });
+    function updateLiveUIPreviewDefaultVersionFolder(versionFolder?: typeof config.defaultPreviewVersionFolder): void {
+        if (!liveUIPreviewDefaultVersionFolderListContainerRef.current) return;
+        render(null, liveUIPreviewDefaultVersionFolderListContainerRef.current);
+        render(<LiveUIPreviewDefaultVersionFolderItem versionFolder={versionFolder} />, liveUIPreviewDefaultVersionFolderListContainerRef.current);
+    }
+    function LiveUIPreviewDefaultVersionFolderItem(props: { versionFolder?: typeof config.defaultPreviewVersionFolder }): JSX.Element {
+        if (!props.versionFolder)
+            return (
+                <ItemListItem headerSizes={["100%"]}>
+                    <ItemListItemColumn containerType="Span" contentType={"RawHTML"}>
+                        {'<span style="color: red;"><strong>Not set</strong></span></span>'}
+                    </ItemListItemColumn>
+                </ItemListItem>
+            );
+        if (props.versionFolder.type === "isolated")
+            return (
+                <ItemListItem headerSizes={["100%"]}>
+                    <ItemListItemColumn containerType="Span" contentType={"RawHTML"} title={props.versionFolder.path}>
+                        {
+                            '<span style="color: orange;"><strong>The selected version folder is an isolated version folder, but support for isolated versions is not yet implemented.</strong></span></span>'
+                        }
+                    </ItemListItemColumn>
+                </ItemListItem>
+            );
+        const resolvedVersionFolder: VersionFolder = new VersionFolder(props.versionFolder.path);
+        return (
+            <ItemListItem headerSizes={["40%", "60%"]}>
+                <ItemListItemColumn containerType="Span" contentType={"RawHTML"} title={props.versionFolder.path}>
+                    {resolvedVersionFolder.getDisplayVersionColoredHTML()}
+                </ItemListItemColumn>
+                <ItemListItemColumn containerType="None" contentType="Other">
+                    {/* <textarea
+                            name="structurename"
+                            autocapitalize="off"
+                            autocomplete="off"
+                            spellcheck={false}
+                            inputmode="text"
+                            required
+                            rows={1}
+                            {...{ pattern: "/[^:/]+:[^:]+/" }}
+                            class="form-control"
+                            style="margin-left: 10px; width: calc(100% - 47px); max-width: calc(100% - 47px); height: -webkit-fill-available;"
+                            data-value="structurename"
+                        ></textarea> */}
+                    <span style="padding: 8.5px 0px; display: inline-block; margin-left: 10px;">{resolvedVersionFolder.installationStatus}</span>
+                </ItemListItemColumn>
+            </ItemListItem>
+        );
+    }
+    useEffect((): (() => void) => {
+        config.on("settingChanged:defaultPreviewVersionFolder", updateLiveUIPreviewDefaultVersionFolder);
+        return (): void => {
+            config.off("settingChanged:defaultPreviewVersionFolder", updateLiveUIPreviewDefaultVersionFolder);
+        };
+    });
+    return (
+        <>
+            <div
+                style={{
+                    display: "flex",
+                    flexDirection: "column",
+                }}
+            >
+                <style>{`.live-ui-preview-default-version-folder-label:hover {
+                cursor: help;
+                text-decoration: underline;
+            }
+            div:has(> .live-ui-preview-default-version-folder-label) > div:has(> purple-border_background) {
+                pointer-events: none;
+                transition: opacity 0.1s;
+                opacity: 0;
+                z-index: 1000;
+            }
+            div:has(> .live-ui-preview-default-version-folder-label:hover) > div:has(> purple-border_background) {
+                display: block;
+                transition: opacity 0.1s ease 0.5s;
+                opacity: 1;
+            }`}</style>
+                <label
+                    class="live-ui-preview-default-version-folder-label"
+                    onMouseOver={(event: JSX.TargetedMouseEvent<HTMLLabelElement>): void => {
+                        if (!liveUIPreviewDefaultVersionFolderLabelPopupHelpInfoRef.current) return;
+                        liveUIPreviewDefaultVersionFolderLabelPopupHelpInfoRef.current.style.top = `${event.clientY}px`;
+                        liveUIPreviewDefaultVersionFolderLabelPopupHelpInfoRef.current.style.left = `${event.clientX}px`;
+                    }}
+                    onMouseMove={(event: JSX.TargetedMouseEvent<HTMLLabelElement>): void => {
+                        if (!liveUIPreviewDefaultVersionFolderLabelPopupHelpInfoRef.current) return;
+                        liveUIPreviewDefaultVersionFolderLabelPopupHelpInfoRef.current.style.top = `${event.clientY}px`;
+                        liveUIPreviewDefaultVersionFolderLabelPopupHelpInfoRef.current.style.left = `${event.clientX}px`;
+                    }}
+                    style={{
+                        display: "flex",
+                        flexDirection: "row",
+                        alignItems: "center",
+                        marginBottom: "calc(2px * var(--gui-scale))",
+                    }}
+                >
+                    Live Ore UI Preview Default Version Folder
+                    <img
+                        title="Help"
+                        src="resource://images/ui/glyphs/Information_9x9.png"
+                        style={{
+                            width: "calc(9px * var(--gui-scale))",
+                            imageRendering: "pixelated",
+                            marginLeft: "calc(3px * var(--gui-scale))",
+                        }}
+                    />
+                </label>
+                <div
+                    ref={liveUIPreviewDefaultVersionFolderLabelPopupHelpInfoRef}
+                    style={{
+                        display: "block",
+                        position: "fixed",
+                    }}
+                >
+                    <purple-border_background>
+                        <div style={{ padding: "calc(6px * var(--gui-scale))", wordBreak: "break-word" }}>
+                            {`The default version folder that is used for Ore UI previews, like the live preview for the colors tab of the config editor.`.replaceAll(
+                                /(?<!^|\s)(?!$|\s)/g,
+                                "\xAD"
+                            )}
+                        </div>
+                    </purple-border_background>
+                </div>
+                <div
+                    ref={liveUIPreviewDefaultVersionFolderListContainerRef}
+                    style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        backgroundColor: "#000000",
+                        color: "#00ffff",
+                        border: "1px solid #ffffff",
+                        borderWidth: "1px 1px 0px 1px",
+                    }}
+                >
+                    <LiveUIPreviewDefaultVersionFolderItem versionFolder={config.defaultPreviewVersionFolder} />
+                </div>
+                <div style={{ display: "flex", flexDirection: "row", alignItems: "center" }}>
+                    <button
+                        type="button"
+                        class="btn"
+                        style={{ flexGrow: 1 }}
+                        onMouseDown={(event: JSX.TargetedMouseEvent<HTMLButtonElement>): void => {
+                            if (event.currentTarget.disabled) return;
+                            SoundEffects.popB();
+                        }}
+                        onClick={(event: JSX.TargetedMouseEvent<HTMLButtonElement>): void => {
+                            if (event.currentTarget.disabled) return;
+                            showSelectVersionFolderOverlayPage({
+                                onSelected(versionFolder: VersionFolder): void {
+                                    config.defaultPreviewVersionFolder = {
+                                        type: "minecraft",
+                                        path: versionFolder.path,
+                                    };
+                                },
+                            });
+                        }}
+                    >
+                        Select Version
+                    </button>
+                    <button
+                        type="button"
+                        class="btn"
+                        style={{ flexGrow: 1 }}
+                        onMouseDown={(event: JSX.TargetedMouseEvent<HTMLButtonElement>): void => {
+                            if (event.currentTarget.disabled) return;
+                            SoundEffects.popB();
+                        }}
+                        onClick={async (event: JSX.TargetedMouseEvent<HTMLButtonElement>): Promise<void> => {
+                            if (event.currentTarget.disabled) return;
+                            // const result: OpenDialogReturnValue = await dialog.showOpenDialog({
+                            //     properties: ["openDirectory", "multiSelections", "treatPackageAsDirectory", "showHiddenFiles"],
+                            //     buttonLabel: "Add to Version Folder Search Locations",
+                            //     message: "Select a folder to add to the list of version folder search locations",
+                            //     title: "Add Version Folder Search Location",
+                            // });
+                            // if (result.canceled) return;
+                            // config.versionFolderSearchLocations = config.versionFolderSearchLocations.concat(result.filePaths);
+                        }}
+                        disabled
+                        hidden
+                    >
+                        Select Isolated Version
+                    </button>
+                </div>
+                <div style={{ display: "flex", flexDirection: "row", alignItems: "center" }} hidden>
+                    <button
+                        type="button"
+                        class="btn"
+                        style={{ flexGrow: 1 }}
+                        onMouseDown={(event: JSX.TargetedMouseEvent<HTMLButtonElement>): void => {
+                            if (event.currentTarget.disabled) return;
+                            SoundEffects.popB();
+                        }}
+                        onClick={async (event: JSX.TargetedMouseEvent<HTMLButtonElement>): Promise<void> => {
+                            if (event.currentTarget.disabled) return;
+                            // const result: OpenDialogReturnValue = await dialog.showOpenDialog({
+                            //     properties: ["openDirectory", "multiSelections", "treatPackageAsDirectory", "showHiddenFiles"],
+                            //     buttonLabel: "Add to Version Folder Search Locations",
+                            //     message: "Select a folder to add to the list of version folder search locations",
+                            //     title: "Add Version Folder Search Location",
+                            // });
+                            // if (result.canceled) return;
+                            // config.versionFolderSearchLocations = config.versionFolderSearchLocations.concat(result.filePaths);
+                        }}
+                        disabled
+                    >
+                        Select Folder
+                    </button>
+                    <button
+                        type="button"
+                        class="btn"
+                        style={{ flexGrow: 1 }}
+                        onMouseDown={(event: JSX.TargetedMouseEvent<HTMLButtonElement>): void => {
+                            if (event.currentTarget.disabled) return;
+                            SoundEffects.popB();
+                        }}
+                        onClick={async (event: JSX.TargetedMouseEvent<HTMLButtonElement>): Promise<void> => {
+                            if (event.currentTarget.disabled) return;
+                            // const result: OpenDialogReturnValue = await dialog.showOpenDialog({
+                            //     properties: ["openDirectory", "multiSelections", "treatPackageAsDirectory", "showHiddenFiles"],
+                            //     buttonLabel: "Add to Version Folder Search Locations",
+                            //     message: "Select a folder to add to the list of version folder search locations",
+                            //     title: "Add Version Folder Search Location",
+                            // });
+                            // if (result.canceled) return;
+                            // config.versionFolderSearchLocations = config.versionFolderSearchLocations.concat(result.filePaths);
+                        }}
+                        disabled
+                    >
+                        Select Isolated Folder
+                    </button>
+                </div>
+            </div>
+            <Dropdown
+                label="Live Ore UI Preview - Use Version Folder Backup"
+                id="live_ui_preview_default_version_folder_use_backup_dropdown"
+                minWidth="100px"
+                options={(["never", "always", "if_ouic_installed"] satisfies (typeof config.defaultPreviewVersionFolder_useBackup)[]).map(
+                    (useBackup: typeof config.defaultPreviewVersionFolder_useBackup): DropdownOption<typeof config.defaultPreviewVersionFolder_useBackup> => ({
+                        label: config.constants.defaultPreviewVersionFolderUseBackupDisplayMapping[useBackup] ?? useBackup,
+                        value: useBackup,
+                        default: config.defaultPreviewVersionFolder_useBackup === useBackup,
+                    })
+                )}
+                onChange={(value: typeof config.defaultPreviewVersionFolder_useBackup): void => {
+                    config.defaultPreviewVersionFolder_useBackup = value;
+                }}
+                selectedOptionTextDisplayRef={defaultPreviewVersionFolderUseBackupDropdownSelectedOptionTextDisplayRef}
+                dropdownContentsRef={defaultPreviewVersionFolderUseBackupDropdownContentsRef}
+            />
+        </>
     );
 }
 
