@@ -1,10 +1,10 @@
-import { render, type Component, type FunctionComponent, type JSX, type RefObject } from "preact";
-import _React, { hydrate, useEffect, useRef, version } from "preact/compat";
+import type { Component, FunctionComponent, JSX, RefObject } from "preact";
+import _React, { hydrate, render, useEffect, useRef, version } from "preact/compat";
 import Toggle from "../components/Toggle";
 import Slider, { type SliderInnerHTMLInputElement, type SliderProps } from "../components/Slider";
 import { updateGUIScale } from "../app";
-import { dialog, nativeTheme, shell } from "@electron/remote";
-import type { OpenDialogReturnValue } from "electron";
+import { app, dialog, nativeTheme, shell } from "@electron/remote";
+import type { MessageBoxReturnValue, OpenDialogReturnValue, SaveDialogReturnValue } from "electron";
 import Dropdown from "../components/Dropdown";
 import { ConfigManager, OreUICustomizerConfig, type SavedOreUICustomizerConfig_Type } from "../../src/utils/ConfigManager";
 import { SettingsSectionContainer, SettingsSidebar, SettingsSidebarSection, SettingsSidebarSectionButton } from "./preferences";
@@ -1406,7 +1406,101 @@ export default function ConfigEditorPage(): JSX.SpecificElement<"center"> {
                             if (event.currentTarget.disabled) return;
                             SoundEffects.popB();
                         }}
-                        onClick={(event: JSX.TargetedMouseEvent<HTMLButtonElement>): void => {
+                        onClick={async (event: JSX.TargetedMouseEvent<HTMLButtonElement>): Promise<void> => {
+                            event.preventDefault();
+                            event.currentTarget.blur();
+                            if (event.currentTarget.disabled) return;
+                            if (JSON.stringify(config.toSavedConfigData(), null, 4) !== readFileSync(config.filePath, "utf-8")) {
+                                const result: MessageBoxReturnValue = await dialog.showMessageBox(getCurrentWindow(), {
+                                    type: "warning",
+                                    title: "Unsaved Changes",
+                                    message: `${config.metadata.name} has unsaved changes.`,
+                                    detail: "Your changes will not be applied to the exported config if you don't save them first.",
+                                    buttons: ["Save Changes and Proceed", "Proceed Anyway", "Cancel"],
+                                    noLink: true,
+                                    defaultId: 0,
+                                    cancelId: 2,
+                                });
+                                switch (result.response) {
+                                    case 0:
+                                        config.saveChanges();
+                                        break;
+                                    case 1:
+                                        break;
+                                    case 2:
+                                        return;
+                                }
+                            }
+                            const result: SaveDialogReturnValue = await dialog.showSaveDialog(getCurrentWindow(), {
+                                buttonLabel: "Save",
+                                defaultPath: path.join(app.getPath("downloads"), `${config.metadata.name}-${config.metadata.version}.ouicconfig`),
+                                properties: ["showHiddenFiles", "showOverwriteConfirmation", "treatPackageAsDirectory"],
+                                title: "Export Config",
+                                message: "Select a location to export the config.",
+                                filters: [
+                                    { name: "Config (Recommended)", extensions: ["mcouicconfig", "ouicconfig"] },
+                                    { name: "Config (JSON)", extensions: ["json", "jsonc", "jsonl"] },
+                                ],
+                            });
+                            if (result.canceled) return;
+                            writeFileSync(result.filePath, readFileSync(config.filePath));
+                            shell.showItemInFolder(result.filePath);
+                            createToast({
+                                title: "Config exported successfully",
+                            });
+                        }}
+                    >
+                        <div
+                            class="button-image-container"
+                            style={{
+                                height: `calc(17px * var(--gui-scale))`,
+                                width: `calc(17px * var(--gui-scale))`,
+                                // display: "inline-block",
+                                position: "absolute",
+                                // marginTop: "calc(-2px * var(--gui-scale) / 3)",
+                                // marginLeft: "auto",
+                                // marginRight: "auto",
+                                top: `round(down, calc((calc(calc((29 * var(--gui-scale)) - 2) * 1px) - (17px * var(--gui-scale))) / 2), 1px)`,
+                            }}
+                        >
+                            <img
+                                aria-hidden="true"
+                                src="resource://images/ui/glyphs/download.png"
+                                class="no-remove-disabled nsel ndrg button-image"
+                                style={{
+                                    height: `calc(17px * var(--gui-scale))`,
+                                    width: `calc(17px * var(--gui-scale))`,
+                                    imageRendering: "pixelated",
+                                    zIndex: 3,
+                                    position: "absolute",
+                                    // top: 0,
+                                    // left: 0,
+                                }}
+                            />
+                        </div>
+                        <div
+                            class="no-remove-disabled nsel"
+                            style={{
+                                display: "inline-block",
+                                position: "relative",
+                                left: "calc(calc(17px * var(--gui-scale)) + 21px)",
+                            }}
+                        >
+                            Export Config
+                        </div>
+                    </button>
+                    <button
+                        type="button"
+                        onTouchStart={(): void => {}}
+                        class="radio_button_container_label"
+                        style="width: -webkit-fill-available; text-align: left;"
+                        onMouseDown={(event: JSX.TargetedMouseEvent<HTMLButtonElement>): void => {
+                            event.preventDefault();
+                            event.currentTarget.blur();
+                            if (event.currentTarget.disabled) return;
+                            SoundEffects.popB();
+                        }}
+                        onClick={async (event: JSX.TargetedMouseEvent<HTMLButtonElement>): Promise<void> => {
                             event.preventDefault();
                             event.currentTarget.blur();
                             if (event.currentTarget.disabled) return;
