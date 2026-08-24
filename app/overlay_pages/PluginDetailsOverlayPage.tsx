@@ -42,7 +42,6 @@ export default function PluginDetailsOverlayPage(props: PluginDetailsOverlayPage
                         licenseRef.current.setAttribute("data-choosealicense-license-url", license);
                     });
                 } else {
-                    licenseRef.current;
                     licenseRef.current.style.cursor = "help";
                     licenseRef.current.setAttribute("data-choosealicense-license-url", license);
                 }
@@ -171,6 +170,12 @@ export default function PluginDetailsOverlayPage(props: PluginDetailsOverlayPage
                                         if (event.currentTarget.disabled) return;
                                         SoundEffects.popB();
                                     }}
+                                    onClick={async (event: JSX.TargetedMouseEvent<HTMLButtonElement>): Promise<void> => {
+                                        event.preventDefault();
+                                        event.currentTarget.blur();
+                                        if (event.currentTarget.disabled) return;
+                                        plugin!.refresh();
+                                    }}
                                 >
                                     Refresh
                                 </button>
@@ -254,9 +259,9 @@ export default function PluginDetailsOverlayPage(props: PluginDetailsOverlayPage
                                 display: "flex",
                                 flexDirection: "row",
                                 borderBottom:
-                                    plugin!.metadata.url || plugin!.metadata.license || plugin!.metadata.authors
-                                        ? "calc(1px * var(--gui-scale)) solid #364343FF"
-                                        : undefined,
+                                    plugin!.metadata.url || plugin!.metadata.license || plugin!.metadata.authors ?
+                                        "calc(1px * var(--gui-scale)) solid #364343FF"
+                                    :   undefined,
                             }}
                         >
                             <span
@@ -490,19 +495,17 @@ export default function PluginDetailsOverlayPage(props: PluginDetailsOverlayPage
                                             }}
                                             dangerouslySetInnerHTML={message.title && message.titleFormat === "html" ? { __html: message.title } : undefined}
                                         >
-                                            {message.title ? (
-                                                message.titleFormat === "html" ? undefined : (
-                                                    message.title.replaceAll(/(?<!^|\s)(?!$|\s)/g, "\xAD")
-                                                )
-                                            ) : message.type === "info" ? (
+                                            {message.title ?
+                                                message.titleFormat === "html" ?
+                                                    undefined
+                                                :   message.title.replaceAll(/(?<!^|\s)(?!$|\s)/g, "\xAD")
+                                            : message.type === "info" ?
                                                 <span style={{ color: "#5555FFFF" }}>Info</span>
-                                            ) : message.type === "warning" ? (
+                                            : message.type === "warning" ?
                                                 <span style={{ color: "#FFFF55FF" }}>Warning</span>
-                                            ) : message.type === "error" ? (
+                                            : message.type === "error" ?
                                                 <span style={{ color: "#FF5555FF" }}>Error</span>
-                                            ) : (
-                                                "Unknown message type"
-                                            )}
+                                            :   "Unknown message type"}
                                         </p>
                                     </div>
                                     <div
@@ -547,12 +550,12 @@ export default function PluginDetailsOverlayPage(props: PluginDetailsOverlayPage
             </>
         );
     }
-        useEffect((): (() => void) => {
-            PluginManager.on("pluginRefreshed", handleRefresh);
-            return (): void => {
-                PluginManager.off("pluginRefreshed", handleRefresh);
-            };
-        });
+    useEffect((): (() => void) => {
+        PluginManager.on("pluginRefreshed", handleRefresh);
+        return (): void => {
+            PluginManager.off("pluginRefreshed", handleRefresh);
+        };
+    });
     return (
         <div
             class="dialog-hollow-3"

@@ -171,6 +171,12 @@ export default function ConfigDetailsOverlayPage(props: ConfigDetailsOverlayPage
                                         if (event.currentTarget.disabled) return;
                                         SoundEffects.popB();
                                     }}
+                                    onClick={async (event: JSX.TargetedMouseEvent<HTMLButtonElement>): Promise<void> => {
+                                        event.preventDefault();
+                                        event.currentTarget.blur();
+                                        if (event.currentTarget.disabled) return;
+                                        config!.refresh();
+                                    }}
                                 >
                                     Refresh
                                 </button>
@@ -255,9 +261,9 @@ export default function ConfigDetailsOverlayPage(props: ConfigDetailsOverlayPage
                                 display: "flex",
                                 flexDirection: "row",
                                 borderBottom:
-                                    config!.metadata.url || config!.metadata.license || config!.metadata.authors
-                                        ? "calc(1px * var(--gui-scale)) solid #364343FF"
-                                        : undefined,
+                                    config!.metadata.url || config!.metadata.license || config!.metadata.authors ?
+                                        "calc(1px * var(--gui-scale)) solid #364343FF"
+                                    :   undefined,
                             }}
                         >
                             <span
@@ -489,19 +495,17 @@ export default function ConfigDetailsOverlayPage(props: ConfigDetailsOverlayPage
                                             }}
                                             dangerouslySetInnerHTML={message.title && message.titleFormat === "html" ? { __html: message.title } : undefined}
                                         >
-                                            {message.title ? (
-                                                message.titleFormat === "html" ? undefined : (
-                                                    message.title.replaceAll(/(?<!^|\s)(?!$|\s)/g, "\xAD")
-                                                )
-                                            ) : message.type === "info" ? (
+                                            {message.title ?
+                                                message.titleFormat === "html" ?
+                                                    undefined
+                                                :   message.title.replaceAll(/(?<!^|\s)(?!$|\s)/g, "\xAD")
+                                            : message.type === "info" ?
                                                 <span style={{ color: "#5555FFFF" }}>Info</span>
-                                            ) : message.type === "warning" ? (
+                                            : message.type === "warning" ?
                                                 <span style={{ color: "#FFFF55FF" }}>Warning</span>
-                                            ) : message.type === "error" ? (
+                                            : message.type === "error" ?
                                                 <span style={{ color: "#FF5555FF" }}>Error</span>
-                                            ) : (
-                                                "Unknown message type"
-                                            )}
+                                            :   "Unknown message type"}
                                         </p>
                                     </div>
                                     <div
