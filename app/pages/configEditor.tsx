@@ -303,19 +303,23 @@ const generalSectionOptions = [
     | "preloadedPlugins"
 >][];
 
-/**
- * This is to generate an error if an option is missing from the general section.
- */
-const validateGeneralSectionOptions: (typeof generalSectionOptions)[number]["key"] = undefined! as keyof Omit<
-    OreUICustomizerSettings,
-    | "activePluginsDetails"
-    | "bundleEncodedPluginDataInConfigFile"
-    | "colorReplacements"
-    | "advancedColorReplacements"
-    | "enabledBuiltInPlugins"
-    | "plugins"
-    | "preloadedPlugins"
->;
+{
+    /**
+     * This is to generate an error if an option is missing from the general section.
+     *
+     * @internal
+     */
+    const _validateGeneralSectionOptions: (typeof generalSectionOptions)[number]["key"] = undefined! as keyof Omit<
+        OreUICustomizerSettings,
+        | "activePluginsDetails"
+        | "bundleEncodedPluginDataInConfigFile"
+        | "colorReplacements"
+        | "advancedColorReplacements"
+        | "enabledBuiltInPlugins"
+        | "plugins"
+        | "preloadedPlugins"
+    >;
+}
 
 const colorReplacements = {
     green10: {
@@ -825,11 +829,35 @@ const advancedColorReplacements = {
                 configColorReplacementsKey3: "color",
             },
         },
+        ".realms-neutral-text,.realms-neutral-text-interactive": {
+            color: {
+                defaultColor: "#ffffff",
+                configColorReplacementsKey: "custom",
+                configColorReplacementsKey2: ".realms-neutral-text,.realms-neutral-text-interactive",
+                configColorReplacementsKey3: "color",
+            },
+        },
+        ".realms-neutral-text.dimmer,.realms-neutral-text-interactive.dimmer": {
+            color: {
+                defaultColor: "#d0d1d4",
+                configColorReplacementsKey: "custom",
+                configColorReplacementsKey2: ".realms-neutral-text.dimmer,.realms-neutral-text-interactive.dimmer",
+                configColorReplacementsKey3: "color",
+            },
+        },
+        ".realms-neutral-text.dimmest,.realms-neutral-text-interactive.dimmest": {
+            color: {
+                defaultColor: "#b1b2b5",
+                configColorReplacementsKey: "custom",
+                configColorReplacementsKey2: ".realms-neutral-text.dimmest,.realms-neutral-text-interactive.dimmest",
+                configColorReplacementsKey3: "color",
+            },
+        },
     },
 } as const satisfies {
-    [key in keyof NonNullable<OreUICustomizerSettings["advancedColorReplacements"]>]: {
-        [key2 in keyof NonNullable<NonNullable<OreUICustomizerSettings["advancedColorReplacements"]>[key]>]: {
-            [key3 in keyof NonNullable<NonNullable<NonNullable<OreUICustomizerSettings["advancedColorReplacements"]>[key]>[key2]>]: {
+    [key in keyof Full<NonNullable<OreUICustomizerSettings["advancedColorReplacements"]>>]: {
+        [key2 in keyof Full<NonNullable<NonNullable<OreUICustomizerSettings["advancedColorReplacements"]>[key]>>]: {
+            [key3 in keyof Full<NonNullable<NonNullable<NonNullable<OreUICustomizerSettings["advancedColorReplacements"]>[key]>[key2]>>]: {
                 defaultColor: string;
                 configColorReplacementsKey: key;
                 configColorReplacementsKey2: key2;
@@ -2167,7 +2195,7 @@ export default function ConfigEditorPage(): JSX.SpecificElement<"center"> {
                                 buttons: ["Confirm", "Cancel"],
                                 defaultId: 1,
                                 cancelId: 1,
-                                message: "Are you sure you want to discard you changes? This action cannot be undone.",
+                                message: "Are you sure you want to discard your changes? This action cannot be undone.",
                                 noLink: true,
                                 title: "Confirm Discard Changes",
                             });

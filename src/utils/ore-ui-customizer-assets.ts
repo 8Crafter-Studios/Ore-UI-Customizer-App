@@ -238,6 +238,15 @@ export const defaultOreUICustomizerSettings: OreUICustomizerSettings = {
             ".realms-neutral80-text.dimmest,.realms-neutral80-text-interactive.dimmest": {
                 color: "#b1b2b5",
             },
+            ".realms-neutral-text,.realms-neutral-text-interactive": {
+                color: "#ffffff",
+            },
+            ".realms-neutral-text.dimmer,.realms-neutral-text-interactive.dimmer": {
+                color: "#d0d1d4",
+            },
+            ".realms-neutral-text.dimmest,.realms-neutral-text-interactive.dimmest": {
+                color: "#b1b2b5",
+            },
         },
     },
     activePluginsDetails: [],

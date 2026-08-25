@@ -266,6 +266,21 @@ declare global {
     };
 
     /**
+     * Mutates the type by recursively removing the optional modifier (`?`) from all properties.
+     *
+     * @author 8Crafter
+     *
+     * @template T The type to mutate.
+     *
+     * @example
+     * ```ts
+     * type Original = { readonly name?: string; additionalInfo?: { age?: number; height?: number };
+     * type Mutated = MutableRequired<Original>; // { readonly name: string; additionalInfo: { age: number; height: number } }
+     * ```
+     */
+    type FullDeep<T> = { [P in keyof T]-?: NonNullable<T[P]> extends object ? FullDeep<NonNullable<T[P]>> : T[P] };
+
+    /**
      * Mutates the type by making all properties `readonly`, recursively.
      *
      * @template T The type to mutate.

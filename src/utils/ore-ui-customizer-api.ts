@@ -13,8 +13,8 @@ import "./zip.js";
 /**
  * The version of the Ore UI Customizer API.
  */
-// BUILD 5
-export const format_version = "1.17.0+BUILD.5";
+// BUILD 6
+export const format_version = "1.17.0+BUILD.6";
 
 /**
  * The result of the {@link applyMods} function.
@@ -116,6 +116,21 @@ function checkIsURIOrPath(URIOrPath: string): "URI" | "Path" {
 }
 
 /**
+ * Mutates the type by recursively removing the optional modifier (`?`) from all properties.
+ *
+ * @author 8Crafter
+ *
+ * @template T The type to mutate.
+ *
+ * @example
+ * ```ts
+ * type Original = { readonly name?: string; additionalInfo?: { age?: number; height?: number };
+ * type Mutated = MutableRequired<Original>; // { readonly name: string; additionalInfo: { age: number; height: number } }
+ * ```
+ */
+type FullDeep<T> = { [P in keyof T]-?: NonNullable<T[P]> extends object ? FullDeep<NonNullable<T[P]>> : T[P] };
+
+/**
  * Resolves the settings for the {@link applyMods} function, adding in the default values in place of the missing settigns.
  *
  * @param settings The settings to resolve.
@@ -128,10 +143,16 @@ export function resolveOreUICustomizerSettings(
         : OreUICustomizerSettings[key];
     } = {}
 ): OreUICustomizerSettings {
-    const resolvedSettings = {
+    const resolvedSettings: OreUICustomizerSettings = {
         ...defaultOreUICustomizerSettings,
-        ...settings,
-        colorReplacements: { ...defaultOreUICustomizerSettings.colorReplacements, ...settings.colorReplacements },
+        ...(Object.fromEntries(Object.entries(settings).filter(([, value]) => value !== undefined && value !== null)) as typeof settings),
+        colorReplacements: {
+            ...defaultOreUICustomizerSettings.colorReplacements,
+            ...(settings.colorReplacements &&
+                (Object.fromEntries(
+                    Object.entries(settings.colorReplacements).filter(([, value]) => value !== undefined && value !== null)
+                ) as typeof settings.colorReplacements)),
+        },
         advancedColorReplacements: {
             menusTheme: {
                 ".menus": {
@@ -207,6 +228,7 @@ export function resolveOreUICustomizerSettings(
                         "#58585a",
                 },
             },
+            // gameplayTheme: {} satisfies Required<NonNullable<NonNullable<OreUICustomizerSettings["advancedColorReplacements"]>["gameplayTheme"]>>,
             custom: {
                 ".vanilla-neutral-text,.vanilla-neutral-text-interactive": {
                     color:
@@ -244,8 +266,26 @@ export function resolveOreUICustomizerSettings(
                         settings.colorReplacements?.["#b1b2b5"] ??
                         "#b1b2b5",
                 },
+                ".realms-neutral-text,.realms-neutral-text-interactive": {
+                    color:
+                        settings.advancedColorReplacements?.custom?.[".realms-neutral-text,.realms-neutral-text-interactive"]?.["color"] ??
+                        settings.colorReplacements?.["#ffffff"] ??
+                        "#ffffff",
+                },
+                ".realms-neutral-text.dimmer,.realms-neutral-text-interactive.dimmer": {
+                    color:
+                        settings.advancedColorReplacements?.custom?.[".realms-neutral-text.dimmer,.realms-neutral-text-interactive.dimmer"]?.["color"] ??
+                        settings.colorReplacements?.["#d0d1d4"] ??
+                        "#d0d1d4",
+                },
+                ".realms-neutral-text.dimmest,.realms-neutral-text-interactive.dimmest": {
+                    color:
+                        settings.advancedColorReplacements?.custom?.[".realms-neutral-text.dimmest,.realms-neutral-text-interactive.dimmest"]?.["color"] ??
+                        settings.colorReplacements?.["#b1b2b5"] ??
+                        "#b1b2b5",
+                },
             },
-        },
+        } satisfies FullDeep<NonNullable<OreUICustomizerSettings["advancedColorReplacements"]>>,
         enabledBuiltInPlugins: { ...defaultOreUICustomizerSettings.enabledBuiltInPlugins, ...settings.enabledBuiltInPlugins },
     };
     resolvedSettings.plugins?.forEach((plugin) => {
@@ -334,7 +374,14 @@ export function applyColorReplacementsToFileContents(
                     for (const [key2, value] of Object.entries(
                         settings.advancedColorReplacements.custom[key as keyof typeof settings.advancedColorReplacements.custom] ?? {}
                     )) {
-                        if (value === "" || value === undefined || value === null) continue;
+                        if (value === "" || value === undefined || value === null) {
+                            type TA1 = UnionToIntersection<NonNullable<NonNullable<OreUICustomizerSettings["advancedColorReplacements"]>["custom"]>>;
+                            type TA2 = UnionToIntersection<NonNullable<TA1[keyof TA1]>> | NonNullable<TA1[keyof UnionToIntersection<TA1>]>;
+                            cssTextInnerLines.push(
+                                `${key2}:${(defaultOreUICustomizerSettings.advancedColorReplacements!.custom![key as keyof TA1]! as TA2)[key2 as keyof TA2]};`
+                            );
+                            continue;
+                        }
                         cssTextInnerLines.push(`${key2}:${value};`);
                     }
                     const cssText = `${key
