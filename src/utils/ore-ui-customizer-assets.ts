@@ -189,6 +189,48 @@ export const defaultOreUICustomizerSettings: OreUICustomizerSettings = {
         "#050029": "#050029",
         "rgba(5, 0, 41, 0.5)": "rgba(5, 0, 41, 0.5)",
     },
+    advancedColorReplacements: {
+        menusTheme: {
+            ".menus": {
+                colorsPrimary: "#3c8527",
+                colorsSecondary: "#d0d1d4",
+                colorsDestructive: "#ca3636",
+                colorsText: "#ffffff",
+                colorsMuted0: "#d0d1d4",
+                colorsMuted1: "#b1b2b5",
+                colorsDisabled: "#d0d1d4",
+                baseTextFieldColor: "#ffffff",
+                baseTextFieldPlaceholderColor: "#b1b2b5",
+                baseTextFieldDisabledColor: "#58585a",
+                baseTextFieldCaretColor: "#6cc349",
+                inputFieldPlaceholderUnderlineColor: "#ffffff",
+                inputLegendWrapperBackgroundColor: "#1e1e1f",
+                inputLegendWrapperBorderTopColor: "rgba(255, 255, 255, 0.2)",
+                inputLegendInputHintColor: "#fff",
+                buttonIconKeyboardTextColor: "#313233",
+            },
+            ".menus.realms": {
+                colorsPrimary: "#7345e5",
+            },
+            ".menus.neutral90": {
+                baseTextFieldColor: "#ffffff",
+                baseTextFieldPlaceholderColor: "#b1b2b5",
+                baseTextFieldColorDisabled: "#58585a",
+                baseTextFieldPlaceholderColorDisabled: "#58585a",
+            },
+        },
+        custom: {
+            ".vanilla-neutral-text,.vanilla-neutral-text-interactive": {
+                color: "#ffffff",
+            },
+            ".vanilla-neutral-text.dimmer, .vanilla-neutral-text-interactive.dimmer": {
+                color: "#d0d1d4",
+            },
+            ".vanilla-neutral-text.dimmest,.vanilla-neutral-text-interactive.dimmest": {
+                color: "#b1b2b5",
+            },
+        },
+    },
     activePluginsDetails: [],
     bundleEncodedPluginDataInConfigFile: false,
 } as OreUICustomizerSettings;

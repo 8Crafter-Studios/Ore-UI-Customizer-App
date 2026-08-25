@@ -14,7 +14,7 @@ import "./zip.js";
  * The version of the Ore UI Customizer API.
  */
 // BUILD 2
-export const format_version = "1.17.0+BUILD.2";
+export const format_version = "1.17.0+BUILD.3";
 
 /**
  * The result of the {@link applyMods} function.
@@ -132,6 +132,102 @@ export function resolveOreUICustomizerSettings(
         ...defaultOreUICustomizerSettings,
         ...settings,
         colorReplacements: { ...defaultOreUICustomizerSettings.colorReplacements, ...settings.colorReplacements },
+        advancedColorReplacements: {
+            menusTheme: {
+                ".menus": {
+                    colorsPrimary:
+                        settings.advancedColorReplacements?.menusTheme?.[".menus"]?.["colorsPrimary"] ?? settings.colorReplacements?.["#3c8527"] ?? "#3c8527",
+                    colorsSecondary:
+                        settings.advancedColorReplacements?.menusTheme?.[".menus"]?.["colorsSecondary"] ?? settings.colorReplacements?.["#d0d1d4"] ?? "#d0d1d4",
+                    colorsDestructive:
+                        settings.advancedColorReplacements?.menusTheme?.[".menus"]?.["colorsDestructive"] ??
+                        settings.colorReplacements?.["#ca3636"] ??
+                        "#ca3636",
+                    colorsText:
+                        settings.advancedColorReplacements?.menusTheme?.[".menus"]?.["colorsText"] ?? settings.colorReplacements?.["#ffffff"] ?? "#ffffff",
+                    colorsMuted0:
+                        settings.advancedColorReplacements?.menusTheme?.[".menus"]?.["colorsMuted0"] ?? settings.colorReplacements?.["#d0d1d4"] ?? "#d0d1d4",
+                    colorsMuted1:
+                        settings.advancedColorReplacements?.menusTheme?.[".menus"]?.["colorsMuted1"] ?? settings.colorReplacements?.["#b1b2b5"] ?? "#b1b2b5",
+                    colorsDisabled:
+                        settings.advancedColorReplacements?.menusTheme?.[".menus"]?.["colorsDisabled"] ?? settings.colorReplacements?.["#d0d1d4"] ?? "#d0d1d4",
+                    baseTextFieldColor:
+                        settings.advancedColorReplacements?.menusTheme?.[".menus"]?.["baseTextFieldColor"] ??
+                        settings.colorReplacements?.["#ffffff"] ??
+                        "#ffffff",
+                    baseTextFieldPlaceholderColor:
+                        settings.advancedColorReplacements?.menusTheme?.[".menus"]?.["baseTextFieldPlaceholderColor"] ??
+                        settings.colorReplacements?.["#b1b2b5"] ??
+                        "#b1b2b5",
+                    baseTextFieldDisabledColor:
+                        settings.advancedColorReplacements?.menusTheme?.[".menus"]?.["baseTextFieldDisabledColor"] ??
+                        settings.colorReplacements?.["#58585a"] ??
+                        "#58585a",
+                    baseTextFieldCaretColor:
+                        settings.advancedColorReplacements?.menusTheme?.[".menus"]?.["baseTextFieldCaretColor"] ??
+                        settings.colorReplacements?.["#6cc349"] ??
+                        "#6cc349",
+                    inputFieldPlaceholderUnderlineColor:
+                        settings.advancedColorReplacements?.menusTheme?.[".menus"]?.["inputFieldPlaceholderUnderlineColor"] ??
+                        settings.colorReplacements?.["#ffffff"] ??
+                        "#ffffff",
+                    inputLegendWrapperBackgroundColor:
+                        settings.advancedColorReplacements?.menusTheme?.[".menus"]?.["inputLegendWrapperBackgroundColor"] ??
+                        settings.colorReplacements?.["#1e1e1f"] ??
+                        "#1e1e1f",
+                    inputLegendWrapperBorderTopColor:
+                        settings.advancedColorReplacements?.menusTheme?.[".menus"]?.["inputLegendWrapperBorderTopColor"] ??
+                        settings.colorReplacements?.["rgba(255, 255, 255, 0.2)"] ??
+                        "rgba(255, 255, 255, 0.2)",
+                    inputLegendInputHintColor: settings.advancedColorReplacements?.menusTheme?.[".menus"]?.["inputLegendInputHintColor"] ?? "#fff",
+                    buttonIconKeyboardTextColor:
+                        settings.advancedColorReplacements?.menusTheme?.[".menus"]?.["buttonIconKeyboardTextColor"] ??
+                        settings.colorReplacements?.["#313233"] ??
+                        "#313233",
+                },
+                ".menus.realms": {
+                    colorsPrimary: settings.advancedColorReplacements?.menusTheme?.[".menus.realms"]?.["colorsPrimary"] ?? "#7345e5",
+                },
+                ".menus.neutral90": {
+                    baseTextFieldColor:
+                        settings.advancedColorReplacements?.menusTheme?.[".menus.neutral90"]?.["baseTextFieldColor"] ??
+                        settings.colorReplacements?.["#ffffff"] ??
+                        "#ffffff",
+                    baseTextFieldPlaceholderColor:
+                        settings.advancedColorReplacements?.menusTheme?.[".menus.neutral90"]?.["baseTextFieldPlaceholderColor"] ??
+                        settings.colorReplacements?.["#b1b2b5"] ??
+                        "#b1b2b5",
+                    baseTextFieldColorDisabled:
+                        settings.advancedColorReplacements?.menusTheme?.[".menus.neutral90"]?.["baseTextFieldColorDisabled"] ??
+                        settings.colorReplacements?.["#58585a"] ??
+                        "#58585a",
+                    baseTextFieldPlaceholderColorDisabled:
+                        settings.advancedColorReplacements?.menusTheme?.[".menus.neutral90"]?.["baseTextFieldPlaceholderColorDisabled"] ??
+                        settings.colorReplacements?.["#58585a"] ??
+                        "#58585a",
+                },
+            },
+            custom: {
+                ".vanilla-neutral-text,.vanilla-neutral-text-interactive": {
+                    color:
+                        settings.advancedColorReplacements?.custom?.[".vanilla-neutral-text,.vanilla-neutral-text-interactive"]?.["color"] ??
+                        settings.colorReplacements?.["#ffffff"] ??
+                        "#ffffff",
+                },
+                ".vanilla-neutral-text.dimmer, .vanilla-neutral-text-interactive.dimmer": {
+                    color:
+                        settings.advancedColorReplacements?.custom?.[".vanilla-neutral-text.dimmer, .vanilla-neutral-text-interactive.dimmer"]?.["color"] ??
+                        settings.colorReplacements?.["#d0d1d4"] ??
+                        "#d0d1d4",
+                },
+                ".vanilla-neutral-text.dimmest,.vanilla-neutral-text-interactive.dimmest": {
+                    color:
+                        settings.advancedColorReplacements?.custom?.[".vanilla-neutral-text.dimmest,.vanilla-neutral-text-interactive.dimmest"]?.["color"] ??
+                        settings.colorReplacements?.["#b1b2b5"] ??
+                        "#b1b2b5",
+                },
+            },
+        },
         enabledBuiltInPlugins: { ...defaultOreUICustomizerSettings.enabledBuiltInPlugins, ...settings.enabledBuiltInPlugins },
     };
     resolvedSettings.plugins?.forEach((plugin) => {
@@ -180,9 +276,64 @@ export function resolveOreUICustomizerSettings(
  */
 export function applyColorReplacementsToFileContents(
     distData: string,
-    _filePath: string,
+    filePath: string,
     settings: Partial<Omit<OreUICustomizerSettings, "colorReplacements">> & { colorReplacements: Partial<OreUICustomizerSettings["colorReplacements"]> }
 ): string {
+    settings = resolveOreUICustomizerSettings(settings);
+    if (/^\/hbui\/menus-theme-[a-zA-Z0-9]+\.css$/.test(filePath)) {
+        if (settings.advancedColorReplacements?.menusTheme) {
+            for (const key in settings.advancedColorReplacements.menusTheme) {
+                if (key === "") continue;
+                for (const [key2, value] of Object.entries(
+                    settings.advancedColorReplacements.menusTheme[key as keyof typeof settings.advancedColorReplacements.menusTheme] ?? {}
+                )) {
+                    if (value === "" || value === undefined || value === null) continue;
+                    type TA1 = UnionToIntersection<NonNullable<NonNullable<OreUICustomizerSettings["advancedColorReplacements"]>["menusTheme"]>>;
+                    type TA2 = UnionToIntersection<NonNullable<TA1[keyof TA1]>>;
+                    const pattern = new RegExp(
+                        `(?<=(?:(?:\\}|^)${key
+                            .split(".")
+                            .map((v: string): string => v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+                            .join(
+                                "[\\s\\n]*\\."
+                            )}[\\s\\n]*\\{)[^\\}]*--(${key2.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})[\\s\\n]*:[\\s\\n]*)${(defaultOreUICustomizerSettings.advancedColorReplacements!.menusTheme![key as keyof TA1]! as TA2)[key2 as keyof TA2]!.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?=;)`,
+                        ""
+                    );
+                    distData = distData.replace(pattern, (match: string, match1: keyof TA2): string => {
+                        if (!(match1 in ((settings.advancedColorReplacements?.menusTheme?.[key as keyof TA1] as TA2 | undefined) ?? {}))) {
+                            console.error(`Unknown color replacement: ${match1}`);
+                            return match;
+                        }
+                        const replacement: string | undefined = (settings.advancedColorReplacements!.menusTheme![key as keyof TA1]! as TA2)[match1];
+                        return replacement ?? match;
+                    });
+                }
+            }
+            if (settings.advancedColorReplacements?.custom) {
+                for (const key in settings.advancedColorReplacements.custom) {
+                    if (key === "") continue;
+                    const cssTextInnerLines: string[] = [];
+                    for (const [key2, value] of Object.entries(
+                        settings.advancedColorReplacements.custom[key as keyof typeof settings.advancedColorReplacements.custom] ?? {}
+                    )) {
+                        if (value === "" || value === undefined || value === null) continue;
+                        cssTextInnerLines.push(`${key2}:${value};`);
+                    }
+                    const cssText = `${key
+                        .split(",")
+                        .map((v: string): string => `:root ${v}`)
+                        .join(",")}{${cssTextInnerLines.join("")}}`;
+                    distData = `${distData}\n${cssText}`;
+                }
+            }
+        }
+        return distData;
+    }
+    // TODO
+    // if (/^\/hbui\/gameplay-theme-[a-zA-Z0-9]+\.css$/.test(filePath)) {
+    //     if (!settings.advancedColorReplacements?.gameplayTheme) return distData;
+    //     return distData;
+    // }
     const keys: string[] = [];
     for (const [key, value] of Object.entries(settings.colorReplacements)) {
         if (value === "" || value === undefined || value === null || value === key) continue;

@@ -18,7 +18,7 @@ import TextBox from "../components/TextBox";
 import { createToast } from "../components/Toast";
 import type tinycolor from "../../src/tinycolor2";
 import { OreUIPreviewManager, type OreUIPreview } from "../../src/utils/OreUIPreviewManager";
-import { applyColorReplacementsToFileContents } from "../../src/utils/ore-ui-customizer-api";
+import { applyColorReplacementsToFileContents, resolveOreUICustomizerSettings } from "../../src/utils/ore-ui-customizer-api";
 import { VersionFolder } from "../../src/utils/InstallationManager";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -280,7 +280,13 @@ const generalSectionOptions = [
 ] as const satisfies {
     [key in keyof Omit<
         OreUICustomizerSettings,
-        "activePluginsDetails" | "bundleEncodedPluginDataInConfigFile" | "colorReplacements" | "enabledBuiltInPlugins" | "plugins" | "preloadedPlugins"
+        | "activePluginsDetails"
+        | "bundleEncodedPluginDataInConfigFile"
+        | "colorReplacements"
+        | "advancedColorReplacements"
+        | "enabledBuiltInPlugins"
+        | "plugins"
+        | "preloadedPlugins"
     >]: {
         key: key;
         hidden?: boolean;
@@ -288,15 +294,27 @@ const generalSectionOptions = [
     };
 }[keyof Omit<
     OreUICustomizerSettings,
-    "activePluginsDetails" | "bundleEncodedPluginDataInConfigFile" | "colorReplacements" | "enabledBuiltInPlugins" | "plugins" | "preloadedPlugins"
+    | "activePluginsDetails"
+    | "bundleEncodedPluginDataInConfigFile"
+    | "colorReplacements"
+    | "advancedColorReplacements"
+    | "enabledBuiltInPlugins"
+    | "plugins"
+    | "preloadedPlugins"
 >][];
 
 /**
- * This is to generate an error is an option is missing from the general section.
+ * This is to generate an error if an option is missing from the general section.
  */
 const validateGeneralSectionOptions: (typeof generalSectionOptions)[number]["key"] = undefined! as keyof Omit<
     OreUICustomizerSettings,
-    "activePluginsDetails" | "bundleEncodedPluginDataInConfigFile" | "colorReplacements" | "enabledBuiltInPlugins" | "plugins" | "preloadedPlugins"
+    | "activePluginsDetails"
+    | "bundleEncodedPluginDataInConfigFile"
+    | "colorReplacements"
+    | "advancedColorReplacements"
+    | "enabledBuiltInPlugins"
+    | "plugins"
+    | "preloadedPlugins"
 >;
 
 const colorReplacements = {
@@ -622,6 +640,180 @@ const colorReplacements = {
         configColorReplacementsKey: key;
     };
 };
+
+const advancedColorReplacements = {
+    menusTheme: {
+        ".menus": {
+            colorsPrimary: {
+                defaultColor: "#3c8527",
+                configColorReplacementsKey: "menusTheme",
+                configColorReplacementsKey2: ".menus",
+                configColorReplacementsKey3: "colorsPrimary",
+            },
+            colorsSecondary: {
+                defaultColor: "#d0d1d4",
+                configColorReplacementsKey: "menusTheme",
+                configColorReplacementsKey2: ".menus",
+                configColorReplacementsKey3: "colorsSecondary",
+            },
+            colorsDestructive: {
+                defaultColor: "#ca3636",
+                configColorReplacementsKey: "menusTheme",
+                configColorReplacementsKey2: ".menus",
+                configColorReplacementsKey3: "colorsDestructive",
+            },
+            colorsText: {
+                defaultColor: "#ffffff",
+                configColorReplacementsKey: "menusTheme",
+                configColorReplacementsKey2: ".menus",
+                configColorReplacementsKey3: "colorsText",
+            },
+            colorsMuted0: {
+                defaultColor: "#d0d1d4",
+                configColorReplacementsKey: "menusTheme",
+                configColorReplacementsKey2: ".menus",
+                configColorReplacementsKey3: "colorsMuted0",
+            },
+            colorsMuted1: {
+                defaultColor: "#b1b2b5",
+                configColorReplacementsKey: "menusTheme",
+                configColorReplacementsKey2: ".menus",
+                configColorReplacementsKey3: "colorsMuted1",
+            },
+            colorsDisabled: {
+                defaultColor: "#d0d1d4",
+                configColorReplacementsKey: "menusTheme",
+                configColorReplacementsKey2: ".menus",
+                configColorReplacementsKey3: "colorsDisabled",
+            },
+            baseTextFieldColor: {
+                defaultColor: "#ffffff",
+                configColorReplacementsKey: "menusTheme",
+                configColorReplacementsKey2: ".menus",
+                configColorReplacementsKey3: "baseTextFieldColor",
+            },
+            baseTextFieldPlaceholderColor: {
+                defaultColor: "#b1b2b5",
+                configColorReplacementsKey: "menusTheme",
+                configColorReplacementsKey2: ".menus",
+                configColorReplacementsKey3: "baseTextFieldPlaceholderColor",
+            },
+            baseTextFieldDisabledColor: {
+                defaultColor: "#58585a",
+                configColorReplacementsKey: "menusTheme",
+                configColorReplacementsKey2: ".menus",
+                configColorReplacementsKey3: "baseTextFieldDisabledColor",
+            },
+            baseTextFieldCaretColor: {
+                defaultColor: "#6cc349",
+                configColorReplacementsKey: "menusTheme",
+                configColorReplacementsKey2: ".menus",
+                configColorReplacementsKey3: "baseTextFieldCaretColor",
+            },
+            inputFieldPlaceholderUnderlineColor: {
+                defaultColor: "#ffffff",
+                configColorReplacementsKey: "menusTheme",
+                configColorReplacementsKey2: ".menus",
+                configColorReplacementsKey3: "inputFieldPlaceholderUnderlineColor",
+            },
+            inputLegendWrapperBackgroundColor: {
+                defaultColor: "#1e1e1f",
+                configColorReplacementsKey: "menusTheme",
+                configColorReplacementsKey2: ".menus",
+                configColorReplacementsKey3: "inputLegendWrapperBackgroundColor",
+            },
+            inputLegendWrapperBorderTopColor: {
+                defaultColor: "rgba(255, 255, 255, 0.2)",
+                configColorReplacementsKey: "menusTheme",
+                configColorReplacementsKey2: ".menus",
+                configColorReplacementsKey3: "inputLegendWrapperBorderTopColor",
+            },
+            inputLegendInputHintColor: {
+                defaultColor: "#fff",
+                configColorReplacementsKey: "menusTheme",
+                configColorReplacementsKey2: ".menus",
+                configColorReplacementsKey3: "inputLegendInputHintColor",
+            },
+            buttonIconKeyboardTextColor: {
+                defaultColor: "#313233",
+                configColorReplacementsKey: "menusTheme",
+                configColorReplacementsKey2: ".menus",
+                configColorReplacementsKey3: "buttonIconKeyboardTextColor",
+            },
+        },
+        ".menus.realms": {
+            colorsPrimary: {
+                defaultColor: "#7345e5",
+                configColorReplacementsKey: "menusTheme",
+                configColorReplacementsKey2: ".menus.realms",
+                configColorReplacementsKey3: "colorsPrimary",
+            },
+        },
+        ".menus.neutral90": {
+            baseTextFieldColor: {
+                defaultColor: "#ffffff",
+                configColorReplacementsKey: "menusTheme",
+                configColorReplacementsKey2: ".menus.neutral90",
+                configColorReplacementsKey3: "baseTextFieldColor",
+            },
+            baseTextFieldPlaceholderColor: {
+                defaultColor: "#b1b2b5",
+                configColorReplacementsKey: "menusTheme",
+                configColorReplacementsKey2: ".menus.neutral90",
+                configColorReplacementsKey3: "baseTextFieldPlaceholderColor",
+            },
+            baseTextFieldColorDisabled: {
+                defaultColor: "#58585a",
+                configColorReplacementsKey: "menusTheme",
+                configColorReplacementsKey2: ".menus.neutral90",
+                configColorReplacementsKey3: "baseTextFieldColorDisabled",
+            },
+            baseTextFieldPlaceholderColorDisabled: {
+                defaultColor: "#58585a",
+                configColorReplacementsKey: "menusTheme",
+                configColorReplacementsKey2: ".menus.neutral90",
+                configColorReplacementsKey3: "baseTextFieldPlaceholderColorDisabled",
+            },
+        },
+    },
+    custom: {
+        ".vanilla-neutral-text,.vanilla-neutral-text-interactive": {
+            color: {
+                defaultColor: "#ffffff",
+                configColorReplacementsKey: "custom",
+                configColorReplacementsKey2: ".vanilla-neutral-text,.vanilla-neutral-text-interactive",
+                configColorReplacementsKey3: "color",
+            },
+        },
+        ".vanilla-neutral-text.dimmer, .vanilla-neutral-text-interactive.dimmer": {
+            color: {
+                defaultColor: "#d0d1d4",
+                configColorReplacementsKey: "custom",
+                configColorReplacementsKey2: ".vanilla-neutral-text.dimmer, .vanilla-neutral-text-interactive.dimmer",
+                configColorReplacementsKey3: "color",
+            },
+        },
+        ".vanilla-neutral-text.dimmest,.vanilla-neutral-text-interactive.dimmest": {
+            color: {
+                defaultColor: "#b1b2b5",
+                configColorReplacementsKey: "custom",
+                configColorReplacementsKey2: ".vanilla-neutral-text.dimmest,.vanilla-neutral-text-interactive.dimmest",
+                configColorReplacementsKey3: "color",
+            },
+        },
+    },
+} as const satisfies {
+    [key in keyof NonNullable<OreUICustomizerSettings["advancedColorReplacements"]>]: {
+        [key2 in keyof NonNullable<NonNullable<OreUICustomizerSettings["advancedColorReplacements"]>[key]>]: {
+            [key3 in keyof NonNullable<NonNullable<NonNullable<OreUICustomizerSettings["advancedColorReplacements"]>[key]>[key2]>]: {
+                defaultColor: string;
+                configColorReplacementsKey: key;
+                configColorReplacementsKey2: key2;
+                configColorReplacementsKey3: key3;
+            };
+        };
+    };
+};
 export default function ConfigEditorPage(): JSX.SpecificElement<"center"> {
     const oreUIPreviews: OreUIPreview[] = [];
     const sectionRefs = {
@@ -823,6 +1015,30 @@ export default function ConfigEditorPage(): JSX.SpecificElement<"center"> {
                             localStorageKey: "ore-ui-customizer",
                             change(_color: tinycolor.Instance): void {
                                 config!.oreUICustomizerConfig.colorReplacements ??= { ...defaultOreUICustomizerSettings.colorReplacements };
+                                config!.oreUICustomizerConfig.advancedColorReplacements ??= { ...defaultOreUICustomizerSettings.advancedColorReplacements };
+                                if (element.getAttribute("data-isAdvancedConfigColorReplacementsKey")) {
+                                    // type T1 = typeof advancedColorReplacements;
+                                    // type T2 = T1[keyof T1];
+                                    // type T3 = T2[keyof T2];
+                                    // type T4 = UnionToIntersection<T3>[KeysOfUnion<T3>];
+                                    type TB1 = NonNullable<OreUICustomizerConfig["oreUICustomizerConfig"]["advancedColorReplacements"]>;
+                                    type TB2 = NonNullable<TB1[keyof TB1]>;
+                                    type TB2B = UnionToIntersection<TB2>;
+                                    type TB3 = NonNullable<TB2B[keyof TB2B]>;
+                                    type TB3B = UnionToIntersection<TB3>;
+                                    type TB4 = NonNullable<TB3B[keyof TB3B]>;
+                                    ((
+                                        (
+                                            config!.oreUICustomizerConfig.advancedColorReplacements![
+                                                element.getAttribute("data-configColorReplacementsKey")! as keyof NonNullable<
+                                                    OreUICustomizerConfig["oreUICustomizerConfig"]["advancedColorReplacements"]
+                                                >
+                                            ]! as TB2B
+                                        )[element.getAttribute("data-configColorReplacementsKey2")! as keyof TB2B]! as TB3B
+                                    )[element.getAttribute("data-configColorReplacementsKey3")! as keyof TB3B] as TB4) = element.value;
+                                    oreUIPreviews.forEach((preview: OreUIPreview): void => void preview.window?.reload());
+                                    return;
+                                }
                                 config!.oreUICustomizerConfig.colorReplacements![
                                     element.getAttribute(
                                         "data-configColorReplacementsKey"
@@ -833,6 +1049,7 @@ export default function ConfigEditorPage(): JSX.SpecificElement<"center"> {
                         })
                 );
         });
+        const resolvedConfig: OreUICustomizerSettings = resolveOreUICustomizerSettings(config!.oreUICustomizerConfig);
         return (
             <>
                 <center>
@@ -869,6 +1086,12 @@ export default function ConfigEditorPage(): JSX.SpecificElement<"center"> {
                     <button
                         type="button"
                         class="btn nsel"
+                        onMouseDown={(event: JSX.TargetedMouseEvent<HTMLButtonElement>): void => {
+                            event.preventDefault();
+                            event.currentTarget.blur();
+                            if (event.currentTarget.disabled) return;
+                            SoundEffects.popB();
+                        }}
                         onClick={(_event: JSX.TargetedMouseEvent<HTMLButtonElement>): void => {
                             try {
                                 const port: number | undefined = OreUIPreviewManager.getNextPort();
@@ -972,9 +1195,9 @@ export default function ConfigEditorPage(): JSX.SpecificElement<"center"> {
                                         {
                                             hbuiUIFileEntryProxy(fileContents, filePath, _req, _res) {
                                                 if (
-                                                    !/^hbui\/(?:index|gameplay|editor(?:-menu|-project)?)-[a-zA-Z0-9]+\.(?:js|css)$/.test(filePath) &&
-                                                    !/^hbui\/(?:index|gameplay|editor(?:-menu|-project)?).html$/.test(filePath) &&
-                                                    !/^hbui\/(?:menus|gameplay)-theme-[a-zA-Z0-9]+\.css$/.test(filePath)
+                                                    !/^\/hbui\/(?:index|gameplay|editor(?:-menu|-project)?)-[a-zA-Z0-9]+\.(?:js|css)$/.test(filePath) &&
+                                                    !/^\/hbui\/(?:index|gameplay|editor(?:-menu|-project)?).html$/.test(filePath) &&
+                                                    !/^\/hbui\/(?:menus|gameplay)-theme-[a-zA-Z0-9]+\.css$/.test(filePath)
                                                 )
                                                     return null;
                                                 return applyColorReplacementsToFileContents(fileContents, filePath, {
@@ -1004,6 +1227,12 @@ export default function ConfigEditorPage(): JSX.SpecificElement<"center"> {
                         type="button"
                         class="btn nsel"
                         title="Select version"
+                        onMouseDown={(event: JSX.TargetedMouseEvent<HTMLButtonElement>): void => {
+                            event.preventDefault();
+                            event.currentTarget.blur();
+                            if (event.currentTarget.disabled) return;
+                            SoundEffects.popB();
+                        }}
                         onClick={(_event: JSX.TargetedMouseEvent<HTMLButtonElement>): void => {
                             try {
                                 const port: number | undefined = OreUIPreviewManager.getNextPort();
@@ -1089,11 +1318,11 @@ export default function ConfigEditorPage(): JSX.SpecificElement<"center"> {
                                                     {
                                                         hbuiUIFileEntryProxy(fileContents, filePath, _req, _res) {
                                                             if (
-                                                                !/^hbui\/(?:index|gameplay|editor(?:-menu|-project)?)-[a-zA-Z0-9]+\.(?:js|css)$/.test(
+                                                                !/^\/hbui\/(?:index|gameplay|editor(?:-menu|-project)?)-[a-zA-Z0-9]+\.(?:js|css)$/.test(
                                                                     filePath
                                                                 ) &&
-                                                                !/^hbui\/(?:index|gameplay|editor(?:-menu|-project)?).html$/.test(filePath) &&
-                                                                !/^hbui\/(?:menus|gameplay)-theme-[a-zA-Z0-9]+\.css$/.test(filePath)
+                                                                !/^\/hbui\/(?:index|gameplay|editor(?:-menu|-project)?).html$/.test(filePath) &&
+                                                                !/^\/hbui\/(?:menus|gameplay)-theme-[a-zA-Z0-9]+\.css$/.test(filePath)
                                                             )
                                                                 return null;
                                                             return applyColorReplacementsToFileContents(fileContents, filePath, {
@@ -1151,6 +1380,127 @@ export default function ConfigEditorPage(): JSX.SpecificElement<"center"> {
                     </button>
                 </div>
                 <form id="colors_options_box" style="text-align: left; width: fit-content" ref={colorsSectionRef}>
+                    <hr />
+                    <h2>Special Color Options</h2>
+                    {...(
+                        Object.values(
+                            advancedColorReplacements["custom"]
+                        ) as (typeof advancedColorReplacements)["custom"][keyof (typeof advancedColorReplacements)["custom"]][]
+                    ).flatMap((value: (typeof advancedColorReplacements)["custom"][keyof (typeof advancedColorReplacements)["custom"]]): JSX.Element[] => {
+                        type TB1 = NonNullable<OreUICustomizerConfig["oreUICustomizerConfig"]["advancedColorReplacements"]>;
+                        type TB2 = NonNullable<TB1[keyof TB1]>;
+                        type TB2B = UnionToIntersection<TB2>;
+                        type TB3 = NonNullable<TB2B[keyof TB2B]>;
+                        type TB3B = UnionToIntersection<TB3>;
+                        return (Object.values(value) as UnionToIntersection<typeof value>[keyof UnionToIntersection<typeof value>][]).map(
+                            (
+                                value2:
+                                    | UnionToIntersection<typeof value>[keyof UnionToIntersection<typeof value>]
+                                    | (typeof value)[keyof UnionToIntersection<typeof value>]
+                            ): JSX.Element => {
+                                return (
+                                    <>
+                                        <div class="form-group">
+                                            <div class="form-group-header">
+                                                <label
+                                                    for={`colors_customizer_settings_section_${value2.configColorReplacementsKey}_${value2.configColorReplacementsKey2}_${value2.configColorReplacementsKey3}`}
+                                                >
+                                                    {value2.configColorReplacementsKey} &gt; {value2.configColorReplacementsKey2} &gt;{" "}
+                                                    {value2.configColorReplacementsKey3}
+                                                    <br />
+                                                    Default: {value2.defaultColor}
+                                                </label>
+                                            </div>
+                                            <div class="form-group-body">
+                                                <input
+                                                    type="text"
+                                                    class="spectrum-colorpicker-color-override-option"
+                                                    value={
+                                                        (
+                                                            (
+                                                                resolvedConfig.advancedColorReplacements?.[value2.configColorReplacementsKey] as
+                                                                    | TB2B
+                                                                    | undefined
+                                                            )?.[value2.configColorReplacementsKey2 as keyof TB2B] as TB3B | undefined
+                                                        )?.[value2.configColorReplacementsKey3 as keyof TB3B] ?? ""
+                                                    }
+                                                    id={`colors_customizer_settings_section_${value2.configColorReplacementsKey}_${value2.configColorReplacementsKey2}_${value2.configColorReplacementsKey3}`}
+                                                    onTouchStart={(): void => {}}
+                                                    style="width: 100%"
+                                                    data-isAdvancedConfigColorReplacementsKey="true"
+                                                    data-configColorReplacementsKey={value2.configColorReplacementsKey}
+                                                    data-configColorReplacementsKey2={value2.configColorReplacementsKey2}
+                                                    data-configColorReplacementsKey3={value2.configColorReplacementsKey3}
+                                                />
+                                            </div>
+                                        </div>
+                                        <br />
+                                    </>
+                                );
+                            }
+                        );
+                    })}
+                    <hr />
+                    <h2>menus-theme.css</h2>
+                    {...(
+                        Object.values(
+                            advancedColorReplacements["menusTheme"]
+                        ) as (typeof advancedColorReplacements)["menusTheme"][keyof (typeof advancedColorReplacements)["menusTheme"]][]
+                    ).flatMap(
+                        (value: (typeof advancedColorReplacements)["menusTheme"][keyof (typeof advancedColorReplacements)["menusTheme"]]): JSX.Element[] => {
+                            type TB1 = NonNullable<OreUICustomizerConfig["oreUICustomizerConfig"]["advancedColorReplacements"]>;
+                            type TB2 = NonNullable<TB1[keyof TB1]>;
+                            type TB2B = UnionToIntersection<TB2>;
+                            type TB3 = NonNullable<TB2B[keyof TB2B]>;
+                            type TB3B = UnionToIntersection<TB3>;
+                            return (Object.values(value) as UnionToIntersection<typeof value>[keyof UnionToIntersection<typeof value>][]).map(
+                                (value2: UnionToIntersection<typeof value>[keyof UnionToIntersection<typeof value>]): JSX.Element => {
+                                    return (
+                                        <>
+                                            <div class="form-group">
+                                                <div class="form-group-header">
+                                                    <label
+                                                        for={`colors_customizer_settings_section_${value2.configColorReplacementsKey}_${value2.configColorReplacementsKey2}_${value2.configColorReplacementsKey3}`}
+                                                    >
+                                                        {value2.configColorReplacementsKey2} &gt; {value2.configColorReplacementsKey3}
+                                                        <br />
+                                                        Default: {value2.defaultColor}
+                                                    </label>
+                                                </div>
+                                                <div class="form-group-body">
+                                                    <input
+                                                        type="text"
+                                                        class="spectrum-colorpicker-color-override-option"
+                                                        value={
+                                                            (
+                                                                (
+                                                                    resolvedConfig.advancedColorReplacements?.[value2.configColorReplacementsKey] as
+                                                                        | TB2B
+                                                                        | undefined
+                                                                )?.[value2.configColorReplacementsKey2 as keyof TB2B] as TB3B | undefined
+                                                            )?.[value2.configColorReplacementsKey3 as keyof TB3B] ?? ""
+                                                        }
+                                                        id={`colors_customizer_settings_section_${value2.configColorReplacementsKey}_${value2.configColorReplacementsKey2}_${value2.configColorReplacementsKey3}`}
+                                                        onTouchStart={(): void => {}}
+                                                        style="width: 100%"
+                                                        data-isAdvancedConfigColorReplacementsKey="true"
+                                                        data-configColorReplacementsKey={value2.configColorReplacementsKey}
+                                                        data-configColorReplacementsKey2={value2.configColorReplacementsKey2}
+                                                        data-configColorReplacementsKey3={value2.configColorReplacementsKey3}
+                                                    />
+                                                </div>
+                                            </div>
+                                            <br />
+                                        </>
+                                    );
+                                }
+                            );
+                        }
+                    )}
+                    <hr />
+                    {/* <h2>gameplay-theme.css</h2>
+                <hr /> */}
+                    <h2>Other Color Replacements</h2>
                     {...(
                         Object.entries(colorReplacements) as [
                             key: keyof typeof colorReplacements,
@@ -1799,6 +2149,7 @@ export default function ConfigEditorPage(): JSX.SpecificElement<"center"> {
                             });
                             if (result.response === 1) return;
                             config.refresh();
+                            oreUIPreviews.forEach((preview: OreUIPreview): void => void preview.window?.reload());
                             createToast({
                                 title: "Changes discarded",
                             });
