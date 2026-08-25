@@ -9621,7 +9621,7 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                                 const networkWorldJoiner =
                                     getAccessibleFacetSpyFacets()["vanilla.networkWorldJoiner"] ?? (await forceLoadFacet("vanilla.networkWorldJoiner"));
                                 if (networkWorldJoiner) {
-                                    networkWorldJoiner.joinExternalServer(String(serverID));
+                                    networkWorldJoiner.joinThirdPartyServer(String(serverID));
                                 }
                             });
                             serverButtonContainer.appendChild(serverButton);
@@ -9677,7 +9677,7 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                                                 getAccessibleFacetSpyFacets()["vanilla.networkWorldJoiner"] ??
                                                 (await forceLoadFacet("vanilla.networkWorldJoiner"));
                                             if (networkWorldJoiner) {
-                                                networkWorldJoiner.joinExternalServer(serverID.toString());
+                                                networkWorldJoiner.joinThirdPartyServer(serverID.toString());
                                             }
                                         }) as () => void);
                                     document.body.appendChild(serverOptionsOverlayElement);

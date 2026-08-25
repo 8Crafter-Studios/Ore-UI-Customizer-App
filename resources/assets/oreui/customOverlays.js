@@ -8683,7 +8683,7 @@ async function enableLitePlayScreen(noReload = false) {
                                 getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
                                 const networkWorldJoiner = getAccessibleFacetSpyFacets()["vanilla.networkWorldJoiner"] ?? (await forceLoadFacet("vanilla.networkWorldJoiner"));
                                 if (networkWorldJoiner) {
-                                    networkWorldJoiner.joinExternalServer(String(serverID));
+                                    networkWorldJoiner.joinThirdPartyServer(String(serverID));
                                 }
                             });
                             serverButtonContainer.appendChild(serverButton);
@@ -8736,7 +8736,7 @@ async function enableLitePlayScreen(noReload = false) {
                                         const networkWorldJoiner = getAccessibleFacetSpyFacets()["vanilla.networkWorldJoiner"] ??
                                             (await forceLoadFacet("vanilla.networkWorldJoiner"));
                                         if (networkWorldJoiner) {
-                                            networkWorldJoiner.joinExternalServer(serverID.toString());
+                                            networkWorldJoiner.joinThirdPartyServer(serverID.toString());
                                         }
                                     }));
                                     document.body.appendChild(serverOptionsOverlayElement);
