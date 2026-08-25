@@ -13,8 +13,8 @@ import "./zip.js";
 /**
  * The version of the Ore UI Customizer API.
  */
-// BUILD 4
-export const format_version = "1.17.0+BUILD.4";
+// BUILD 5
+export const format_version = "1.17.0+BUILD.5";
 
 /**
  * The result of the {@link applyMods} function.
@@ -214,15 +214,33 @@ export function resolveOreUICustomizerSettings(
                         settings.colorReplacements?.["#ffffff"] ??
                         "#ffffff",
                 },
-                ".vanilla-neutral-text.dimmer, .vanilla-neutral-text-interactive.dimmer": {
+                ".vanilla-neutral-text.dimmer,.vanilla-neutral-text-interactive.dimmer": {
                     color:
-                        settings.advancedColorReplacements?.custom?.[".vanilla-neutral-text.dimmer, .vanilla-neutral-text-interactive.dimmer"]?.["color"] ??
+                        settings.advancedColorReplacements?.custom?.[".vanilla-neutral-text.dimmer,.vanilla-neutral-text-interactive.dimmer"]?.["color"] ??
                         settings.colorReplacements?.["#d0d1d4"] ??
                         "#d0d1d4",
                 },
                 ".vanilla-neutral-text.dimmest,.vanilla-neutral-text-interactive.dimmest": {
                     color:
                         settings.advancedColorReplacements?.custom?.[".vanilla-neutral-text.dimmest,.vanilla-neutral-text-interactive.dimmest"]?.["color"] ??
+                        settings.colorReplacements?.["#b1b2b5"] ??
+                        "#b1b2b5",
+                },
+                ".realms-neutral80-text,.realms-neutral80-text-interactive": {
+                    color:
+                        settings.advancedColorReplacements?.custom?.[".realms-neutral80-text,.realms-neutral80-text-interactive"]?.["color"] ??
+                        settings.colorReplacements?.["#ffffff"] ??
+                        "#ffffff",
+                },
+                ".realms-neutral80-text.dimmer,.realms-neutral80-text-interactive.dimmer": {
+                    color:
+                        settings.advancedColorReplacements?.custom?.[".realms-neutral80-text.dimmer,.realms-neutral80-text-interactive.dimmer"]?.["color"] ??
+                        settings.colorReplacements?.["#d0d1d4"] ??
+                        "#d0d1d4",
+                },
+                ".realms-neutral80-text.dimmest,.realms-neutral80-text-interactive.dimmest": {
+                    color:
+                        settings.advancedColorReplacements?.custom?.[".realms-neutral80-text.dimmest,.realms-neutral80-text-interactive.dimmest"]?.["color"] ??
                         settings.colorReplacements?.["#b1b2b5"] ??
                         "#b1b2b5",
                 },

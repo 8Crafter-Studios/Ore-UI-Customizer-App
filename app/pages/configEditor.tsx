@@ -785,11 +785,11 @@ const advancedColorReplacements = {
                 configColorReplacementsKey3: "color",
             },
         },
-        ".vanilla-neutral-text.dimmer, .vanilla-neutral-text-interactive.dimmer": {
+        ".vanilla-neutral-text.dimmer,.vanilla-neutral-text-interactive.dimmer": {
             color: {
                 defaultColor: "#d0d1d4",
                 configColorReplacementsKey: "custom",
-                configColorReplacementsKey2: ".vanilla-neutral-text.dimmer, .vanilla-neutral-text-interactive.dimmer",
+                configColorReplacementsKey2: ".vanilla-neutral-text.dimmer,.vanilla-neutral-text-interactive.dimmer",
                 configColorReplacementsKey3: "color",
             },
         },
@@ -798,6 +798,30 @@ const advancedColorReplacements = {
                 defaultColor: "#b1b2b5",
                 configColorReplacementsKey: "custom",
                 configColorReplacementsKey2: ".vanilla-neutral-text.dimmest,.vanilla-neutral-text-interactive.dimmest",
+                configColorReplacementsKey3: "color",
+            },
+        },
+        ".realms-neutral80-text,.realms-neutral80-text-interactive": {
+            color: {
+                defaultColor: "#ffffff",
+                configColorReplacementsKey: "custom",
+                configColorReplacementsKey2: ".realms-neutral80-text,.realms-neutral80-text-interactive",
+                configColorReplacementsKey3: "color",
+            },
+        },
+        ".realms-neutral80-text.dimmer,.realms-neutral80-text-interactive.dimmer": {
+            color: {
+                defaultColor: "#d0d1d4",
+                configColorReplacementsKey: "custom",
+                configColorReplacementsKey2: ".realms-neutral80-text.dimmer,.realms-neutral80-text-interactive.dimmer",
+                configColorReplacementsKey3: "color",
+            },
+        },
+        ".realms-neutral80-text.dimmest,.realms-neutral80-text-interactive.dimmest": {
+            color: {
+                defaultColor: "#b1b2b5",
+                configColorReplacementsKey: "custom",
+                configColorReplacementsKey2: ".realms-neutral80-text.dimmest,.realms-neutral80-text-interactive.dimmest",
                 configColorReplacementsKey3: "color",
             },
         },
