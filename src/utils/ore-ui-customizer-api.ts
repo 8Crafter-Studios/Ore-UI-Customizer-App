@@ -13,8 +13,8 @@ import "./zip.js";
 /**
  * The version of the Ore UI Customizer API.
  */
-// BUILD 2
-export const format_version = "1.17.0+BUILD.3";
+// BUILD 4
+export const format_version = "1.17.0+BUILD.4";
 
 /**
  * The result of the {@link applyMods} function.

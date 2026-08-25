@@ -1492,7 +1492,7 @@ export function getReplacerRegexes(extractedSymbolNames: ReturnType<typeof getEx
                 },
                 {
                     regex: /(?:[a-zA-Z0-9_$]{1})\?\[\{label:"\.debugTabLabel",image:([a-zA-Z0-9_$]{2,3})\.DebugIcon,value:"debug"\}\]:\[\]/,
-                    replacement: `[{label:".debugTabLabel",image:RB.DebugIcon,value:"debug"}]`,
+                    replacement: `[{label:".debugTabLabel",image:$1.DebugIcon,value:"debug"}]`,
                 },
             ],
         },
