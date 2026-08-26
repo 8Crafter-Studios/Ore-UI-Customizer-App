@@ -14,7 +14,7 @@ import "./zip.js";
  * The version of the Ore UI Customizer API.
  */
 // BUILD 6
-export const format_version = "1.17.0+BUILD.6";
+export const format_version = "1.17.0+BUILD.7";
 
 /**
  * The result of the {@link applyMods} function.
@@ -154,8 +154,11 @@ export function resolveOreUICustomizerSettings(
                 ) as typeof settings.colorReplacements)),
         },
         advancedColorReplacements: {
+            ...settings.advancedColorReplacements,
             menusTheme: {
+                ...settings.advancedColorReplacements?.menusTheme,
                 ".menus": {
+                    ...settings.advancedColorReplacements?.menusTheme?.[".menus"],
                     colorsPrimary:
                         settings.advancedColorReplacements?.menusTheme?.[".menus"]?.["colorsPrimary"] ?? settings.colorReplacements?.["#3c8527"] ?? "#3c8527",
                     colorsSecondary:
@@ -207,9 +210,11 @@ export function resolveOreUICustomizerSettings(
                         "#313233",
                 },
                 ".menus.realms": {
+                    ...settings.advancedColorReplacements?.menusTheme?.[".menus.realms"],
                     colorsPrimary: settings.advancedColorReplacements?.menusTheme?.[".menus.realms"]?.["colorsPrimary"] ?? "#7345e5",
                 },
                 ".menus.neutral90": {
+                    ...settings.advancedColorReplacements?.menusTheme?.[".menus.neutral90"],
                     baseTextFieldColor:
                         settings.advancedColorReplacements?.menusTheme?.[".menus.neutral90"]?.["baseTextFieldColor"] ??
                         settings.colorReplacements?.["#ffffff"] ??
@@ -230,55 +235,65 @@ export function resolveOreUICustomizerSettings(
             },
             // gameplayTheme: {} satisfies Required<NonNullable<NonNullable<OreUICustomizerSettings["advancedColorReplacements"]>["gameplayTheme"]>>,
             custom: {
+                ...settings.advancedColorReplacements?.custom,
                 ".vanilla-neutral-text,.vanilla-neutral-text-interactive": {
+                    ...settings.advancedColorReplacements?.custom?.[".vanilla-neutral-text,.vanilla-neutral-text-interactive"],
                     color:
                         settings.advancedColorReplacements?.custom?.[".vanilla-neutral-text,.vanilla-neutral-text-interactive"]?.["color"] ??
                         settings.colorReplacements?.["#ffffff"] ??
                         "#ffffff",
                 },
                 ".vanilla-neutral-text.dimmer,.vanilla-neutral-text-interactive.dimmer": {
+                    ...settings.advancedColorReplacements?.custom?.[".vanilla-neutral-text.dimmer,.vanilla-neutral-text-interactive.dimmer"],
                     color:
                         settings.advancedColorReplacements?.custom?.[".vanilla-neutral-text.dimmer,.vanilla-neutral-text-interactive.dimmer"]?.["color"] ??
                         settings.colorReplacements?.["#d0d1d4"] ??
                         "#d0d1d4",
                 },
                 ".vanilla-neutral-text.dimmest,.vanilla-neutral-text-interactive.dimmest": {
+                    ...settings.advancedColorReplacements?.custom?.[".vanilla-neutral-text.dimmest,.vanilla-neutral-text-interactive.dimmest"],
                     color:
                         settings.advancedColorReplacements?.custom?.[".vanilla-neutral-text.dimmest,.vanilla-neutral-text-interactive.dimmest"]?.["color"] ??
                         settings.colorReplacements?.["#b1b2b5"] ??
                         "#b1b2b5",
                 },
                 ".realms-neutral80-text,.realms-neutral80-text-interactive": {
+                    ...settings.advancedColorReplacements?.custom?.[".realms-neutral80-text,.realms-neutral80-text-interactive"],
                     color:
                         settings.advancedColorReplacements?.custom?.[".realms-neutral80-text,.realms-neutral80-text-interactive"]?.["color"] ??
                         settings.colorReplacements?.["#ffffff"] ??
                         "#ffffff",
                 },
                 ".realms-neutral80-text.dimmer,.realms-neutral80-text-interactive.dimmer": {
+                    ...settings.advancedColorReplacements?.custom?.[".realms-neutral80-text.dimmer,.realms-neutral80-text-interactive.dimmer"],
                     color:
                         settings.advancedColorReplacements?.custom?.[".realms-neutral80-text.dimmer,.realms-neutral80-text-interactive.dimmer"]?.["color"] ??
                         settings.colorReplacements?.["#d0d1d4"] ??
                         "#d0d1d4",
                 },
                 ".realms-neutral80-text.dimmest,.realms-neutral80-text-interactive.dimmest": {
+                    ...settings.advancedColorReplacements?.custom?.[".realms-neutral80-text.dimmest,.realms-neutral80-text-interactive.dimmest"],
                     color:
                         settings.advancedColorReplacements?.custom?.[".realms-neutral80-text.dimmest,.realms-neutral80-text-interactive.dimmest"]?.["color"] ??
                         settings.colorReplacements?.["#b1b2b5"] ??
                         "#b1b2b5",
                 },
                 ".realms-neutral-text,.realms-neutral-text-interactive": {
+                    ...settings.advancedColorReplacements?.custom?.[".realms-neutral-text,.realms-neutral-text-interactive"],
                     color:
                         settings.advancedColorReplacements?.custom?.[".realms-neutral-text,.realms-neutral-text-interactive"]?.["color"] ??
                         settings.colorReplacements?.["#ffffff"] ??
                         "#ffffff",
                 },
                 ".realms-neutral-text.dimmer,.realms-neutral-text-interactive.dimmer": {
+                    ...settings.advancedColorReplacements?.custom?.[".realms-neutral-text.dimmer,.realms-neutral-text-interactive.dimmer"],
                     color:
                         settings.advancedColorReplacements?.custom?.[".realms-neutral-text.dimmer,.realms-neutral-text-interactive.dimmer"]?.["color"] ??
                         settings.colorReplacements?.["#d0d1d4"] ??
                         "#d0d1d4",
                 },
                 ".realms-neutral-text.dimmest,.realms-neutral-text-interactive.dimmest": {
+                    ...settings.advancedColorReplacements?.custom?.[".realms-neutral-text.dimmest,.realms-neutral-text-interactive.dimmest"],
                     color:
                         settings.advancedColorReplacements?.custom?.[".realms-neutral-text.dimmest,.realms-neutral-text-interactive.dimmest"]?.["color"] ??
                         settings.colorReplacements?.["#b1b2b5"] ??

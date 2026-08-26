@@ -1080,13 +1080,13 @@ export default function ConfigEditorPage(): JSX.SpecificElement<"center"> {
                                     type TB3B = UnionToIntersection<TB3>;
                                     type TB4 = NonNullable<TB3B[keyof TB3B]>;
                                     ((
-                                        (
-                                            config!.oreUICustomizerConfig.advancedColorReplacements![
+                                        ((
+                                            (config!.oreUICustomizerConfig.advancedColorReplacements![
                                                 element.getAttribute("data-configColorReplacementsKey")! as keyof NonNullable<
                                                     OreUICustomizerConfig["oreUICustomizerConfig"]["advancedColorReplacements"]
                                                 >
-                                            ]! as TB2B
-                                        )[element.getAttribute("data-configColorReplacementsKey2")! as keyof TB2B]! as TB3B
+                                            ]! ??= {}) as TB2B
+                                        )[element.getAttribute("data-configColorReplacementsKey2")! as keyof TB2B]! ??= {}) as TB3B
                                     )[element.getAttribute("data-configColorReplacementsKey3")! as keyof TB3B] as TB4) = element.value;
                                     oreUIPreviews.forEach((preview: OreUIPreview): void => void preview.window?.reload());
                                     return;
