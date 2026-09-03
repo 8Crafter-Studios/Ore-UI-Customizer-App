@@ -646,43 +646,82 @@ namespace exports {
             basic: "Basic",
             config: "Config",
         } as const satisfies { [key in (typeof config)["debugHUD"]]: string };
+        // IDEA: Implement custom panorama support.
         export const panoramaList = [
             "off",
+            "latest",
             "beta",
+            "better-together",
+            // "buzzy-bees-old", // TODO
             "buzzy-bees",
+            // "cats-and-pandas", // TODO
+            // "caves-and-cliffs-part-1", // TODO
+            // "caves-and-cliffs-part-2", // TODO
             "chaos-cubed",
+            // "chase-the-skies-old-v1", // TODO
+            // "chase-the-skies-old-v2", // TODO
             "chase-the-skies",
             "copper-age",
             "creeking",
-            "education-demo",
+            // "holiday-2017", // TODO
+            // "halloween-2021", // TODO
+            // "halloween-2022", // TODO
             "mounts-of-mayhem",
+            "nether-update",
             "preview",
             "spring-to-life",
             "tiny-takeover",
             "trails-and-tales",
             "tricky-trials",
+            "update-aquatic",
+            "village-and-pillage", // TODO: Add a variant of this that have the panorama_overlay.png file overlayed on it so it looks like how it actually looked in Bedrock (or maybe I need to implement an actual background overlay instead of putting it directly on the panorama images).
             "wild-update",
             "windows-10-edition-beta",
-            "latest",
+            // IDEA: Maybe also add the Vibrant Visuals versions of the panoramas that have them.
+            // "edu-back-to-school-update", // TODO
+            // "edu-caves-and-cliffs-part-1", // TODO
+            // "edu-caves-and-cliffs-part-2", // TODO
+            // "edu-chase-the-clouds", // TODO
+            // "edu-chromebook", // TODO
+            // "edu-copper-collaborate-and-compete", // TODO
+            // "edu-learn-to-code-update", // TODO
+            // "edu-the-cloud-update", // TODO
+            // "edu-trails-and-tales", // TODO
+            // "edu-wild-update", // TODO
+            "education-demo",
+            // "new-nintendo-3ds-edition", // TODO
+            // "je-buzzy-bees", // TODO
+            // "je-caves-and-cliffs-part-1-old", // TODO
+            // "je-herdcraft-update", // TODO
+            // "je-original-panorama-old", // TODO
+            // "je-original-panorama", // TODO
+            // "je-poisonous-potato-update", // TODO
+            // "je-tiny-takeover", // TODO
+            // "je-update-aquatic", // TODO
+            // "je-village-and-pillage", // TODO
         ] as const;
         export const panoramaDisplayMapping = {
             off: "Off",
+            latest: "Latest",
             beta: "Beta",
             "buzzy-bees": "Buzzy Bees",
+            "better-together": "Better Together",
             "chaos-cubed": "Chaos Cubed",
             "chase-the-skies": "Chase the Skies",
             "copper-age": "Copper Age",
             creeking: "Creeking",
-            "education-demo": "Education Demo",
             "mounts-of-mayhem": "Mounts of Mayhem",
+            "nether-update": "Nether Update",
             preview: "Preview",
             "spring-to-life": "Spring to Life",
             "tiny-takeover": "Tiny Takeover",
-            "trails-and-tales": "Trails and Tales",
+            "trails-and-tales": "Trails & Tales",
             "tricky-trials": "Tricky Trials",
+            "update-aquatic": "Update Aquatic",
+            "village-and-pillage": "Village & Pillage",
             "wild-update": "Wild Update",
             "windows-10-edition-beta": "Windows 10 Edition Beta",
-            latest: "Latest",
+            "education-demo": "Education Demo",
         } satisfies { [key in (typeof config)["panorama"]]: string };
         export const defaultPreviewVersionFolderUseBackupDisplayMapping = {
             never: "Never",
