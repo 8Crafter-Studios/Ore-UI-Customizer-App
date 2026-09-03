@@ -29,8 +29,8 @@ import "./zip.js";
 /**
  * The version of the Ore UI Customizer API.
  */
-// BUILD 10
-export const format_version = "1.17.0+BUILD.10";
+// BUILD 11
+export const format_version = "1.17.0+BUILD.11";
 
 /**
  * The result of the {@link applyMods} function.

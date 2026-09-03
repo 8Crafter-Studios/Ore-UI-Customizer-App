@@ -628,7 +628,7 @@ export function validatePluginObject(plugin: any): asserts plugin is Plugin {
     // -------- DEPENDENCY VALIDATION --------
     // dependencies
     if (typeof pluginObject.dependencies !== "undefined") {
-        if (!(pluginObject.dependencies instanceof Array)) throw new SyntaxError(`Plugin property "description" must be an array or undefined.`);
+        if (!(pluginObject.dependencies instanceof Array)) throw new SyntaxError(`Plugin property "dependencies" must be an array or undefined.`);
         let dependencyIndex: number = -1;
         for (const dependency of pluginObject.dependencies) {
             dependencyIndex++;
@@ -821,7 +821,7 @@ export function validateThemeObject(theme: any): asserts theme is Theme {
     // -------- DEPENDENCY VALIDATION --------
     // dependencies
     if (typeof themeObject.dependencies !== "undefined") {
-        if (!(themeObject.dependencies instanceof Array)) throw new SyntaxError(`Theme property "description" must be an array or undefined.`);
+        if (!(themeObject.dependencies instanceof Array)) throw new SyntaxError(`Theme property "dependencies" must be an array or undefined.`);
         let dependencyIndex: number = -1;
         for (const dependency of themeObject.dependencies) {
             dependencyIndex++;
