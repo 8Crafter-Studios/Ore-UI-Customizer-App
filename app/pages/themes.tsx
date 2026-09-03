@@ -133,6 +133,111 @@ export default function ThemesPage(): JSX.SpecificElement<"center"> {
                     }}
                     onClick={async (event: JSX.TargetedMouseEvent<HTMLButtonElement>): Promise<void> => {
                         event.preventDefault();
+                        event.currentTarget.blur();
+                        if (event.currentTarget.disabled) return;
+                        // const container: HTMLDivElement = document.createElement("div");
+                        // container.style.width = "calc(300px * var(--gui-scale))";
+                        // container.style.height = "calc(100px * var(--gui-scale))";
+                        // container.style.position = "fixed";
+                        // container.style.top = "calc(50vh - (50px * var(--gui-scale)))";
+                        // container.style.left = "calc(50vw - (150px * var(--gui-scale)))";
+                        // container.classList.add("dialog-hollow-4-thin");
+                        // hydrate(
+                        //     <div
+                        //         style={{
+                        //             margin: "calc(6px * var(--gui-scale))",
+                        //             padding: "calc(2px * var(--gui-scale))",
+                        //             backgroundColor: "#00000088",
+                        //             width: "calc(100% - (12px * var(--gui-scale)))",
+                        //             height: "calc(100% - (12px * var(--gui-scale)))",
+                        //         }}
+                        //     >
+                        //         <span>Theme Name</span>
+                        //         <input
+                        //             title="Theme Name"
+                        //             type="text"
+                        //             class="form-control"
+                        //             placeholder={"Theme Name"}
+                        //             onInput={(event: JSX.TargetedInputEvent<HTMLInputElement>): void => {
+                        //                 event.currentTarget.parentElement!.querySelector("button")!.disabled = event.currentTarget.value.length === 0;
+                        //             }}
+                        //             required
+                        //             style={{ width: "100%" }}
+                        //         />
+                        //         <div
+                        //             style={{
+                        //                 display: "flex",
+                        //                 flexDirection: "row",
+                        //                 justifyContent: "center",
+                        //                 position: "absolute",
+                        //                 bottom: "calc(8px * var(--gui-scale))",
+                        //                 width: "calc(100% - (16px * var(--gui-scale)))",
+                        //             }}
+                        //         >
+                        //             <button
+                        //                 type="button"
+                        //                 class="btn"
+                        //                 disabled
+                        //                 style={{ flexGrow: 1 }}
+                        //                 onMouseDown={(event: JSX.TargetedMouseEvent<HTMLButtonElement>): void => {
+                        //                     if (event.currentTarget.disabled) return;
+                        //                     SoundEffects.popB();
+                        //                 }}
+                        //                 onClick={(event: JSX.TargetedMouseEvent<HTMLButtonElement>): void => {
+                        //                     event.currentTarget.blur();
+                        //                     event.preventDefault();
+                        //                     event.stopPropagation();
+                        //                     const name: string = event.currentTarget.parentElement!.parentElement!.querySelector("input")!.value;
+                        //                     if (event.currentTarget.disabled || name.length === 0) return;
+                        //                     container.remove();
+                        //                     const data: SavedOreUICustomizerConfig_Type | undefined = {
+                        //                         oreUICustomizerConfig: {},
+                        //                         oreUICustomizerVersion: format_version,
+                        //                         metadata: {
+                        //                             name,
+                        //                             uuid: crypto.randomUUID(),
+                        //                             version: "1.0.0",
+                        //                             product_type: "config",
+                        //                         },
+                        //                         readonly: false,
+                        //                     };
+                        //                     const fileName: string = sanitizeFilename(`${data.metadata.name.slice(0, 25)}-${Date.now()}.json`);
+                        //                     writeFileSync(path.join(ConfigManager.configsFolder, fileName), JSON.stringify(data, null, 4));
+                        //                     const config: OreUICustomizerConfig = new OreUICustomizerConfig(path.join(ConfigManager.configsFolder, fileName));
+                        //                     ConfigManager.loadedConfigs.push(config);
+                        //                     ConfigManager.emit("configCreated", config);
+                        //                     router.history.push(
+                        //                         `/config-editor?${new URLSearchParams({
+                        //                             configPath: config.filePath,
+                        //                         } as const satisfies Partial<SearchParamTypes[CustomizerAppPage.ConfigEditor]>).toString()}`
+                        //                     );
+                        //                 }}
+                        //             >
+                        //                 Create
+                        //             </button>
+                        //             <button type="button" class="btn" style={{ flexGrow: 1 }} onClick={(): void => container.remove()}>
+                        //                 Cancel
+                        //             </button>
+                        //         </div>
+                        //     </div>,
+                        //     container
+                        // );
+                        // document.body.appendChild(container);
+                    }}
+                    disabled
+                >
+                    Create From Config (COMING SOON!)
+                </button>
+                <button
+                    type="button"
+                    class="btn"
+                    style={{ flexGrow: 1 }}
+                    onMouseDown={(event: JSX.TargetedMouseEvent<HTMLButtonElement>): void => {
+                        SoundEffects.popB();
+                        event.currentTarget.blur();
+                    }}
+                    onClick={async (event: JSX.TargetedMouseEvent<HTMLButtonElement>): Promise<void> => {
+                        event.preventDefault();
                         if (event.currentTarget.disabled) return;
                         event.currentTarget.blur();
                         const currentWindow: Electron.BrowserWindow = getCurrentWindow();
