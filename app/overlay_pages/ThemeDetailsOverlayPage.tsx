@@ -1,14 +1,14 @@
 import type { JSX, RefObject } from "preact";
-import { OreUICustomizerConfig, ConfigManager, type OreUICustomizerConfigMessageInfo, type MissingConfigInfo } from "../../src/utils/ConfigManager";
+import { OreUICustomizerTheme, ThemeManager, type MissingThemeInfo, type OreUICustomizerThemeMessageInfo } from "../../src/utils/ThemeManager";
 import { clipboard, dialog, shell } from "@electron/remote";
 import type { MessageBoxReturnValue } from "electron";
 import { createToast } from "../components/Toast";
 import { render, useEffect, useRef } from "preact/compat";
 
-export interface ConfigDetailsOverlayPageProps {
-    filePath: string | undefined;
+export interface ThemeDetailsOverlayPageProps {
+    folderPath: string | undefined;
     /** @todo */
-    missingConfigDetails: MissingConfigInfo | undefined;
+    missingThemeDetails: MissingThemeInfo | undefined;
 }
 
 let validLicenses: string[] = [];
@@ -17,27 +17,27 @@ let invalidLicenses: string[] = [];
 
 let licensesBeingChecked: string[] = [];
 
-export default function ConfigDetailsOverlayPage(props: ConfigDetailsOverlayPageProps): JSX.SpecificElement<"div"> {
+export default function ThemeDetailsOverlayPage(props: ThemeDetailsOverlayPageProps): JSX.SpecificElement<"div"> {
     const containerRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
-    let config: OreUICustomizerConfig | undefined;
-    if (props.filePath !== undefined) {
+    let theme: OreUICustomizerTheme | undefined;
+    if (props.folderPath !== undefined) {
         try {
-            config = ConfigManager.getConfigFromFilePath(props.filePath);
+            theme = ThemeManager.getThemeFromFolderPath(props.folderPath);
         } catch {}
     }
-    const configOrMissingDetails = config ?? props.missingConfigDetails;
-    function handleRefresh(refreshedConfig: OreUICustomizerConfig): void {
-        if (!containerRef.current || refreshedConfig !== config) return;
-        render(<ConfigDetailsOverlayPageContents />, containerRef.current);
+    const themeOrMissingDetails = theme ?? props.missingThemeDetails;
+    function handleRefresh(refreshedTheme: OreUICustomizerTheme): void {
+        if (!containerRef.current || refreshedTheme !== theme) return;
+        render(<ThemeDetailsOverlayPageContents />, containerRef.current);
     }
-    function ConfigDetailsOverlayPageContents(): JSX.Element {
+    function ThemeDetailsOverlayPageContents(): JSX.Element {
         const licenseRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
         useEffect((): (() => void) => {
             let hasBeenClosed: boolean = false;
-            const license: string | undefined = configOrMissingDetails?.metadata?.license?.toLowerCase();
+            const license: string | undefined = themeOrMissingDetails?.metadata?.license?.toLowerCase();
             if (
                 licenseRef.current &&
-                configOrMissingDetails?.metadata &&
+                themeOrMissingDetails?.metadata &&
                 license &&
                 !invalidLicenses.includes(license) &&
                 !licensesBeingChecked.includes(license)
@@ -56,7 +56,6 @@ export default function ConfigDetailsOverlayPage(props: ConfigDetailsOverlayPage
                         licenseRef.current.setAttribute("data-choosealicense-license-url", license);
                     });
                 } else {
-                    // licenseRef.current;
                     licenseRef.current.style.cursor = "help";
                     licenseRef.current.setAttribute("data-choosealicense-license-url", license);
                 }
@@ -92,7 +91,7 @@ export default function ConfigDetailsOverlayPage(props: ConfigDetailsOverlayPage
                         width: "100%",
                     }}
                 >
-                    Config Info{"\u200A"}
+                    Theme Info{/* {"\u200A"} */}
                 </div>
                 <div
                     style={{
@@ -130,8 +129,8 @@ export default function ConfigDetailsOverlayPage(props: ConfigDetailsOverlayPage
                                     margin: "calc(1px * var(--gui-scale)) calc(3px * var(--gui-scale)) calc(1px * var(--gui-scale)) 0",
                                 }}
                                 src={
-                                    config ? (config.icon ?? "resource://images/ui/glyphs/icon-settings.png")
-                                    : props.missingConfigDetails ?
+                                    theme ? (theme.icon ?? "resource://images/ui/glyphs/brush.png")
+                                    : props.missingThemeDetails ?
                                         "resource://images/ui/misc/missing_pack_icon.png"
                                     :   "resource://images/ui/misc/bug_pack_icon.png"
                                 }
@@ -152,7 +151,7 @@ export default function ConfigDetailsOverlayPage(props: ConfigDetailsOverlayPage
                                         marginBottom: "calc(3px * var(--gui-scale))",
                                     }}
                                 >
-                                    {configOrMissingDetails?.metadata?.name ?? <span style={{ color: "#FF5555FF" }}>Unknown Pack Name</span>}
+                                    {themeOrMissingDetails?.name ?? <span style={{ color: "#FF5555FF" }}>Unknown Pack Name</span>}
                                 </div>
                                 <div
                                     class="nsel ndrg"
@@ -169,10 +168,10 @@ export default function ConfigDetailsOverlayPage(props: ConfigDetailsOverlayPage
                                         fontFamily: "NotoSans-Regular",
                                     }}
                                 >
-                                    {configOrMissingDetails?.metadata?.description ?? <span style={{ color: "#FF5555FF" }}>Unknown Pack Description</span>}
+                                    {theme?.description ?? <span style={{ color: "#FF5555FF" }}>Unknown Pack Description</span>}
                                 </div>
                             </div>
-                            {config && (
+                            {theme && (
                                 <div
                                     style={{
                                         display: "flex",
@@ -195,7 +194,7 @@ export default function ConfigDetailsOverlayPage(props: ConfigDetailsOverlayPage
                                             event.preventDefault();
                                             event.currentTarget.blur();
                                             if (event.currentTarget.disabled) return;
-                                            config.refresh();
+                                            theme.refresh();
                                         }}
                                     >
                                         Refresh
@@ -215,8 +214,8 @@ export default function ConfigDetailsOverlayPage(props: ConfigDetailsOverlayPage
                                             if (event.currentTarget.disabled) return;
                                             const result: MessageBoxReturnValue = await dialog.showMessageBox({
                                                 type: "question",
-                                                title: "Delete Config?",
-                                                message: "You are about to delete this config forever. Are you sure?",
+                                                title: "Delete Theme?",
+                                                message: "You are about to delete this theme forever. Are you sure?",
                                                 buttons: ["Delete", "Go Back"],
                                                 defaultId: 1,
                                                 cancelId: 1,
@@ -224,8 +223,7 @@ export default function ConfigDetailsOverlayPage(props: ConfigDetailsOverlayPage
                                                 icon: "resource://images/ui/glyphs/trash_default.png",
                                             });
                                             if (result.response === 0) {
-                                                config.delete();
-                                                router.history.goBack();
+                                                theme.delete();
                                             }
                                         }}
                                     >
@@ -254,7 +252,7 @@ export default function ConfigDetailsOverlayPage(props: ConfigDetailsOverlayPage
                                 PACK ID:
                             </span>
                             <span style={{ fontFamily: "NotoSans-Regular", fontSize: "calc(8.4px * var(--gui-scale))" }}>
-                                {configOrMissingDetails?.metadata?.uuid ?? <span style={{ color: "#FF5555FF" }}>Unknown Pack ID</span>}
+                                {themeOrMissingDetails?.uuid ?? <span style={{ color: "#FF5555FF" }}>Unknown Pack ID</span>}
                             </span>
                         </div>
                         <div
@@ -277,7 +275,7 @@ export default function ConfigDetailsOverlayPage(props: ConfigDetailsOverlayPage
                                 PACK VERSION:
                             </span>
                             <span style={{ fontFamily: "NotoSans-Regular", fontSize: "calc(8.4px * var(--gui-scale))" }}>
-                                {configOrMissingDetails?.metadata?.version ?? <span style={{ color: "#FF5555FF" }}>Unknown Pack Version</span>}
+                                {themeOrMissingDetails?.version ?? <span style={{ color: "#FF5555FF" }}>Unknown Pack Version</span>}
                             </span>
                         </div>
                         <div
@@ -287,9 +285,9 @@ export default function ConfigDetailsOverlayPage(props: ConfigDetailsOverlayPage
                                 flexDirection: "row",
                                 borderBottom:
                                     (
-                                        configOrMissingDetails?.metadata?.url ||
-                                        configOrMissingDetails?.metadata?.license ||
-                                        configOrMissingDetails?.metadata?.authors
+                                        themeOrMissingDetails?.metadata?.url ||
+                                        themeOrMissingDetails?.metadata?.license ||
+                                        themeOrMissingDetails?.metadata?.authors
                                     ) ?
                                         "calc(1px * var(--gui-scale)) solid #364343FF"
                                     :   undefined,
@@ -308,37 +306,38 @@ export default function ConfigDetailsOverlayPage(props: ConfigDetailsOverlayPage
                                 FILE LOCATION:
                             </span>
                             <span
+                                class="nsel ndrg"
                                 style={{
                                     fontFamily: "NotoSans-Regular",
                                     fontSize: "calc(8.4px * var(--gui-scale))",
                                     textAlign: "left",
                                     overflowWrap: "anywhere",
-                                    cursor: (config?.filePath ?? props.filePath) === undefined ? undefined : "copy",
+                                    cursor: (theme?.folderPath ?? props.folderPath) === undefined ? undefined : "copy",
                                 }}
                                 onClick={(event: JSX.TargetedMouseEvent<HTMLSpanElement>): void => {
                                     event.preventDefault();
                                     event.stopPropagation();
-                                    const filePath: string | undefined = config?.filePath ?? props.filePath;
-                                    if (filePath === undefined) return;
-                                    clipboard.writeText(filePath);
+                                    const folderPath: string | undefined = theme?.folderPath ?? props.folderPath;
+                                    if (folderPath === undefined) return;
+                                    clipboard.writeText(folderPath);
                                     createToast({
                                         title: "Copied file location to clipboard.",
                                     });
                                 }}
                             >
-                                {(config?.filePath ?? props.filePath)?.replaceAll(/(?<!^|\s)(?!$|\s)/g, "\xAD") ?? (
-                                    <span style={{ color: "#FF5555FF" }}>Unknown Pack Name</span>
+                                {(theme?.folderPath ?? props.folderPath)?.replaceAll(/(?<!^|\s)(?!$|\s)/g, "\xAD") ?? (
+                                    <span style={{ color: "#FF5555FF" }}>Unknown Pack Path</span>
                                 )}
                             </span>
                         </div>
-                        {configOrMissingDetails?.metadata?.authors && (
+                        {themeOrMissingDetails?.metadata?.authors && (
                             <div
                                 style={{
                                     padding: "calc(2px * var(--gui-scale)) 0",
                                     display: "flex",
                                     flexDirection: "row",
                                     borderBottom:
-                                        configOrMissingDetails.metadata.url || configOrMissingDetails.metadata.license ?
+                                        themeOrMissingDetails.metadata.url || themeOrMissingDetails.metadata.license ?
                                             "calc(1px * var(--gui-scale)) solid #364343FF"
                                         :   undefined,
                                 }}
@@ -353,9 +352,10 @@ export default function ConfigDetailsOverlayPage(props: ConfigDetailsOverlayPage
                                         flexShrink: 0,
                                     }}
                                 >
-                                    AUTHOR{configOrMissingDetails.metadata.authors.length !== 1 ? "S" : ""}:
+                                    AUTHOR{themeOrMissingDetails.metadata.authors.length !== 1 ? "S" : ""}:
                                 </span>
                                 <span
+                                    class="nsel ndrg"
                                     style={{
                                         fontFamily: "NotoSans-Regular",
                                         fontSize: "calc(8.4px * var(--gui-scale))",
@@ -366,25 +366,25 @@ export default function ConfigDetailsOverlayPage(props: ConfigDetailsOverlayPage
                                     onClick={(event: JSX.TargetedMouseEvent<HTMLSpanElement>): void => {
                                         event.preventDefault();
                                         event.stopPropagation();
-                                        clipboard.writeText(JSON.stringify(configOrMissingDetails.metadata!.authors));
+                                        clipboard.writeText(JSON.stringify(themeOrMissingDetails.metadata!.authors));
                                         createToast({
                                             title: "Copied authors to clipboard.",
                                         });
                                     }}
                                 >
-                                    {configOrMissingDetails.metadata.authors
+                                    {themeOrMissingDetails.metadata.authors
                                         .map((author: string): string => author.replaceAll(/(?<!^|\s)(?!$|\s)/g, "\xAD"))
                                         .join(", ")}
                                 </span>
                             </div>
                         )}
-                        {configOrMissingDetails?.metadata?.license && (
+                        {themeOrMissingDetails?.metadata?.license && (
                             <div
                                 style={{
                                     padding: "calc(2px * var(--gui-scale)) 0",
                                     display: "flex",
                                     flexDirection: "row",
-                                    borderBottom: configOrMissingDetails.metadata.url ? "calc(1px * var(--gui-scale)) solid #364343FF" : undefined,
+                                    borderBottom: themeOrMissingDetails.metadata.url ? "calc(1px * var(--gui-scale)) solid #364343FF" : undefined,
                                 }}
                             >
                                 <span
@@ -423,11 +423,11 @@ export default function ConfigDetailsOverlayPage(props: ConfigDetailsOverlayPage
                                         }
                                     }}
                                 >
-                                    {configOrMissingDetails.metadata.license.replaceAll(/(?<!^|\s)(?!$|\s)/g, "\xAD")}
+                                    {themeOrMissingDetails.metadata.license.replaceAll(/(?<!^|\s)(?!$|\s)/g, "\xAD")}
                                 </span>
                             </div>
                         )}
-                        {configOrMissingDetails?.metadata?.url && (
+                        {themeOrMissingDetails?.metadata?.url && (
                             <div
                                 style={{
                                     padding: "calc(2px * var(--gui-scale)) 0",
@@ -449,7 +449,7 @@ export default function ConfigDetailsOverlayPage(props: ConfigDetailsOverlayPage
                                     URL:
                                 </span>
                                 <a
-                                    href={configOrMissingDetails.metadata.url}
+                                    href={themeOrMissingDetails.metadata.url}
                                     class="nsel ndrg emerald-green-link"
                                     style={{
                                         fontFamily: "NotoSans-Regular",
@@ -464,11 +464,11 @@ export default function ConfigDetailsOverlayPage(props: ConfigDetailsOverlayPage
                                     onClick={(event: JSX.TargetedMouseEvent<HTMLAnchorElement>): void => {
                                         event.preventDefault();
                                         event.currentTarget.blur();
-                                        if (!configOrMissingDetails?.metadata?.url) return;
-                                        shell.openExternal(configOrMissingDetails.metadata.url);
+                                        if (!themeOrMissingDetails?.metadata?.url) return;
+                                        shell.openExternal(themeOrMissingDetails.metadata.url);
                                     }}
                                 >
-                                    {configOrMissingDetails.metadata.url}
+                                    {themeOrMissingDetails.metadata.url}
                                 </a>
                             </div>
                         )}
@@ -488,8 +488,8 @@ export default function ConfigDetailsOverlayPage(props: ConfigDetailsOverlayPage
                     </div>
 
                     {(function getErrorList(): JSX.SpecificElement<"div">[] {
-                        if (!config) return [];
-                        const messages: OreUICustomizerConfigMessageInfo[] = config.getMessages();
+                        if (!theme) return [];
+                        const messages: OreUICustomizerThemeMessageInfo[] = theme.getMessages();
                         if (messages.length === 0)
                             messages.push({
                                 titleFormat: "html",
@@ -497,7 +497,7 @@ export default function ConfigDetailsOverlayPage(props: ConfigDetailsOverlayPage
                                 messageFormat: "text",
                                 message: "",
                                 type: "info",
-                                config,
+                                theme,
                             });
                         const errorList: JSX.SpecificElement<"div">[] = [];
                         for (const message of messages) {
@@ -570,13 +570,13 @@ export default function ConfigDetailsOverlayPage(props: ConfigDetailsOverlayPage
                                                 fontFamily: "NotoSans-Regular",
                                                 fontSize: "calc(8.4px * var(--gui-scale))",
                                                 textAlign: "left",
-                                                overflowWrap: "anywhere",
+                                                // overflowWrap: "anywhere",
                                             }}
                                             dangerouslySetInnerHTML={
                                                 message.message && message.messageFormat === "html" ? { __html: message.message } : undefined
                                             }
                                         >
-                                            {message.messageFormat === "html" ? undefined : message.message.replaceAll(/(?<!^|\s)(?!$|\s)/g, "\xAD")}
+                                            {message.messageFormat === "html" ? undefined : message.message}
                                         </span>
                                     </div>
                                 </div>
@@ -589,9 +589,9 @@ export default function ConfigDetailsOverlayPage(props: ConfigDetailsOverlayPage
         );
     }
     useEffect((): (() => void) => {
-        ConfigManager.on("configRefreshed", handleRefresh);
+        ThemeManager.on("themeRefreshed", handleRefresh);
         return (): void => {
-            ConfigManager.off("configRefreshed", handleRefresh);
+            ThemeManager.off("themeRefreshed", handleRefresh);
         };
     });
     return (
@@ -605,7 +605,7 @@ export default function ConfigDetailsOverlayPage(props: ConfigDetailsOverlayPage
             }}
             ref={containerRef}
         >
-            <ConfigDetailsOverlayPageContents />
+            <ThemeDetailsOverlayPageContents />
         </div>
     );
 }

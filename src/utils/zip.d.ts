@@ -1638,6 +1638,9 @@ declare namespace zip {
      * Represents a file entry in the zip (Filesystem API).
      */
     export class ZipFileEntry<ReaderType, WriterType> extends ZipEntry {
+        parent?: ZipDirectoryEntry | ZipFileEntry<any, any>;
+        children: (ZipDirectoryEntry | ZipFileEntry<any, any>)[];
+        clone(deepClone?: boolean): ZipFileEntry<ReaderType, WriterType>;
         /**
          * `void` for {@link ZipFileEntry} instances.
          */
@@ -1736,6 +1739,9 @@ declare namespace zip {
      * Represents a directory entry in the zip (Filesystem API).
      */
     export class ZipDirectoryEntry extends ZipEntry {
+        parent?: ZipDirectoryEntry | ZipFileEntry<any, any>;
+        children: (ZipDirectoryEntry | ZipFileEntry<any, any>)[];
+        clone(deepClone?: boolean): ZipDirectoryEntry;
         /**
          * `true` for  {@link ZipDirectoryEntry} instances.
          */
@@ -1746,7 +1752,7 @@ declare namespace zip {
          * @param name The relative filename.
          * @returns A {@link ZipFileEntry} or a {@link ZipDirectoryEntry} instance (use the {@link ZipFileEntry#directory} and {@link ZipDirectoryEntry#directory} properties to differentiate entries).
          */
-        getChildByName(name: string): ZipEntry | undefined;
+        getChildByName(name: string): ZipDirectoryEntry | ZipFileEntry<any, any> | undefined;
         /**
          * Adds a directory
          *
@@ -1790,11 +1796,7 @@ declare namespace zip {
          * @param options The options.
          * @returns A {@link ZipFileEntry} instance.
          */
-        addUint8Array(
-            name: string,
-            array: Uint8Array,
-            options?: ZipWriterAddDataOptions
-        ): ZipFileEntry<Uint8Array, Uint8Array>;
+        addUint8Array(name: string, array: Uint8Array, options?: ZipWriterAddDataOptions): ZipFileEntry<Uint8Array, Uint8Array>;
         /**
          * Adds an entry with content fetched from a URL
          *
@@ -1820,7 +1822,7 @@ declare namespace zip {
          * @param options The options.
          * @returns A promise resolving to a {@link ZipFileEntry} or a {@link ZipDirectoryEntry} instance.
          */
-        addFile(file: File, options?: ZipWriterAddDataOptions): Promise<ZipEntry>;
+        addFile(file: File, options?: ZipWriterAddDataOptions): Promise<ZipDirectoryEntry | ZipFileEntry<any, any>>;
         /**
          * Adds an entry with content provided via a `FileSystemEntry` instance
          *
@@ -1828,7 +1830,7 @@ declare namespace zip {
          * @param options The options.
          * @returns A promise resolving to an array of {@link ZipFileEntry} or a {@link ZipDirectoryEntry} instances.
          */
-        addFileSystemEntry(fileSystemEntry: FileSystemEntryLike, options?: ZipWriterAddDataOptions): Promise<ZipEntry[]>;
+        addFileSystemEntry(fileSystemEntry: FileSystemEntryLike, options?: ZipWriterAddDataOptions): Promise<(ZipDirectoryEntry | ZipFileEntry<any, any>)[]>;
         /**
          * Adds an entry with content provided via a `FileSystemHandle` instance
          *
@@ -1836,42 +1838,42 @@ declare namespace zip {
          * @param options The options.
          * @returns A promise resolving to an array of {@link ZipFileEntry} or a {@link ZipDirectoryEntry} instances.
          */
-        addFileSystemHandle(fileSystemHandle: FileSystemHandleLike, options?: ZipWriterAddDataOptions): Promise<ZipEntry[]>;
+        addFileSystemHandle(fileSystemHandle: FileSystemHandleLike, options?: ZipWriterAddDataOptions): Promise<(ZipDirectoryEntry | ZipFileEntry<any, any>)[]>;
         /**
          * Extracts a zip file provided as a `Blob` instance into the entry
          *
          * @param blob The `Blob` instance.
          * @param options  The options.
          */
-        importBlob(blob: Blob, options?: ZipReaderConstructorOptions): Promise<[ZipEntry]>;
+        importBlob(blob: Blob, options?: ZipReaderConstructorOptions): Promise<(ZipDirectoryEntry | ZipFileEntry<any, any>)[]>;
         /**
          * Extracts a zip file provided as a Data URI `string` encoded in Base64 into the entry
          *
          * @param dataURI The Data URI `string` encoded in Base64.
          * @param options  The options.
          */
-        importData64URI(dataURI: string, options?: ZipReaderConstructorOptions): Promise<[ZipEntry]>;
+        importData64URI(dataURI: string, options?: ZipReaderConstructorOptions): Promise<(ZipDirectoryEntry | ZipFileEntry<any, any>)[]>;
         /**
          * Extracts a zip file provided as a `Uint8Array` instance into the entry
          *
          * @param array The `Uint8Array` instance.
          * @param options  The options.
          */
-        importUint8Array(array: Uint8Array, options?: ZipReaderConstructorOptions): Promise<[ZipEntry]>;
+        importUint8Array(array: Uint8Array, options?: ZipReaderConstructorOptions): Promise<(ZipDirectoryEntry | ZipFileEntry<any, any>)[]>;
         /**
          * Extracts a zip file fetched from a URL into the entry
          *
          * @param url The URL.
          * @param options  The options.
          */
-        importHttpContent(url: string, options?: ZipDirectoryEntryImportHttpOptions): Promise<[ZipEntry]>;
+        importHttpContent(url: string, options?: ZipDirectoryEntryImportHttpOptions): Promise<(ZipDirectoryEntry | ZipFileEntry<any, any>)[]>;
         /**
          * Extracts a zip file provided via a `ReadableStream` instance into the entry
          *
          * @param readable The `ReadableStream` instance.
          * @param options  The options.
          */
-        importReadable(readable: ReadableStream, options?: ZipReaderConstructorOptions): Promise<[ZipEntry]>;
+        importReadable(readable: ReadableStream, options?: ZipReaderConstructorOptions): Promise<(ZipDirectoryEntry | ZipFileEntry<any, any>)[]>;
         /**
          * Extracts a zip file provided via a custom {@link Reader} instance into the entry
          *
@@ -1881,7 +1883,7 @@ declare namespace zip {
         importZip(
             reader: Reader<unknown> | ReadableReader | ReadableStream | Reader<unknown>[] | ReadableReader[] | ReadableStream[],
             options?: ZipReaderConstructorOptions
-        ): Promise<[ZipEntry]>;
+        ): Promise<(ZipDirectoryEntry | ZipFileEntry<any, any>)[]>;
         /**
          * Returns a `Blob` instance containing a zip file of the entry and its descendants
          *
@@ -1969,7 +1971,7 @@ declare namespace zip {
         /**
          * The entries.
          */
-        entries: ZipEntry[];
+        entries: (ZipDirectoryEntry | ZipFileEntry<any, any>)[];
         /**
          * The root directory.
          */
@@ -1993,14 +1995,14 @@ declare namespace zip {
          * @param fullname The full filename.
          * @returns The {@link ZipEntry} instance.
          */
-        find(fullname: string): ZipEntry | undefined;
+        find(fullname: string): ZipDirectoryEntry | ZipFileEntry<any, any> | undefined;
         /**
          * Returns a {@link ZipEntry} instance from the value of {@link ZipEntry#id}
          *
          * @param id The id of the {@link ZipEntry} instance.
          * @returns The {@link ZipEntry} instance.
          */
-        getById(id: number): ZipEntry | undefined;
+        getById(id: number): ZipDirectoryEntry | ZipFileEntry<any, any> | undefined;
     }
 
     /**

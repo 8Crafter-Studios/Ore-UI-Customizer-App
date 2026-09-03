@@ -198,6 +198,7 @@ const fileMenu: Electron.Menu = Menu.buildFromTemplate([
     { type: "separator" },
     { role: "quit" },
 ]);
+let electronFind: { openFindWindow(): void; destroy(): void } /* TEMP */ | undefined;
 const menu = Menu.buildFromTemplate([
     {
         role: "fileMenu",
@@ -207,7 +208,75 @@ const menu = Menu.buildFromTemplate([
         enabled: true,
         visible: true,
     },
-    { role: "editMenu" },
+    {
+        role: "editMenu",
+        submenu: [
+            { role: "undo" },
+            { role: "redo" },
+            { type: "separator" },
+            { role: "cut" },
+            { role: "copy" },
+            { role: "paste" },
+            { role: "delete" },
+            { type: "separator" },
+            {
+                label: "Find",
+                accelerator: "CommandOrControl+F",
+                click(): void {
+                    const theme = config.actualTheme;
+                    const themeToFindDialogColorMap = {
+                        dark: {
+                            boxBgColor: "#333",
+                            boxShadowColor: "#000",
+                            inputColor: "#aaa",
+                            inputBgColor: "#222",
+                            inputFocusColor: "#555",
+                            textColor: "#aaa",
+                            textHoverBgColor: "#555",
+                            caseSelectedColor: "#555",
+                        },
+                        light: {
+                            boxBgColor: "#fff",
+                            boxShadowColor: "#909399",
+                            inputColor: "#606266",
+                            inputBgColor: "#f0f0f0",
+                            inputFocusColor: "#c5ade0",
+                            textColor: "#606266",
+                            textHoverBgColor: "#eaeaea",
+                            caseSelectedColor: "#c5ade0",
+                        },
+                        blue: {
+                            boxBgColor: "hsl(197, 71%, 73%)",
+                            boxShadowColor: "hsl(197, 71%, 42.34%)",
+                            inputColor: "hsl(197, 71%, 27%)",
+                            inputBgColor: "hsl(197, 71%, 67%)",
+                            inputFocusColor: "hsl(197, 90%, 51%)",
+                            textColor: "hsl(197, 71%, 67%)",
+                            textHoverBgColor: "hsl(197, 71%, 65%)",
+                            caseSelectedColor: "hsl(197, 90%, 51%)",
+                        },
+                    } satisfies Record<
+                        typeof theme,
+                        Record<
+                            string /* TEMP: This key type should be resolved from the type of the color options from FindInPage once it has type definitions. */,
+                            string
+                        >
+                    >;
+                    electronFind?.destroy();
+                    // TODO: Make a fork of electron-find that has type definitions and fixes some of the bugs with it, and implement match whole world, wrap around, and search in frames toggles. https://github.com/iamqiz/electron-find-fork
+                    electronFind = new (require("electron-find").FindInPage)(currentWindow.webContents, {
+                        offsetTop: 10,
+                        offsetRight: 10,
+                        ...themeToFindDialogColorMap[theme],
+                    }) as { openFindWindow(): void; destroy(): void } /* TEMP */;
+                    // TODO: Make it start with the selected text as the search query.
+                    electronFind.openFindWindow();
+                },
+            },
+            { type: "separator" },
+            { role: "selectAll" },
+        ],
+    },
     {
         role: "viewMenu",
         submenu: [
@@ -545,4 +614,3 @@ declare global {
         var currentMenu: Electron.Menu;
     }
 }
-

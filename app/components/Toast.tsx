@@ -1,5 +1,5 @@
-import type { JSX, RefObject } from "preact";
-import _React, { useRef, useEffect, Component, hydrate } from "preact/compat";
+import type { JSX } from "preact";
+import _React, { hydrate } from "preact/compat";
 import EventEmitter from "node:events";
 
 /**
@@ -18,6 +18,10 @@ export interface ToastProps {
      * The image URI of the toast.
      */
     image?: string | undefined;
+    /**
+     * A callback to call when the toast is clicked.
+     */
+    onClick?(event: JSX.TargetedMouseEvent<HTMLDivElement>): void;
 }
 
 /**
@@ -185,6 +189,12 @@ export interface ToastOptions {
      * @default undefined
      */
     volumeOverride?: number | undefined;
+    /**
+     * A callback to call when the toast is clicked.
+     *
+     * @default undefined
+     */
+    onClick?(event: JSX.TargetedMouseEvent<HTMLDivElement>): void;
 }
 
 /**
@@ -214,7 +224,11 @@ class ActiveToast {
      * @param container The container element of the toast.
      * @param options The options for the toast.
      */
-    public constructor(public readonly id: bigint, public readonly container: HTMLElement, public options: ToastOptions = {}) {
+    public constructor(
+        public readonly id: bigint,
+        public readonly container: HTMLElement,
+        public options: ToastOptions = {}
+    ) {
         this.options = { duration: 3000, mode: "queue", soundEffect: "toast", ...this.options };
         toastManager.activeToasts.set(this.id, this);
         if (this.options.mode === "stack") {
@@ -245,9 +259,9 @@ class ActiveToast {
                 volumeCategory: this.options.volumeCategory ?? "ui",
                 volume:
                     this.options.volumeOverride ??
-                    (this.options.volumeMultiplier !== undefined
-                        ? (this.options.volumeMultiplier ?? 1) * getAudioCategoryVolume(this.options.volumeCategory ?? "ui")
-                        : undefined),
+                    (this.options.volumeMultiplier !== undefined ?
+                        (this.options.volumeMultiplier ?? 1) * getAudioCategoryVolume(this.options.volumeCategory ?? "ui")
+                    :   undefined),
             });
         }
         $(this.container).animateCSSVariable("--top", `${toastManager.visibleToasts.indexOf(this) * 36 - 4}`, 500, "linear");
@@ -310,15 +324,21 @@ export default function Toast(props: ToastProps): JSX.SpecificElement<"div"> {
                 flexDirection: "row",
             }}
             class="toast"
+            onClick={props.onClick}
         >
             {props.image && (
                 <img
                     aria-hidden="true"
-                    style={{ width: "calc(13px * var(--gui-scale))", height: "calc(13px * var(--gui-scale))", margin: "calc(5.5px * var(--gui-scale)) calc(1px * var(--gui-scale)) calc(5.5px * var(--gui-scale)) calc(2px * var(--gui-scale))", display: "inline-block" }}
+                    style={{
+                        width: "calc(13px * var(--gui-scale))",
+                        height: "calc(13px * var(--gui-scale))",
+                        margin: "calc(5.5px * var(--gui-scale)) calc(1px * var(--gui-scale)) calc(5.5px * var(--gui-scale)) calc(2px * var(--gui-scale))",
+                        display: "inline-block",
+                    }}
                     src={props.image}
                 />
             )}
-            <div style={{flexGrow: 1}}>
+            <div style={{ flexGrow: 1 }}>
                 {props.title && (
                     <div
                         style={{

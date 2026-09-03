@@ -4,11 +4,18 @@
  * @description A file containing the ConfigManager class.
  * @supports Renderer
  */
+// TODO: Add a development_configs folder. The app should either watch the paths of the configs in this folder, or reload the configs in this folder before using them or accessing their data (even for the details overlay).
 import path from "node:path";
+import semver, { type SemVer } from "semver";
 import { APP_DATA_FOLDER_PATH, CONFIG_FOLDER_PATH } from "./URLs.ts";
 import EventEmitter from "node:events";
 import { defaultOreUICustomizerSettings } from "./ore-ui-customizer-assets.ts";
-import type { OreUICustomizerSettings, OreUICustomizerConfig as OreUICustomizerConfig_Type, LegacyOreUICustomizerConfigJSON } from "ore-ui-customizer-types";
+import type {
+    OreUICustomizerSettings,
+    OreUICustomizerConfig as OreUICustomizerConfig_Type,
+    LegacyOreUICustomizerConfigJSON,
+    OreUICustomizerConfig_Settings,
+} from "ore-ui-customizer-types";
 import { format_version, resolveOreUICustomizerSettings } from "./ore-ui-customizer-api.ts";
 import { Dirent, existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import * as CommentJSON from "comment-json";
@@ -16,6 +23,9 @@ import { sanitizeFilename } from "./sanitize-filename.ts";
 import { deepMerge } from "./deepMerge.ts";
 import { createToast } from "../../app/components/Toast.tsx";
 import "./zip.js";
+import type { CustomizerAppPage, SearchParamTypes } from "./pageList.ts";
+import { ThemeManager } from "./ThemeManager.ts";
+import { PluginManager } from "./PluginManager.ts";
 
 export interface ConfigManagerEventMap {
     configCreated: [newConfig: OreUICustomizerConfig];
@@ -26,11 +36,16 @@ export interface ConfigManagerEventMap {
     activeConfigsChanged: [activeConfigs: (OreUICustomizerConfig | ConfigInfo)[]];
 }
 
-export type PartialOreUICustomizerConfig_Type = {
-    [key in keyof OreUICustomizerConfig_Type]: key extends "oreUICustomizerConfig" ? Partial<OreUICustomizerConfig_Type[key]> : OreUICustomizerConfig_Type[key];
-};
+export type OreUICustomizerConfigDependencyData = NonNullable<OreUICustomizerConfig["metadata"]["dependencies"]>[number];
 
-export interface SavedOreUICustomizerConfig_Type extends PartialOreUICustomizerConfig_Type {
+export type OreUICustomizerConfigNonModuleDependencyData = Exclude<OreUICustomizerConfigDependencyData, { module_name: string }>;
+
+export interface MissingOreUICustomizerConfigDependencyData extends OreUICustomizerConfigNonModuleDependencyData {
+    missingType: "noMatchingUUID" | "noMatchingVersion";
+    packType?: "config" | "plugin" | "theme";
+}
+
+export interface SavedOreUICustomizerConfig_Type extends OreUICustomizerConfig_Type {
     readonly?: boolean;
     metadata: MergeObjectTypes<
         NonNullable<OreUICustomizerConfig_Type["metadata"]> & Required<Pick<NonNullable<OreUICustomizerConfig_Type["metadata"]>, "name" | "uuid" | "version">>
@@ -58,16 +73,16 @@ export interface MissingConfigInfo extends ConfigInfo {
     missingType: "noMatchingUUID" | "noMatchingVersion";
 }
 
-export class OreUICustomizerConfig implements PartialOreUICustomizerConfig_Type {
+export class OreUICustomizerConfig implements OreUICustomizerConfig_Type {
     public manifest: SavedOreUICustomizerConfig_Type;
     /**
      * The path to the config file.
      */
     public readonly filePath: string;
-    public get oreUICustomizerConfig(): Partial<OreUICustomizerSettings> {
+    public get oreUICustomizerConfig(): OreUICustomizerConfig_Settings {
         return this.manifest.oreUICustomizerConfig;
     }
-    public set oreUICustomizerConfig(value: Partial<OreUICustomizerSettings>) {
+    public set oreUICustomizerConfig(value: OreUICustomizerConfig_Settings) {
         this.manifest.oreUICustomizerConfig = value;
     }
     public get oreUICustomizerVersion(): string {
@@ -76,17 +91,17 @@ export class OreUICustomizerConfig implements PartialOreUICustomizerConfig_Type 
     public set oreUICustomizerVersion(value: string) {
         this.manifest.oreUICustomizerVersion = value;
     }
-    public get checkForUpdatesDetails(): PartialOreUICustomizerConfig_Type["checkForUpdatesDetails"] {
+    public get checkForUpdatesDetails(): OreUICustomizerConfig_Type["checkForUpdatesDetails"] {
         return this.manifest.checkForUpdatesDetails;
     }
-    public set checkForUpdatesDetails(value: PartialOreUICustomizerConfig_Type["checkForUpdatesDetails"]) {
+    public set checkForUpdatesDetails(value: OreUICustomizerConfig_Type["checkForUpdatesDetails"]) {
         if (value === undefined) delete this.manifest.checkForUpdatesDetails;
         this.manifest.checkForUpdatesDetails = value;
     }
-    public get marketplaceDetails(): PartialOreUICustomizerConfig_Type["marketplaceDetails"] {
+    public get marketplaceDetails(): OreUICustomizerConfig_Type["marketplaceDetails"] {
         return this.manifest.marketplaceDetails;
     }
-    public set marketplaceDetails(value: PartialOreUICustomizerConfig_Type["marketplaceDetails"]) {
+    public set marketplaceDetails(value: OreUICustomizerConfig_Type["marketplaceDetails"]) {
         if (value === undefined) delete this.manifest.marketplaceDetails;
         this.manifest.marketplaceDetails = value;
     }
@@ -109,7 +124,7 @@ export class OreUICustomizerConfig implements PartialOreUICustomizerConfig_Type 
     public icon?: `data:image/${string};base64,${string}` | undefined;
     public constructor(filePath: string) {
         this.filePath = path.resolve(filePath);
-        const manifest: SavedOreUICustomizerConfig_Type | PartialOreUICustomizerConfig_Type = CommentJSON.parse(
+        const manifest: SavedOreUICustomizerConfig_Type | OreUICustomizerConfig_Type = CommentJSON.parse(
             readFileSync(filePath, { encoding: "utf-8" }),
             null,
             true
@@ -166,10 +181,70 @@ export class OreUICustomizerConfig implements PartialOreUICustomizerConfig_Type 
         T2 extends "info" | "warning" | "error" = T extends "all" ? "info" | "warning" | "error" : T[number],
     >(types: T = "all" as T): OreUICustomizerConfigMessageInfo<T2>[] {
         const messages: OreUICustomizerConfigMessageInfo[] = [];
+        // IDEA: Add a min_engine_version option to configs.
+        // // ~IDEA: Maybe add a warning if the plugin's format_version is older than the current format_version, since that means the plugin may be broken, or maybe have a list of versions with breaking changes and only show the warning if a version with breaking changes is between the two versions.
+        // minEngineVerisonCheck: {
+        //     if (this.metadata.min_engine_version === undefined) break minEngineVerisonCheck;
+        //     const v1: SemVer | null = semver.parse(format_version);
+        //     const v2: SemVer | null = semver.parse(this.metadata.min_engine_version);
+        //     if (v1 !== null && v2 !== null && v1.version === v2.version && !v1.build.length !== !v2.build.length) {
+        //         if (v1.build.length === 0) break minEngineVerisonCheck;
+        //     } else if (semver.compareBuild(format_version, this.min_engine_version) !== -1) break minEngineVerisonCheck;
+        //     messages.push({
+        //         message: `The property '/header/min_engine_version' has a version of '${this.min_engine_version}' which is too high. The highest value we accept is '${format_version}'.`,
+        //         messageFormat: "text",
+        //         config: this,
+        //         type: "error",
+        //     });
+        // }
+        missingDependenciesCheck: {
+            const missingDependencies = this.getMissingDependencies();
+            if (!missingDependencies) break missingDependenciesCheck;
+            messages.push(
+                ...missingDependencies.map(
+                    (missingDependency: MissingOreUICustomizerConfigDependencyData): OreUICustomizerConfigMessageInfo<"info" | "warning" | "error"> => ({
+                        message:
+                            missingDependency.missingType === "noMatchingUUID" ?
+                                missingDependency.version !== undefined ?
+                                    `Missing dependency with ID '${missingDependency.uuid}' and version '${missingDependency.version}'.`
+                                :   `Missing dependency with ID '${missingDependency.uuid}'.`
+                            : missingDependency.packType ?
+                                `Missing dependency with ID '${missingDependency.uuid}' and version '${missingDependency.version}'. A ${missingDependency.packType} with a matching UUID was found, but the version does not match.`
+                            :   `Missing dependency with ID '${missingDependency.uuid}' and version '${missingDependency.version}'. Another pack with a matching UUID was found, but the version does not match.`,
+                        messageFormat: "text",
+                        config: this,
+                        type: "warning",
+                    })
+                )
+            );
+        }
         if (types === "all") return messages as OreUICustomizerConfigMessageInfo<T2>[];
         return messages.filter((message: OreUICustomizerConfigMessageInfo): message is OreUICustomizerConfigMessageInfo<T2> =>
             types.includes(message.type as T2)
         );
+    }
+    public getMissingDependencies(): [MissingOreUICustomizerConfigDependencyData, ...MissingOreUICustomizerConfigDependencyData[]] | undefined {
+        if (!this.metadata.dependencies) return undefined;
+        const list: MissingOreUICustomizerConfigDependencyData[] = this.metadata.dependencies
+            .map((dependency: OreUICustomizerConfigDependencyData): MissingOreUICustomizerConfigDependencyData | undefined =>
+                dependency.version !== undefined ?
+                    ThemeManager.getThemeFromUUIDAndVersion(dependency.uuid, dependency.version) ? undefined
+                    : PluginManager.getPluginFromUUIDAndVersion(dependency.uuid, dependency.version) ? undefined
+                    : ConfigManager.getConfigFromUUIDAndVersion(dependency.uuid, dependency.version) ? undefined
+                    : ThemeManager.getThemeFromUUID(dependency.uuid) ? { ...dependency, missingType: "noMatchingVersion", packType: "theme" }
+                    : PluginManager.getPluginFromUUID(dependency.uuid) ? { ...dependency, missingType: "noMatchingVersion", packType: "plugin" }
+                    : ConfigManager.getConfigFromUUID(dependency.uuid) ? { ...dependency, missingType: "noMatchingVersion", packType: "config" }
+                    : { ...dependency, missingType: "noMatchingUUID" }
+                : ThemeManager.getThemeFromUUID(dependency.uuid) ? undefined
+                : PluginManager.getPluginFromUUID(dependency.uuid) ? undefined
+                : ConfigManager.getConfigFromUUID(dependency.uuid) ? undefined
+                : { ...dependency, missingType: "noMatchingUUID" }
+            )
+            .filter(
+                (dependency: MissingOreUICustomizerConfigDependencyData | undefined): dependency is MissingOreUICustomizerConfigDependencyData =>
+                    dependency !== undefined
+            );
+        return list.length > 0 ? (list as [MissingOreUICustomizerConfigDependencyData, ...MissingOreUICustomizerConfigDependencyData[]]) : undefined;
     }
     public getResolvedOreUICustomizerSettings(): OreUICustomizerSettings {
         return resolveOreUICustomizerSettings(this.oreUICustomizerConfig);
@@ -225,7 +300,7 @@ export const ConfigManager = new (class ConfigManager extends EventEmitter<Confi
                     oreUICustomizerConfig: deepMerge(
                         {},
                         defaultOreUICustomizerSettings,
-                        ...activeConfigs.map((v: OreUICustomizerConfig): Partial<OreUICustomizerSettings> => v.oreUICustomizerConfig)
+                        ...activeConfigs.map((v: OreUICustomizerConfig): OreUICustomizerConfig_Settings => v.oreUICustomizerConfig)
                     ),
                     oreUICustomizerVersion: format_version,
                 };
@@ -342,8 +417,8 @@ export const ConfigManager = new (class ConfigManager extends EventEmitter<Confi
         return errors;
     }
     public parseConfigData(
-        configData: OreUICustomizerConfig_Type | SavedOreUICustomizerConfig_Type | PartialOreUICustomizerConfig_Type | LegacyOreUICustomizerConfigJSON
-    ): PartialOreUICustomizerConfig_Type {
+        configData: OreUICustomizerConfig_Type | SavedOreUICustomizerConfig_Type | OreUICustomizerConfig_Type | LegacyOreUICustomizerConfigJSON
+    ): OreUICustomizerConfig_Type {
         if ("format_version" in configData) {
             const outputData = {
                 oreUICustomizerConfig: { ...configData } as Partial<LegacyOreUICustomizerConfigJSON>,
@@ -365,7 +440,22 @@ export const ConfigManager = new (class ConfigManager extends EventEmitter<Confi
                 request.open("GET", dataURI, false);
                 request.setRequestHeader("Content-Type", dataURIMIMEType);
                 request.send();
-                let configData: PartialOreUICustomizerConfig_Type = CommentJSON.parse(request.responseText, null, true) as any;
+                let configData: OreUICustomizerConfig_Type;
+                try {
+                    configData = CommentJSON.parse(request.responseText, null, true) as any;
+                } catch (e) {
+                    createToast({
+                        image: "resource://images/ui/misc/bug_pack_icon.png",
+                        title: "Failed to import config from data URI",
+                        message: "Not a valid JSON file",
+                        onClick(_event): void {
+                            router.history.push(
+                                `/config-details?${new URLSearchParams({} as const satisfies Partial<SearchParamTypes[CustomizerAppPage.ConfigDetails]>).toString()}`
+                            );
+                        },
+                    });
+                    throw e;
+                }
                 if (typeof configData !== "object" || configData === null) throw new ReferenceError("Invalid config file, must be a valid JSON object.");
                 configData = this.parseConfigData(configData);
                 configData.metadata ||= {
@@ -406,7 +496,22 @@ export const ConfigManager = new (class ConfigManager extends EventEmitter<Confi
                     request.open("GET", dataURI, false);
                     request.setRequestHeader("Content-Type", "application/json");
                     request.send();
-                    let configData: PartialOreUICustomizerConfig_Type = CommentJSON.parse(request.responseText, null, true) as any;
+                    let configData: OreUICustomizerConfig_Type;
+                    try {
+                        configData = CommentJSON.parse(request.responseText, null, true) as any;
+                    } catch (e) {
+                        createToast({
+                            image: "resource://images/ui/misc/bug_pack_icon.png",
+                            title: "Failed to import config from data URI",
+                            message: "Neither a valid zip archive nor JSON file",
+                            onClick(_event): void {
+                                router.history.push(
+                                    `/config-details?${new URLSearchParams({} as const satisfies Partial<SearchParamTypes[CustomizerAppPage.ConfigDetails]>).toString()}`
+                                );
+                            },
+                        });
+                        throw e;
+                    }
                     if (typeof configData !== "object" || configData === null) throw new ReferenceError("Invalid config file, must be a valid JSON object.");
                     configData = this.parseConfigData(configData);
                     configData.metadata ||= {
@@ -434,7 +539,7 @@ export const ConfigManager = new (class ConfigManager extends EventEmitter<Confi
                     this.emit("configImported", config);
                     return config;
                 }
-                let configData: PartialOreUICustomizerConfig_Type | undefined;
+                let configData: OreUICustomizerConfig_Type | undefined;
                 if (zipFs.getChildByName("config.json")) {
                     configData = CommentJSON.parse(await (zipFs.getChildByName("config.json") as zip.ZipFileEntry<any, any>).getText(), null, true) as any;
                 } else if (zipFs.getChildByName("manifest.json")) {
@@ -489,8 +594,24 @@ export const ConfigManager = new (class ConfigManager extends EventEmitter<Confi
                  * The zip file system.
                  */
                 const zipFs: zip.FS = new zip.fs.FS();
-                await zipFs.importData64URI(dataURI);
-                let configData: PartialOreUICustomizerConfig_Type | undefined;
+                try {
+                    await zipFs.importData64URI(dataURI);
+                } catch (e) {
+                    createToast({
+                        image: "resource://images/ui/misc/bug_pack_icon.png",
+                        title: "Failed to import config from data URI",
+                        message: "Not a valid zip archive",
+                        onClick(_event): void {
+                            router.history.push(
+                                `/config-details?${new URLSearchParams(
+                                    {} as const satisfies Partial<SearchParamTypes[CustomizerAppPage.ConfigDetails]>
+                                ).toString()}`
+                            );
+                        },
+                    });
+                    throw e;
+                }
+                let configData: OreUICustomizerConfig_Type | undefined;
                 if (zipFs.getChildByName("config.json")) {
                     configData = CommentJSON.parse(await (zipFs.getChildByName("config.json") as zip.ZipFileEntry<any, any>).getText(), null, true) as any;
                 } else if (zipFs.getChildByName("manifest.json")) {
@@ -553,7 +674,22 @@ export const ConfigManager = new (class ConfigManager extends EventEmitter<Confi
             case "application/json":
             case "text/json":
             case "text/plain": {
-                let configData: PartialOreUICustomizerConfig_Type = CommentJSON.parse(await response.text(), null, true) as any;
+                let configData: OreUICustomizerConfig_Type;
+                try {
+                    configData = CommentJSON.parse(await response.text(), null, true) as any;
+                } catch (e) {
+                    createToast({
+                        image: "resource://images/ui/misc/bug_pack_icon.png",
+                        title: `Failed to import '${path.basename(new URL(url).pathname, path.extname(new URL(url).pathname))}'`,
+                        message: "Not a valid JSON file",
+                        onClick(_event): void {
+                            router.history.push(
+                                `/config-details?${new URLSearchParams({} as const satisfies Partial<SearchParamTypes[CustomizerAppPage.ConfigDetails]>).toString()}`
+                            );
+                        },
+                    });
+                    throw e;
+                }
                 if (typeof configData !== "object" || configData === null) throw new ReferenceError("Invalid config file, must be a valid JSON object.");
                 configData = this.parseConfigData(configData);
                 configData.metadata ||= {
@@ -592,7 +728,22 @@ export const ConfigManager = new (class ConfigManager extends EventEmitter<Confi
                     await zipFs.importBlob(blob);
                 } catch {
                     const responseText: string = await blob.text();
-                    let configData: PartialOreUICustomizerConfig_Type = CommentJSON.parse(responseText, null, true) as any;
+                    let configData: OreUICustomizerConfig_Type;
+                    try {
+                        configData = CommentJSON.parse(responseText, null, true) as any;
+                    } catch (e) {
+                        createToast({
+                            image: "resource://images/ui/misc/bug_pack_icon.png",
+                            title: `Failed to import '${path.basename(new URL(url).pathname, path.extname(new URL(url).pathname))}'`,
+                            message: "Neither a valid zip archive nor JSON file",
+                            onClick(_event): void {
+                                router.history.push(
+                                    `/config-details?${new URLSearchParams({} as const satisfies Partial<SearchParamTypes[CustomizerAppPage.ConfigDetails]>).toString()}`
+                                );
+                            },
+                        });
+                        throw e;
+                    }
                     if (typeof configData !== "object" || configData === null) throw new ReferenceError("Invalid config file, must be a valid JSON object.");
                     configData = this.parseConfigData(configData);
                     configData.metadata ||= {
@@ -620,7 +771,7 @@ export const ConfigManager = new (class ConfigManager extends EventEmitter<Confi
                     this.emit("configImported", config);
                     return config;
                 }
-                let configData: PartialOreUICustomizerConfig_Type | undefined;
+                let configData: OreUICustomizerConfig_Type | undefined;
                 if (zipFs.getChildByName("config.json")) {
                     configData = CommentJSON.parse(await (zipFs.getChildByName("config.json") as zip.ZipFileEntry<any, any>).getText(), null, true) as any;
                 } else if (zipFs.getChildByName("manifest.json")) {
@@ -675,8 +826,24 @@ export const ConfigManager = new (class ConfigManager extends EventEmitter<Confi
                  * The zip file system.
                  */
                 const zipFs: zip.FS = new zip.fs.FS();
-                await zipFs.importBlob(await response.blob());
-                let configData: PartialOreUICustomizerConfig_Type | undefined;
+                try {
+                    await zipFs.importBlob(await response.blob());
+                } catch (e) {
+                    createToast({
+                        image: "resource://images/ui/misc/bug_pack_icon.png",
+                        title: `Failed to import '${path.basename(new URL(url).pathname, path.extname(new URL(url).pathname))}'`,
+                        message: "Not a valid zip archive",
+                        onClick(_event): void {
+                            router.history.push(
+                                `/config-details?${new URLSearchParams(
+                                    {} as const satisfies Partial<SearchParamTypes[CustomizerAppPage.ConfigDetails]>
+                                ).toString()}`
+                            );
+                        },
+                    });
+                    throw e;
+                }
+                let configData: OreUICustomizerConfig_Type | undefined;
                 if (zipFs.getChildByName("config.json")) {
                     configData = CommentJSON.parse(await (zipFs.getChildByName("config.json") as zip.ZipFileEntry<any, any>).getText(), null, true) as any;
                 } else if (zipFs.getChildByName("manifest.json")) {
@@ -743,7 +910,24 @@ export const ConfigManager = new (class ConfigManager extends EventEmitter<Confi
                 await zipFs.importData64URI(dataURI);
             } catch {
                 const responseText: string = readFileSync(filePath, { encoding: "utf-8" });
-                let configData: PartialOreUICustomizerConfig_Type = CommentJSON.parse(responseText, null, true) as any;
+                let configData: OreUICustomizerConfig_Type;
+                try {
+                    configData = CommentJSON.parse(responseText, null, true) as any;
+                } catch (e) {
+                    createToast({
+                        image: "resource://images/ui/misc/bug_pack_icon.png",
+                        title: `Failed to import '${path.basename(filePath, path.extname(filePath))}'`,
+                        message: "Neither a valid zip archive nor JSON file",
+                        onClick(_event): void {
+                            router.history.push(
+                                `/config-details?${new URLSearchParams({
+                                    filePath,
+                                } as const satisfies Partial<SearchParamTypes[CustomizerAppPage.ConfigDetails]>).toString()}`
+                            );
+                        },
+                    });
+                    throw e;
+                }
                 if (typeof configData !== "object" || configData === null) throw new ReferenceError("Invalid config file, must be a valid JSON object.");
                 configData = this.parseConfigData(configData);
                 configData.metadata ||= {
@@ -771,7 +955,7 @@ export const ConfigManager = new (class ConfigManager extends EventEmitter<Confi
                 this.emit("configImported", config);
                 return config;
             }
-            let configData: PartialOreUICustomizerConfig_Type | undefined;
+            let configData: OreUICustomizerConfig_Type | undefined;
             if (zipFs.getChildByName("config.json")) {
                 configData = CommentJSON.parse(await (zipFs.getChildByName("config.json") as zip.ZipFileEntry<any, any>).getText(), null, true) as any;
             } else if (zipFs.getChildByName("manifest.json")) {
@@ -822,7 +1006,24 @@ export const ConfigManager = new (class ConfigManager extends EventEmitter<Confi
             return config;
         } else if (/^\.json(?:c|ld?)?$/i.test(path.extname(filePath).toLowerCase())) {
             const responseText: string = readFileSync(filePath, { encoding: "utf-8" });
-            let configData: PartialOreUICustomizerConfig_Type = CommentJSON.parse(responseText, null, true) as any;
+            let configData: OreUICustomizerConfig_Type;
+            try {
+                configData = CommentJSON.parse(responseText, null, true) as any;
+            } catch (e) {
+                createToast({
+                    image: "resource://images/ui/misc/bug_pack_icon.png",
+                    title: `Failed to import '${path.basename(filePath, path.extname(filePath))}'`,
+                    message: "Not a valid JSON file",
+                    onClick(_event): void {
+                        router.history.push(
+                            `/config-details?${new URLSearchParams({
+                                filePath,
+                            } as const satisfies Partial<SearchParamTypes[CustomizerAppPage.ConfigDetails]>).toString()}`
+                        );
+                    },
+                });
+                throw e;
+            }
             if (typeof configData !== "object" || configData === null) throw new ReferenceError("Invalid config file, must be a valid JSON object.");
             configData = this.parseConfigData(configData);
             configData.metadata ||= {

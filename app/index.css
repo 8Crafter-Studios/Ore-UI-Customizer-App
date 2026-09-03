@@ -612,7 +612,8 @@ footer.off-screen {
 }
 
 .config-list-item > .config-list-item-main-container:hover,
-.plugin-list-item > .plugin-list-item-main-container:hover {
+.plugin-list-item > .plugin-list-item-main-container:hover,
+.theme-list-item > .theme-list-item-main-container:hover {
     &::before {
         content: "";
         border: calc(var(--gui-scale) * 1px) solid #ffffff;
@@ -625,20 +626,24 @@ footer.off-screen {
 }
 
 .config-list-item:not(:last-of-type):not(.config-list-item-options-visible):not(.no-bottom-border),
-.plugin-list-item:not(:last-of-type):not(.plugin-list-item-options-visible):not(.no-bottom-border) {
+.plugin-list-item:not(:last-of-type):not(.plugin-list-item-options-visible):not(.no-bottom-border),
+.theme-list-item:not(:last-of-type):not(.theme-list-item-options-visible):not(.no-bottom-border) {
     border-bottom: calc(1px * var(--gui-scale)) solid #364343;
 }
 
 .config-list-item:not(.config-list-item-options-visible),
-.plugin-list-item:not(.plugin-list-item-options-visible) {
+.plugin-list-item:not(.plugin-list-item-options-visible),
+.theme-list-item:not(.theme-list-item-options-visible) {
     & > .config-list-item-options-container,
-    & > .plugin-list-item-options-container {
+    & > .plugin-list-item-options-container,
+    & > .theme-list-item-options-container {
         display: none !important;
     }
 }
 
 .config-list-item-options-container,
-.plugin-list-item-options-container {
+.plugin-list-item-options-container,
+.theme-list-item-options-container {
     & > *:not(.disable-separator-border) + *:not(.disable-separator-border) {
         border-left: calc(1px * var(--gui-scale)) solid #364343;
     }
@@ -2077,4 +2082,14 @@ div:has(> .text-box-popup-help-info-label:hover) > div:has(> purple-border_backg
     user-select: none;
     /* Standard syntax */
     -webkit-user-drag: none;
+}
+
+.find-box ::search-text {
+    background-color: #0000;
+}
+
+.opacity-effects-on-disabled:disabled,
+.opacity-effects-on-disabled[disabled],
+.opacity-effects-on-disabled[data-disabled] {
+    opacity: 0.5;
 }

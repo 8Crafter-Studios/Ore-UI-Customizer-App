@@ -1,5 +1,6 @@
-import type { ConfigInfo } from "./ConfigManager";
-import type { PluginInfo } from "./PluginManager";
+import type { ConfigInfo, MissingConfigInfo } from "./ConfigManager";
+import type { MissingPluginInfo, PluginInfo } from "./PluginManager";
+import type { MissingThemeInfo, ThemeInfo } from "./ThemeManager";
 
 /**
  * src/utils/pageList.ts
@@ -98,9 +99,9 @@ export interface SearchParamTypes extends VerifySearchParamTypesIsCorrect<{
     [CustomizerAppPage.Plugins]: never;
     [CustomizerAppPage.Themes]: never;
     [CustomizerAppPage.Configs]: never;
-    [CustomizerAppPage.PluginDetails]: { folderPath: string; missingPluginDetails: PluginInfo };
-    [CustomizerAppPage.ConfigDetails]: { filePath: string; missingConfigDetails: ConfigInfo };
+    [CustomizerAppPage.PluginDetails]: { folderPath: string; missingPluginDetails: PluginInfo | MissingPluginInfo };
+    [CustomizerAppPage.ConfigDetails]: { filePath: string; missingConfigDetails: ConfigInfo | MissingConfigInfo };
     // TO-DO
-    [CustomizerAppPage.ThemeDetails]: { folderPath: string /* , missingThemeDetails: ThemeInfo */ };
+    [CustomizerAppPage.ThemeDetails]: { folderPath: string; missingThemeDetails: ThemeInfo | MissingThemeInfo };
     [CustomizerAppPage.SelectVersionFolder]: { id: string };
 }> {}

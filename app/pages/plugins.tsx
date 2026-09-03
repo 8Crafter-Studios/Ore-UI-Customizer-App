@@ -98,15 +98,12 @@ export function PluginsList(): JSX.SpecificElement<"ul"> {
                                     array: [...array, undefined!],
                                     active: true,
                                     status:
-                                        plugin instanceof OreUICustomizerPlugin
-                                            ? plugin.getIsUpdateAvailable()
-                                                ? "update-available"
-                                                : plugin.getMessages(["error"]).length > 0
-                                                ? "error"
-                                                : plugin.getMessages(["warning"]).length > 0
-                                                ? "warning"
-                                                : "none"
-                                            : "missing",
+                                        plugin instanceof OreUICustomizerPlugin ?
+                                            plugin.getIsUpdateAvailable() ? "update-available"
+                                            : plugin.getMessages(["error"]).length > 0 ? "error"
+                                            : plugin.getMessages(["warning"]).length > 0 ? "warning"
+                                            : "none"
+                                        :   "missing",
                                 }}
                             />
                         )
@@ -120,7 +117,9 @@ export function PluginsList(): JSX.SpecificElement<"ul"> {
             );
             render(
                 <div class="plugins-list nsel" /* style={{ overflow: "auto" }} */>
-                    {inactivePlugins.length === 0 ? <p class="nsel">No plugins found.</p> : undefined}
+                    {inactivePlugins.length === 0 ?
+                        <p class="nsel">No plugins found.</p>
+                    :   undefined}
                     {...inactivePlugins.toReversed().map(
                         (plugin: OreUICustomizerPlugin | MissingPluginInfo, index: number, array: OreUICustomizerPlugin[]): JSX.SpecificElement<"div"> => (
                             // Add undefined to array to make there be an extra border below the last plugin in the list.
@@ -131,15 +130,12 @@ export function PluginsList(): JSX.SpecificElement<"ul"> {
                                     array: [...array, undefined!],
                                     active: false,
                                     status:
-                                        plugin instanceof OreUICustomizerPlugin
-                                            ? plugin.getIsUpdateAvailable()
-                                                ? "update-available"
-                                                : plugin.getMessages(["error"]).length > 0
-                                                ? "error"
-                                                : plugin.getMessages(["warning"]).length > 0
-                                                ? "warning"
-                                                : "none"
-                                            : "missing",
+                                        plugin instanceof OreUICustomizerPlugin ?
+                                            plugin.getIsUpdateAvailable() ? "update-available"
+                                            : plugin.getMessages(["error"]).length > 0 ? "error"
+                                            : plugin.getMessages(["warning"]).length > 0 ? "warning"
+                                            : "none"
+                                        :   "missing",
                                 }}
                             />
                         )
@@ -183,15 +179,12 @@ export function PluginsList(): JSX.SpecificElement<"ul"> {
                                     array: [...array, undefined!],
                                     active: true,
                                     status:
-                                        plugin instanceof OreUICustomizerPlugin
-                                            ? plugin.getIsUpdateAvailable()
-                                                ? "update-available"
-                                                : plugin.getMessages(["error"]).length > 0
-                                                ? "error"
-                                                : plugin.getMessages(["warning"]).length > 0
-                                                ? "warning"
-                                                : "none"
-                                            : "missing",
+                                        plugin instanceof OreUICustomizerPlugin ?
+                                            plugin.getIsUpdateAvailable() ? "update-available"
+                                            : plugin.getMessages(["error"]).length > 0 ? "error"
+                                            : plugin.getMessages(["warning"]).length > 0 ? "warning"
+                                            : "none"
+                                        :   "missing",
                                 }}
                             />
                         )
@@ -211,7 +204,9 @@ export function PluginsList(): JSX.SpecificElement<"ul"> {
                 contentRef={myPluginsContentRef}
             >
                 <div class="plugins-list nsel" /* style={{ overflow: "auto" }} */>
-                    {inactivePlugins.length === 0 ? <p class="nsel">No plugins found.</p> : undefined}
+                    {inactivePlugins.length === 0 ?
+                        <p class="nsel">No plugins found.</p>
+                    :   undefined}
                     {...inactivePlugins.toReversed().map(
                         (plugin: OreUICustomizerPlugin, index: number, array: OreUICustomizerPlugin[]): JSX.SpecificElement<"div"> => (
                             // Add undefined to array to make there be an extra border below the last plugin in the list.
@@ -222,15 +217,12 @@ export function PluginsList(): JSX.SpecificElement<"ul"> {
                                     array: [...array, undefined!],
                                     active: false,
                                     status:
-                                        plugin instanceof OreUICustomizerPlugin
-                                            ? plugin.getIsUpdateAvailable()
-                                                ? "update-available"
-                                                : plugin.getMessages(["error"]).length > 0
-                                                ? "error"
-                                                : plugin.getMessages(["warning"]).length > 0
-                                                ? "warning"
-                                                : "none"
-                                            : "missing",
+                                        plugin instanceof OreUICustomizerPlugin ?
+                                            plugin.getIsUpdateAvailable() ? "update-available"
+                                            : plugin.getMessages(["error"]).length > 0 ? "error"
+                                            : plugin.getMessages(["warning"]).length > 0 ? "warning"
+                                            : "none"
+                                        :   "missing",
                                 }}
                             />
                         )
@@ -281,22 +273,22 @@ export function PluginsListItem(props: PluginListItemProps): JSX.SpecificElement
     function onDetailsClick(event: JSX.TargetedMouseEvent<HTMLDivElement>): void {
         router.history.push(
             `/plugin-details?${
-                props.plugin instanceof OreUICustomizerPlugin
-                    ? new URLSearchParams({
-                          folderPath: props.plugin.folderPath,
-                      } as const satisfies Partial<SearchParamTypes[CustomizerAppPage.PluginDetails]>).toString()
-                    : new URLSearchParams(
-                          Object.fromEntries(
-                              Object.entries({
-                                  missingPluginDetails: props.plugin,
-                              } as const satisfies Partial<SearchParamTypes[CustomizerAppPage.PluginDetails]>).map(
-                                  ([key, value]: [key: string, value: MissingPluginInfo]): [key: string, value: string] => [
-                                      key,
-                                      typeof value === "string" ? value : JSON.stringify(value),
-                                  ]
-                              )
-                          )
-                      ).toString()
+                props.plugin instanceof OreUICustomizerPlugin ?
+                    new URLSearchParams({
+                        folderPath: props.plugin.folderPath,
+                    } as const satisfies Partial<SearchParamTypes[CustomizerAppPage.PluginDetails]>).toString()
+                :   new URLSearchParams(
+                        Object.fromEntries(
+                            Object.entries({
+                                missingPluginDetails: props.plugin,
+                            } as const satisfies Partial<SearchParamTypes[CustomizerAppPage.PluginDetails]>).map(
+                                ([key, value]: [key: string, value: MissingPluginInfo]): [key: string, value: string] => [
+                                    key,
+                                    typeof value === "string" ? value : JSON.stringify(value),
+                                ]
+                            )
+                        )
+                    ).toString()
             }`
         );
     }
@@ -345,9 +337,9 @@ export function PluginsListItem(props: PluginListItemProps): JSX.SpecificElement
                         title="Plugin Icon"
                         class="piximg nsel ndrg"
                         src={
-                            props.plugin instanceof OreUICustomizerPlugin
-                                ? props.plugin.icon ?? "resource://images/ui/glyphs/Source.png"
-                                : "resource://images/ui/misc/missing_pack_icon.png"
+                            props.plugin instanceof OreUICustomizerPlugin ?
+                                (props.plugin.icon ?? "resource://images/ui/glyphs/Source.png")
+                            :   "resource://images/ui/misc/missing_pack_icon.png"
                         }
                         style={{ width: "calc(34px * var(--gui-scale))", height: "calc(34px * var(--gui-scale))" }}
                     />
@@ -372,7 +364,7 @@ export function PluginsListItem(props: PluginListItemProps): JSX.SpecificElement
                             textWrap: "nowrap",
                         }}
                     >
-                        {props.plugin instanceof OreUICustomizerPlugin ? props.plugin.name : props.plugin.name ?? "MISSING"}
+                        {props.plugin instanceof OreUICustomizerPlugin ? props.plugin.name : (props.plugin.name ?? "MISSING")}
                     </div>
                     {props.plugin.metadata && props.plugin.metadata.authors && props.plugin.metadata.authors.length > 0 && (
                         <div
@@ -451,14 +443,14 @@ export function PluginsListItem(props: PluginListItemProps): JSX.SpecificElement
                             if (props.active) {
                                 const activePlugins: (OreUICustomizerPlugin | MissingPluginInfo)[] = PluginManager.getActivePlugins();
                                 const index: number =
-                                    props.plugin instanceof OreUICustomizerPlugin
-                                        ? activePlugins.indexOf(props.plugin)
-                                        : activePlugins.findIndex(
-                                              (plugin: OreUICustomizerPlugin | MissingPluginInfo): boolean =>
-                                                  !(plugin instanceof OreUICustomizerPlugin) &&
-                                                  plugin.uuid === (props.plugin as MissingPluginInfo).uuid &&
-                                                  plugin.version === (props.plugin as MissingPluginInfo).version
-                                          );
+                                    props.plugin instanceof OreUICustomizerPlugin ?
+                                        activePlugins.indexOf(props.plugin)
+                                    :   activePlugins.findIndex(
+                                            (plugin: OreUICustomizerPlugin | MissingPluginInfo): boolean =>
+                                                !(plugin instanceof OreUICustomizerPlugin) &&
+                                                plugin.uuid === (props.plugin as MissingPluginInfo).uuid &&
+                                                plugin.version === (props.plugin as MissingPluginInfo).version
+                                        );
                                 console.log(1);
                                 if (index === -1) return;
                                 console.log(2);
@@ -486,7 +478,7 @@ export function PluginsListItem(props: PluginListItemProps): JSX.SpecificElement
                     </button>
                 </div>
                 {props.active && props.index > 0 && (
-                <div
+                    <div
                         title="Move Up"
                         class="plugin-list-item-move-up-button nsel"
                         onMouseDown={(event: JSX.TargetedMouseEvent<HTMLDivElement>): void => {
@@ -626,15 +618,14 @@ export function PluginsListItem(props: PluginListItemProps): JSX.SpecificElement
                         aria-hidden="true"
                         class="piximg nsel ndrg"
                         src={
-                            props.status === "error"
-                                ? "resource://images/ui/glyphs/ErrorGlyph_small.png"
-                                : props.status === "warning"
-                                ? "resource://images/ui/glyphs/WarningGlyph_small.png"
-                                : props.status === "update-available"
-                                ? "resource://images/ui/glyphs/UpdateGlyph_small.png"
-                                : props.status === "missing"
-                                ? "resource://images/ui/misc/loading_bar.gif"
-                                : "resource://images/ui/glyphs/infobulb.png"
+                            props.status === "error" ? "resource://images/ui/glyphs/ErrorGlyph_small.png"
+                            : props.status === "warning" ?
+                                "resource://images/ui/glyphs/WarningGlyph_small.png"
+                            : props.status === "update-available" ?
+                                "resource://images/ui/glyphs/UpdateGlyph_small.png"
+                            : props.status === "missing" ?
+                                "resource://images/ui/misc/loading_bar.gif"
+                            :   "resource://images/ui/glyphs/infobulb.png"
                         }
                         style={{
                             // width: "calc(14px * var(--gui-scale))",
@@ -745,4 +736,3 @@ export function DefaultPluginsListItem(): JSX.SpecificElement<"div"> {
         </div>
     );
 }
-

@@ -2,19 +2,36 @@ import {
     builtInPlugins,
     defaultOreUICustomizerSettings,
     type ExtractedSymbolNames,
+    getAssetsDataForThemes,
+    getColorReplacementsDataForThemes,
     getExtractedSymbolNames,
     getReplacerRegexes,
     importPluginFromDataURI,
+    importThemeFromDataURI,
+    type ThemeAssetItem,
+    type ThemeAssetsData,
+    type ThemeAssetType,
 } from "./ore-ui-customizer-assets.js";
-import type { EncodedPluginData, OreUICustomizerSettings, Plugin } from "ore-ui-customizer-types";
+import type {
+    EncodedPluginData,
+    OreUICustomizerConfig_Settings,
+    OreUICustomizerSettings,
+    Plugin,
+    Theme,
+    ThemeColorReplacements,
+    ThemeManifestJSON,
+} from "ore-ui-customizer-types";
 import type {} from "@ore-ui-customizer-api/plugin-env/backend";
 import "./zip.js";
+import json5 from "json5";
+
+// IDEA: Add supports for the texts folder for translation strings for plugins, configs, and themes.
 
 /**
  * The version of the Ore UI Customizer API.
  */
-// BUILD 6
-export const format_version = "1.17.0+BUILD.7";
+// BUILD 8
+export const format_version = "1.17.0+BUILD.8";
 
 /**
  * The result of the {@link applyMods} function.
@@ -62,6 +79,23 @@ export interface ApplyModsResult {
     totalEntries: number;
 }
 
+// /**
+//  * @todo
+//  */
+// export type ApplyModsProgressStep = "importing_zip_blob" | "importing_plugins" | "importing_themes" | "applying_built-in_mods" | "adding_files" | "plugin_action" | "adding_theme_assets";
+
+// /**
+//  * @todo
+//  */
+// export interface ApplyModsProgressState {
+//     step: ApplyModsProgressStep;
+//     progress: number;
+//     total: number;
+//     progressBarMode: "normal" | "none" | "indeterminate" | "error" | "paused";
+//     message: string | null;
+//     detail: string | null;
+// }
+
 /**
  * The options for the {@link applyMods} function.
  */
@@ -70,11 +104,12 @@ export interface ApplyModsOptions {
      * The settings used to apply the mods.
      *
      * @see {@link OreUICustomizerSettings}
+     * @see {@link OreUICustomizerConfig_Settings}
      * @see {@link defaultOreUICustomizerSettings}
      *
      * @default defaultOreUICustomizerSettings
      */
-    settings?: OreUICustomizerSettings;
+    settings?: OreUICustomizerConfig_Settings & Omit<OreUICustomizerSettings, keyof OreUICustomizerConfig_Settings>;
     /**
      * Enable debug logging.
      *
@@ -99,6 +134,10 @@ export interface ApplyModsOptions {
      * @default "CLI"
      */
     type?: OreUICustomizerType;
+    // /**
+    //  * @todo
+    //  */
+    // onProgress?(): Promise<void> | void;
 }
 
 /**
@@ -137,6 +176,7 @@ type FullDeep<T> = { [P in keyof T]-?: NonNullable<T[P]> extends object ? FullDe
  * @returns The resolved settings.
  */
 export function resolveOreUICustomizerSettings(
+    // TEMP: Replace this with OreUICustomizerSettings_Config when the next ore-ui-customizer-types update is released.
     settings: {
         [key in keyof OreUICustomizerSettings]?: key extends "colorReplacements" ? Partial<OreUICustomizerSettings["colorReplacements"]>
         : key extends "enabledBuiltInPlugins" ? Partial<OreUICustomizerSettings["enabledBuiltInPlugins"]>
@@ -307,12 +347,12 @@ export function resolveOreUICustomizerSettings(
         if (!plugin.dependencies) return;
         plugin.dependencies.forEach((dependency) => {
             if (!("uuid" in dependency)) return;
-            const requiredBuildInPlugin = builtInPlugins.find((plugin) => plugin.uuid === dependency.uuid);
-            if (!requiredBuildInPlugin) return;
-            if (resolvedSettings.enabledBuiltInPlugins[requiredBuildInPlugin.id]) return;
-            resolvedSettings.enabledBuiltInPlugins[requiredBuildInPlugin.id] = true;
+            const requiredBuiltInPlugin = builtInPlugins.find((plugin) => plugin.uuid === dependency.uuid);
+            if (!requiredBuiltInPlugin) return;
+            if (resolvedSettings.enabledBuiltInPlugins[requiredBuiltInPlugin.id]) return;
+            resolvedSettings.enabledBuiltInPlugins[requiredBuiltInPlugin.id] = true;
             console.warn(
-                `Enabling built-in plugin "${requiredBuildInPlugin.id}" because it is required by ${JSON.stringify(plugin.name)} v${plugin.version} (${
+                `Enabling built-in plugin "${requiredBuiltInPlugin.id}" because it is required by ${JSON.stringify(plugin.name)} v${plugin.version} (${
                     plugin.namespace
                 }:${plugin.id})`
             );
@@ -322,12 +362,12 @@ export function resolveOreUICustomizerSettings(
         if (!plugin.dependencies) return;
         plugin.dependencies.forEach((dependency) => {
             if (!("uuid" in dependency)) return;
-            const requiredBuildInPlugin = builtInPlugins.find((plugin) => plugin.uuid === dependency.uuid);
-            if (!requiredBuildInPlugin) return;
-            if (resolvedSettings.enabledBuiltInPlugins[requiredBuildInPlugin.id]) return;
-            resolvedSettings.enabledBuiltInPlugins[requiredBuildInPlugin.id] = true;
+            const requiredBuiltInPlugin = builtInPlugins.find((plugin) => plugin.uuid === dependency.uuid);
+            if (!requiredBuiltInPlugin) return;
+            if (resolvedSettings.enabledBuiltInPlugins[requiredBuiltInPlugin.id]) return;
+            resolvedSettings.enabledBuiltInPlugins[requiredBuiltInPlugin.id] = true;
             console.warn(
-                `Enabling built-in plugin "${requiredBuildInPlugin.id}" because it is required by ${JSON.stringify(plugin.name)} v${plugin.version} (${
+                `Enabling built-in plugin "${requiredBuiltInPlugin.id}" because it is required by ${JSON.stringify(plugin.name)} v${plugin.version} (${
                     plugin.namespace
                 }:${plugin.id})`
             );
@@ -347,13 +387,56 @@ export function resolveOreUICustomizerSettings(
  * @todo Add separate handling for gameplay-theme-*.css, it should have its own unique color options for variables in it.
  * @todo Add theme support.
  */
+// TODO: The CSS theme functionality needs to be added separately inside applyMods function and the Ore UI preview handler for the Ore UI Customizer App.
 export function applyColorReplacementsToFileContents(
     distData: string,
     filePath: string,
-    settings: Partial<Omit<OreUICustomizerSettings, "colorReplacements">> & { colorReplacements: Partial<OreUICustomizerSettings["colorReplacements"]> }
+    settings: Partial<Omit<OreUICustomizerSettings, "colorReplacements">> & { colorReplacements: Partial<OreUICustomizerSettings["colorReplacements"]> },
+    options: { themeColorReplacementsJSONData: ThemeColorReplacements[] }
 ): string {
     settings = resolveOreUICustomizerSettings(settings);
-    if (/^\/hbui\/menus-theme-[a-zA-Z0-9]+\.css$/.test(filePath)) {
+    if (settings.themes?.length) {
+        const colorReplacementsData: Partial<OreUICustomizerSettings["colorReplacements"]>[] = [];
+        const advancedColorReplacementsData: OreUICustomizerSettings["advancedColorReplacements"][] = [];
+        if (settings.colorReplacements) colorReplacementsData.push(settings.colorReplacements);
+        if (settings.advancedColorReplacements) advancedColorReplacementsData.push(settings.advancedColorReplacements);
+        // This thing should marge all objects together, where for example
+        // {a: "5", b: {c: "6"}}, {a: "6", d: "7", b: {q: "8", e: {f: {g: {k: "45"}}}}}, and {b: {j: {k: "9"}, e: {f: {g: {o: "57"}}}}} merge into {a: "6", b: {c: "6", q: "8", j: {k: "9"}, e: {f: {g: {k: "45", o: "57"}}}}}, d: "7"}
+        // This needs to go the full depth of the object and be recursive.
+        function recursivelyMergeData(data: Record<string, object | string>[]): Record<string, object | string> {
+            if (data.length === 0) return {};
+            if (data.length === 1) return data[0]!;
+
+            function mergeTwo<T>(a: Record<string, T>, b: Record<string, T>): Record<string, T> {
+                const result: Record<string, T> = { ...a };
+
+                for (const key of Object.keys(b)) {
+                    const bv = b[key];
+                    const av = result[key];
+
+                    if (av && typeof av === "object" && !Array.isArray(av) && typeof bv === "object" && !Array.isArray(bv)) {
+                        result[key] = mergeTwo(av as Record<string, unknown>, bv as Record<string, unknown>) as T;
+                    } else {
+                        // Primitive or overwrite
+                        result[key] = (bv ?? av)!;
+                    }
+                }
+
+                return result;
+            }
+
+            return data.reduce((acc, obj) => mergeTwo(acc, obj), {});
+        }
+        settings.colorReplacements = recursivelyMergeData([
+            settings.colorReplacements ?? {},
+            ...options.themeColorReplacementsJSONData.map((v) => v.colorReplacements).filter((v) => v !== undefined),
+        ]) as NonNullable<ThemeColorReplacements["colorReplacements"]>;
+        settings.advancedColorReplacements = recursivelyMergeData([
+            settings.advancedColorReplacements ?? {},
+            ...options.themeColorReplacementsJSONData.map((v) => v.advancedColorReplacements).filter((v) => v !== undefined),
+        ]) as NonNullable<ThemeColorReplacements["advancedColorReplacements"]>;
+    }
+    if (/^\/hbui\/menus-theme(?:-[a-zA-Z0-9]+)?\.css$/.test(filePath)) {
         if (settings.advancedColorReplacements?.menusTheme) {
             for (const key in settings.advancedColorReplacements.menusTheme) {
                 if (key === "") continue;
@@ -410,7 +493,7 @@ export function applyColorReplacementsToFileContents(
         return distData;
     }
     // TODO
-    // if (/^\/hbui\/gameplay-theme-[a-zA-Z0-9]+\.css$/.test(filePath)) {
+    // if (/^\/hbui\/gameplay-theme(?:-[a-zA-Z0-9]+)?\.css$/.test(filePath)) {
     //     if (!settings.advancedColorReplacements?.gameplayTheme) return distData;
     //     return distData;
     // }
@@ -533,6 +616,11 @@ export async function applyMods(file: Blob, options: ApplyModsOptions = {}): Pro
             )
         );
     }
+    const themes: Theme[] = [...(settings.preloadedThemes ?? [])];
+    for (const encodedTheme of settings.themes ?? []) {
+        themes.push(await importThemeFromDataURI(encodedTheme.dataURI, {}, encodedTheme.fileType));
+    }
+    const themeColorReplacementsJSONData: ThemeColorReplacements[] = await getColorReplacementsDataForThemes(themes);
     for (const plugin of plugins) {
         if (plugin.namespace !== "built-in" || (settings.enabledBuiltInPlugins[plugin.id as keyof typeof settings.enabledBuiltInPlugins] ?? true)) {
             for (const action of plugin.actions) {
@@ -557,7 +645,7 @@ export async function applyMods(file: Blob, options: ApplyModsOptions = {}): Pro
             log(`Entry ${origName} has been successfully renamed to ${entry.name}.`);
             modifiedCount++;
             renamedCount++;
-        } else if (!/^(gui\/)?dist\/hbui\/[^/]+\.(js|html|css)$/.test(filePath.toLowerCase())) {
+        } else if (!/^(gui\/)?dist\/hbui(?:-(?:tests|docs|perf))?\/[^/]+\.(js|html|css)$/.test(filePath.toLowerCase())) {
             if (entry.directory !== void false) {
                 unmodifiedCount++;
             } else if (/\.(txt|md|js|jsx|html|css|json|jsonc|jsonl)$/.test(filePath.toLowerCase())) {
@@ -584,15 +672,27 @@ export async function applyMods(file: Blob, options: ApplyModsOptions = {}): Pro
                     // FIXME: Add sanitization to escape possible comment escaping strings.
                     if (filePath.endsWith(".js")) {
                         distData = `// Modified by 8Crafter's Ore UI Customizer v${format_version}: https://www.8crafter.com/utilities/ore-ui-customizer\n// Options: ${JSON.stringify(
-                            { ...settings, plugins: settings.plugins?.map((plugin) => ({ ...plugin, dataURI: "..." })) }
+                            {
+                                ...settings,
+                                plugins: settings.plugins?.map((plugin) => ({ ...plugin, dataURI: "...", icon_data_uri: "..." })),
+                                themes: settings.themes?.map((theme) => ({ ...theme, dataURI: "...", icon_data_uri: "..." })),
+                            }
                         )}\n${distData}`;
                     } else if (filePath.endsWith(".css")) {
                         distData = `/* Modified by 8Crafter's Ore UI Customizer v${format_version}: https://www.8crafter.com/utilities/ore-ui-customizer */\n/* Options: ${JSON.stringify(
-                            { ...settings, plugins: settings.plugins?.map((plugin) => ({ ...plugin, dataURI: "..." })) }
+                            {
+                                ...settings,
+                                plugins: settings.plugins?.map((plugin) => ({ ...plugin, dataURI: "...", icon_data_uri: "..." })),
+                                themes: settings.themes?.map((theme) => ({ ...theme, dataURI: "...", icon_data_uri: "..." })),
+                            }
                         ).replaceAll("*/", "*\\/")} */\n${distData}`;
                     } else if (filePath.endsWith(".html")) {
                         distData = `<!-- Modified by 8Crafter's Ore UI Customizer v${format_version}: https://www.8crafter.com/utilities/ore-ui-customizer -->\n<!-- Options: ${JSON.stringify(
-                            { ...settings, plugins: settings.plugins?.map((plugin) => ({ ...plugin, dataURI: "..." })) }
+                            {
+                                ...settings,
+                                plugins: settings.plugins?.map((plugin) => ({ ...plugin, dataURI: "...", icon_data_uri: "..." })),
+                                themes: settings.themes?.map((theme) => ({ ...theme, dataURI: "...", icon_data_uri: "..." })),
+                            }
                         ).replaceAll("-->", "--\\>")} -->\n${distData}`;
                     }
                     entry.replaceText(distData);
@@ -1612,9 +1712,9 @@ export async function applyMods(file: Blob, options: ApplyModsOptions = {}): Pro
                     }
                 }
             }
-            distData = applyColorReplacementsToFileContents(distData, filePath, settings);
-            distData = distData
-                .replace(
+            distData = applyColorReplacementsToFileContents(distData, filePath, settings, { themeColorReplacementsJSONData });
+            if (/(?=<script defer="defer" src="\/hbui\/(?:index|gameplay|editor)-[a-zA-Z0-9]+\.js"><\/script>)/.test(distData)) {
+                distData = distData.replace(
                     /(?=<script defer="defer" src="\/hbui\/(?:index|gameplay|editor)-[a-zA-Z0-9]+\.js"><\/script>)/,
                     `<script defer="defer" src="/hbui/oreUICustomizer8CrafterConfig.js"></script>
         <script defer="defer" src="/hbui/class_path.js"></script>
@@ -1622,12 +1722,31 @@ export async function applyMods(file: Blob, options: ApplyModsOptions = {}): Pro
         <script defer="defer" src="/hbui/JSONB.js"></script>
         <script defer="defer" src="/hbui/customOverlays.js"></script>
         `
-                )
-                .replace(
+                );
+            } else {
+                distData = distData.replace(
+                    /(?=<\/head>)/,
+                    `<script defer="defer" src="/hbui/oreUICustomizer8CrafterConfig.js"></script>
+        <script defer="defer" src="/hbui/class_path.js"></script>
+        <script defer="defer" src="/hbui/css.js"></script>
+        <script defer="defer" src="/hbui/JSONB.js"></script>
+        <script defer="defer" src="/hbui/customOverlays.js"></script>
+        `
+                );
+            }
+            if (/(?<=<link href="\/hbui\/gameplay-theme(?:-[a-zA-Z0-9]+)?\.css" rel="stylesheet">)/.test(distData)) {
+                distData = distData.replace(
                     /(?<=<link href="\/hbui\/gameplay-theme(?:-[a-zA-Z0-9]+)?\.css" rel="stylesheet">)/,
                     `
         <link href="/hbui/customOverlays.css" rel="stylesheet" />`
                 );
+            } else {
+                distData = distData.replace(
+                    /(?=<\/head>)/,
+                    `
+        <link href="/hbui/customOverlays.css" rel="stylesheet" />`
+                );
+            }
             distData = distData
                 .replace(
                     new RegExp(
@@ -1770,15 +1889,27 @@ export async function applyMods(file: Blob, options: ApplyModsOptions = {}): Pro
                 // FIXME: Add sanitization to escape possible comment escaping strings.
                 if (filePath.endsWith(".js")) {
                     distData = `// Modified by 8Crafter's Ore UI Customizer v${format_version}: https://www.8crafter.com/utilities/ore-ui-customizer\n// Options: ${JSON.stringify(
-                        { ...settings, plugins: settings.plugins?.map((plugin) => ({ ...plugin, dataURI: "..." })) }
+                        {
+                            ...settings,
+                            plugins: settings.plugins?.map((plugin) => ({ ...plugin, dataURI: "...", icon_data_uri: "..." })),
+                            themes: settings.themes?.map((theme) => ({ ...theme, dataURI: "...", icon_data_uri: "..." })),
+                        }
                     )}\n${distData}`;
                 } else if (filePath.endsWith(".css")) {
                     distData = `/* Modified by 8Crafter's Ore UI Customizer v${format_version}: https://www.8crafter.com/utilities/ore-ui-customizer */\n/* Options: ${JSON.stringify(
-                        { ...settings, plugins: settings.plugins?.map((plugin) => ({ ...plugin, dataURI: "..." })) }
+                        {
+                            ...settings,
+                            plugins: settings.plugins?.map((plugin) => ({ ...plugin, dataURI: "...", icon_data_uri: "..." })),
+                            themes: settings.themes?.map((theme) => ({ ...theme, dataURI: "...", icon_data_uri: "..." })),
+                        }
                     )} */\n${distData}`;
                 } else if (filePath.endsWith(".html")) {
                     distData = `<!-- Modified by 8Crafter's Ore UI Customizer v${format_version}: https://www.8crafter.com/utilities/ore-ui-customizer -->\n<!-- Options: ${JSON.stringify(
-                        { ...settings, plugins: settings.plugins?.map((plugin) => ({ ...plugin, dataURI: "..." })) }
+                        {
+                            ...settings,
+                            plugins: settings.plugins?.map((plugin) => ({ ...plugin, dataURI: "...", icon_data_uri: "..." })),
+                            themes: settings.themes?.map((theme) => ({ ...theme, dataURI: "...", icon_data_uri: "..." })),
+                        }
                     )} -->\n${distData}`;
                 }
                 entry.replaceText(distData);
@@ -1905,6 +2036,8 @@ export async function applyMods(file: Blob, options: ApplyModsOptions = {}): Pro
         addedCount++;
     } catch (e) {
         console.error(e);
+        allFailedReplaces.steps ??= [];
+        allFailedReplaces.steps.push("addCustomizerImageAssets");
     }
     try {
         zipFs.addText(
@@ -1948,6 +2081,7 @@ export async function applyMods(file: Blob, options: ApplyModsOptions = {}): Pro
                         })) ?? []),
                     ],
                     plugins: options.settings?.bundleEncodedPluginDataInConfigFile ? options.settings?.plugins : undefined,
+                    themes: options.settings?.bundleEncodedThemeDataInConfigFile ? options.settings?.themes : undefined,
                 } as OreUICustomizerSettings,
                 undefined,
                 4
@@ -1961,6 +2095,8 @@ const oreUICustomizerVersion = ${JSON.stringify(format_version)};`
         addedCount++;
     } catch (e) {
         console.error(e);
+        allFailedReplaces.steps ??= [];
+        allFailedReplaces.steps.push("addCustomizerConfigFile");
     }
     try {
         zipFs.addBlob("gui/dist/hbui/customOverlays.js", await fetchFileBlob("./assets/oreui/customOverlays.js"));
@@ -2034,6 +2170,159 @@ const oreUICustomizerVersion = ${JSON.stringify(format_version)};`
         addedCount++;
     } catch (e) {
         console.error(e);
+        allFailedReplaces.steps ??= [];
+        allFailedReplaces.steps.push("addCustomizerUIAssets");
+    }
+    try {
+        const themesAssetsData: ThemeAssetsData[] = getAssetsDataForThemes(themes);
+        try {
+            await Promise.all(
+                themesAssetsData.flatMap((themeAssetsData: ThemeAssetsData): Promise<void>[] =>
+                    (Object.keys(themeAssetsData.assets) as ThemeAssetType[]).flatMap((type: ThemeAssetType): Promise<void>[] =>
+                        themeAssetsData.assets[type].map(async (asset: ThemeAssetItem): Promise<void> => {
+                            try {
+                                const originalZipEntry = asset.theme.zip.find(asset.filePathInTheme);
+                                if (!originalZipEntry) {
+                                    throw new ReferenceError(
+                                        `[UNEXPECTED INTERNAL ERROR] Previously detected asset ${JSON.stringify(asset.filePathInTheme)} in theme ${JSON.stringify(asset.theme.name)} has gone missing!`,
+                                        { cause: asset }
+                                    );
+                                }
+                                if (originalZipEntry.directory) {
+                                    throw new ReferenceError(
+                                        `[UNEXPECTED INTERNAL ERROR] Previously detected asset ${JSON.stringify(asset.filePathInTheme)} in theme ${JSON.stringify(asset.theme.name)} has spontaneously changed from a file to a directory!`,
+                                        { cause: asset }
+                                    );
+                                }
+                                const existingEntry = zipFs.find(asset.distFilePath);
+                                if (existingEntry) {
+                                    if (existingEntry.directory) {
+                                        throw new ReferenceError(
+                                            `Destination path for asset ${JSON.stringify(asset.filePathInTheme)} in theme ${JSON.stringify(asset.theme.name)} already exists as a directory at ${JSON.stringify(asset.distFilePath)}.`,
+                                            { cause: asset }
+                                        );
+                                    }
+                                    existingEntry.replaceUint8Array(await originalZipEntry.getUint8Array());
+                                } else zipFs.addUint8Array(asset.distFilePath, await originalZipEntry.getUint8Array());
+                            } catch (e) {
+                                console.error(e);
+                                allFailedReplaces.themeAssetReplacements ??= [];
+                                allFailedReplaces.themeAssetReplacements.push(
+                                    `${themeAssetsData.theme.name}:${themeAssetsData.theme.uuid}:${themeAssetsData.theme.version}:${asset.filePathInTheme}`
+                                );
+                            }
+                        })
+                    )
+                )
+            );
+        } catch (e) {
+            console.error(e);
+            allFailedReplaces.steps ??= [];
+            allFailedReplaces.steps.push("applyThemeAssetReplacements");
+        }
+    } catch (e) {
+        console.error(e);
+        allFailedReplaces.steps ??= [];
+        allFailedReplaces.steps.push("loadThemeAssetReplacementsData");
+    }
+    try {
+        interface StyleAsset {
+            filePathInTheme: string;
+            distFilePath: string;
+            importPath: string;
+        }
+        interface ThemeStyleAssets {
+            theme: Theme;
+            styleAssets: StyleAsset[];
+        }
+        const allStyleAssets: ThemeStyleAssets[] = [];
+        await Promise.all(
+            themes.flatMap((theme: Theme): Promise<void>[] => {
+                try {
+                    const dirEntry = theme.zip.find("styles");
+                    if (!dirEntry) return [];
+                    if (!dirEntry.directory) throw new Error(`Theme "styles" directory is not a directory.`, { cause: theme });
+                    const styleAssets: StyleAsset[] = [];
+                    function recurseEntries(currentDirEntry: zip.ZipDirectoryEntry): void {
+                        for (const child of currentDirEntry.children) {
+                            if (child.directory) return void recurseEntries(child);
+                            if (!child.name.toLowerCase().endsWith(".css")) continue;
+                            const importPath = `/hbui/ouic-theme-custom-styles/${theme.uuid}_${theme.version}/${child.getRelativeName(dirEntry as zip.ZipDirectoryEntry)}`;
+                            styleAssets.push({
+                                filePathInTheme: child.getFullname(),
+                                distFilePath: `gui/dist/${importPath}`,
+                                importPath,
+                            });
+                        }
+                    }
+                    recurseEntries(dirEntry);
+                    allStyleAssets.push({ theme, styleAssets });
+                    return styleAssets.map(async (asset: StyleAsset): Promise<void> => {
+                        try {
+                            const originalZipEntry = theme.zip.find(asset.filePathInTheme);
+                            if (!originalZipEntry) {
+                                throw new ReferenceError(
+                                    `[UNEXPECTED INTERNAL ERROR] Previously detected stylesheet ${JSON.stringify(asset.filePathInTheme)} in theme ${JSON.stringify(theme.name)} has gone missing!`,
+                                    { cause: asset }
+                                );
+                            }
+                            if (originalZipEntry.directory) {
+                                throw new ReferenceError(
+                                    `[UNEXPECTED INTERNAL ERROR] Previously detected stylesheet ${JSON.stringify(asset.filePathInTheme)} in theme ${JSON.stringify(theme.name)} has spontaneously changed from a file to a directory!`,
+                                    { cause: asset }
+                                );
+                            }
+                            const existingEntry = zipFs.find(asset.distFilePath);
+                            if (existingEntry) {
+                                if (existingEntry.directory) {
+                                    throw new ReferenceError(
+                                        `Destination path for stylesheet ${JSON.stringify(asset.filePathInTheme)} in theme ${JSON.stringify(theme.name)} already exists as a directory at ${JSON.stringify(asset.distFilePath)}.`,
+                                        { cause: asset }
+                                    );
+                                }
+                                existingEntry.replaceUint8Array(await originalZipEntry.getUint8Array());
+                            } else zipFs.addUint8Array(asset.distFilePath, await originalZipEntry.getUint8Array());
+                        } catch (e) {
+                            console.error(e);
+                            allFailedReplaces.themeCustomCSS ??= [];
+                            allFailedReplaces.themeCustomCSS.push(`${theme.name}:${theme.uuid}:${theme.version}:${asset.filePathInTheme}`);
+                        }
+                    });
+                } catch (e) {
+                    console.error(e);
+                    allFailedReplaces.themeCustomCSS ??= [];
+                    allFailedReplaces.themeCustomCSS.push(`${theme.name}:${theme.uuid}:${theme.version}`);
+                }
+                return [];
+            })
+        );
+        for (const entry of zipFs.entries) {
+            try {
+                if (entry.directory) continue;
+                const filePath: string = entry.getFullname();
+                if (!/^(gui\/)?dist\/hbui(?:-(?:tests|docs|perf))?\/[^/]+\.html$/.test(filePath.toLowerCase())) continue;
+                const origData: string = await entry.getText();
+                const distData: string = origData.replace(
+                    /(?=<\/head>)/,
+                    allStyleAssets
+                        .flatMap((themeStyleAssets: ThemeStyleAssets): StyleAsset[] => themeStyleAssets.styleAssets)
+                        .map(
+                            (asset: StyleAsset): string => `
+        <link href=${JSON.stringify(asset.importPath)} rel="stylesheet" />`
+                        )
+                        .join("")
+                );
+                if (distData !== origData) entry.replaceText(distData);
+            } catch (e) {
+                console.error(e);
+                allFailedReplaces.themeCustomCSSImportInjection ??= [];
+                allFailedReplaces.themeCustomCSSImportInjection.push(entry.getFullname());
+            }
+        }
+    } catch (e) {
+        console.error(e);
+        allFailedReplaces.steps ??= [];
+        allFailedReplaces.steps.push("applyThemeCustomCSS");
     }
     for (const plugin of plugins) {
         if (plugin.namespace !== "built-in" || (settings.enabledBuiltInPlugins[plugin.id as keyof typeof settings.enabledBuiltInPlugins] ?? true)) {

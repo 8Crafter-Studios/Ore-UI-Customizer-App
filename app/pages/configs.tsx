@@ -187,15 +187,12 @@ export function ConfigsList(): JSX.Element {
                                     array: [...array, undefined!],
                                     active: true,
                                     status:
-                                        config instanceof OreUICustomizerConfig
-                                            ? config.getIsUpdateAvailable()
-                                                ? "update-available"
-                                                : config.getMessages(["error"]).length > 0
-                                                ? "error"
-                                                : config.getMessages(["warning"]).length > 0
-                                                ? "warning"
-                                                : "none"
-                                            : "missing",
+                                        config instanceof OreUICustomizerConfig ?
+                                            config.getIsUpdateAvailable() ? "update-available"
+                                            : config.getMessages(["error"]).length > 0 ? "error"
+                                            : config.getMessages(["warning"]).length > 0 ? "warning"
+                                            : "none"
+                                        :   "missing",
                                 }}
                             />
                         )
@@ -209,7 +206,9 @@ export function ConfigsList(): JSX.Element {
             );
             render(
                 <div class="configs-list nsel" /* style={{ overflow: "auto" }} */>
-                    {inactiveConfigs.length === 0 ? <p class="nsel">No configs found.</p> : undefined}
+                    {inactiveConfigs.length === 0 ?
+                        <p class="nsel">No configs found.</p>
+                    :   undefined}
                     {...inactiveConfigs.toReversed().map(
                         (config: OreUICustomizerConfig | MissingConfigInfo, index: number, array: OreUICustomizerConfig[]): JSX.SpecificElement<"div"> => (
                             // Add undefined to array to make there be an extra border below the last config in the list.
@@ -220,15 +219,12 @@ export function ConfigsList(): JSX.Element {
                                     array: [...array, undefined!],
                                     active: false,
                                     status:
-                                        config instanceof OreUICustomizerConfig
-                                            ? config.getIsUpdateAvailable()
-                                                ? "update-available"
-                                                : config.getMessages(["error"]).length > 0
-                                                ? "error"
-                                                : config.getMessages(["warning"]).length > 0
-                                                ? "warning"
-                                                : "none"
-                                            : "missing",
+                                        config instanceof OreUICustomizerConfig ?
+                                            config.getIsUpdateAvailable() ? "update-available"
+                                            : config.getMessages(["error"]).length > 0 ? "error"
+                                            : config.getMessages(["warning"]).length > 0 ? "warning"
+                                            : "none"
+                                        :   "missing",
                                 }}
                             />
                         )
@@ -274,15 +270,12 @@ export function ConfigsList(): JSX.Element {
                                     array: [...array, undefined!],
                                     active: true,
                                     status:
-                                        config instanceof OreUICustomizerConfig
-                                            ? config.getIsUpdateAvailable()
-                                                ? "update-available"
-                                                : config.getMessages(["error"]).length > 0
-                                                ? "error"
-                                                : config.getMessages(["warning"]).length > 0
-                                                ? "warning"
-                                                : "none"
-                                            : "missing",
+                                        config instanceof OreUICustomizerConfig ?
+                                            config.getIsUpdateAvailable() ? "update-available"
+                                            : config.getMessages(["error"]).length > 0 ? "error"
+                                            : config.getMessages(["warning"]).length > 0 ? "warning"
+                                            : "none"
+                                        :   "missing",
                                 }}
                             />
                         )
@@ -302,7 +295,9 @@ export function ConfigsList(): JSX.Element {
                 contentRef={myConfigsContentRef}
             >
                 <div class="configs-list nsel" /* style={{ overflow: "auto" }} */>
-                    {inactiveConfigs.length === 0 ? <p class="nsel">No configs found.</p> : undefined}
+                    {inactiveConfigs.length === 0 ?
+                        <p class="nsel">No configs found.</p>
+                    :   undefined}
                     {...inactiveConfigs.toReversed().map(
                         (config: OreUICustomizerConfig, index: number, array: OreUICustomizerConfig[]): JSX.SpecificElement<"div"> => (
                             // Add undefined to array to make there be an extra border below the last config in the list.
@@ -313,15 +308,12 @@ export function ConfigsList(): JSX.Element {
                                     array: [...array, undefined!],
                                     active: false,
                                     status:
-                                        config instanceof OreUICustomizerConfig
-                                            ? config.getIsUpdateAvailable()
-                                                ? "update-available"
-                                                : config.getMessages(["error"]).length > 0
-                                                ? "error"
-                                                : config.getMessages(["warning"]).length > 0
-                                                ? "warning"
-                                                : "none"
-                                            : "missing",
+                                        config instanceof OreUICustomizerConfig ?
+                                            config.getIsUpdateAvailable() ? "update-available"
+                                            : config.getMessages(["error"]).length > 0 ? "error"
+                                            : config.getMessages(["warning"]).length > 0 ? "warning"
+                                            : "none"
+                                        :   "missing",
                                 }}
                             />
                         )
@@ -372,22 +364,22 @@ export function ConfigsListItem(props: ConfigListItemProps): JSX.SpecificElement
     function onDetailsClick(event: JSX.TargetedMouseEvent<HTMLDivElement>): void {
         router.history.push(
             `/config-details?${
-                props.config instanceof OreUICustomizerConfig
-                    ? new URLSearchParams({
-                          filePath: props.config.filePath,
-                      } as const satisfies Partial<SearchParamTypes[CustomizerAppPage.ConfigDetails]>).toString()
-                    : new URLSearchParams(
-                          Object.fromEntries(
-                              Object.entries({
-                                  missingConfigDetails: props.config,
-                              } as const satisfies Partial<SearchParamTypes[CustomizerAppPage.ConfigDetails]>).map(
-                                  ([key, value]: [key: string, value: MissingConfigInfo]): [key: string, value: string] => [
-                                      key,
-                                      typeof value === "string" ? value : JSON.stringify(value),
-                                  ]
-                              )
-                          )
-                      ).toString()
+                props.config instanceof OreUICustomizerConfig ?
+                    new URLSearchParams({
+                        filePath: props.config.filePath,
+                    } as const satisfies Partial<SearchParamTypes[CustomizerAppPage.ConfigDetails]>).toString()
+                :   new URLSearchParams(
+                        Object.fromEntries(
+                            Object.entries({
+                                missingConfigDetails: props.config,
+                            } as const satisfies Partial<SearchParamTypes[CustomizerAppPage.ConfigDetails]>).map(
+                                ([key, value]: [key: string, value: MissingConfigInfo]): [key: string, value: string] => [
+                                    key,
+                                    typeof value === "string" ? value : JSON.stringify(value),
+                                ]
+                            )
+                        )
+                    ).toString()
             }`
         );
     }
@@ -516,9 +508,9 @@ export function ConfigsListItem(props: ConfigListItemProps): JSX.SpecificElement
                         title="Config Icon"
                         class="piximg nsel ndrg"
                         src={
-                            props.config instanceof OreUICustomizerConfig
-                                ? props.config.icon ?? "resource://images/ui/glyphs/icon-settings.png"
-                                : "resource://images/ui/misc/missing_pack_icon.png"
+                            props.config instanceof OreUICustomizerConfig ?
+                                (props.config.icon ?? "resource://images/ui/glyphs/icon-settings.png")
+                            :   "resource://images/ui/misc/missing_pack_icon.png"
                         }
                         style={{ width: "calc(34px * var(--gui-scale))", height: "calc(34px * var(--gui-scale))" }}
                     />
@@ -543,9 +535,9 @@ export function ConfigsListItem(props: ConfigListItemProps): JSX.SpecificElement
                             textWrap: "nowrap",
                         }}
                     >
-                        {props.config instanceof OreUICustomizerConfig
-                            ? props.config.metadata.name
-                            : props.config.name ?? props.config.metadata?.name ?? "MISSING"}
+                        {props.config instanceof OreUICustomizerConfig ?
+                            props.config.metadata.name
+                        :   (props.config.name ?? props.config.metadata?.name ?? "MISSING")}
                     </div>
                     {props.config.metadata && props.config.metadata.authors && props.config.metadata.authors.length > 0 && (
                         <div
@@ -624,14 +616,14 @@ export function ConfigsListItem(props: ConfigListItemProps): JSX.SpecificElement
                             if (props.active) {
                                 const activeConfigs: (OreUICustomizerConfig | MissingConfigInfo)[] = ConfigManager.getActiveConfigs();
                                 const index: number =
-                                    props.config instanceof OreUICustomizerConfig
-                                        ? activeConfigs.indexOf(props.config)
-                                        : activeConfigs.findIndex(
-                                              (config: OreUICustomizerConfig | MissingConfigInfo): boolean =>
-                                                  !(config instanceof OreUICustomizerConfig) &&
-                                                  config.uuid === (props.config as MissingConfigInfo).uuid &&
-                                                  config.version === (props.config as MissingConfigInfo).version
-                                          );
+                                    props.config instanceof OreUICustomizerConfig ?
+                                        activeConfigs.indexOf(props.config)
+                                    :   activeConfigs.findIndex(
+                                            (config: OreUICustomizerConfig | MissingConfigInfo): boolean =>
+                                                !(config instanceof OreUICustomizerConfig) &&
+                                                config.uuid === (props.config as MissingConfigInfo).uuid &&
+                                                config.version === (props.config as MissingConfigInfo).version
+                                        );
                                 console.log(1);
                                 if (index === -1) return;
                                 console.log(2);
@@ -778,14 +770,14 @@ export function ConfigsListItem(props: ConfigListItemProps): JSX.SpecificElement
                             event.stopPropagation();
                             router.history.push(
                                 `/config-editor?${
-                                    props.config instanceof OreUICustomizerConfig
-                                        ? new URLSearchParams({
-                                              configPath: props.config.filePath,
-                                          } as const satisfies Partial<SearchParamTypes[CustomizerAppPage.ConfigEditor]>).toString()
-                                        : new URLSearchParams({
-                                              configId: props.config.uuid,
-                                              configVersion: props.config.version,
-                                          } as const satisfies Partial<SearchParamTypes[CustomizerAppPage.ConfigEditor]>).toString()
+                                    props.config instanceof OreUICustomizerConfig ?
+                                        new URLSearchParams({
+                                            configPath: props.config.filePath,
+                                        } as const satisfies Partial<SearchParamTypes[CustomizerAppPage.ConfigEditor]>).toString()
+                                    :   new URLSearchParams({
+                                            configId: props.config.uuid,
+                                            configVersion: props.config.version,
+                                        } as const satisfies Partial<SearchParamTypes[CustomizerAppPage.ConfigEditor]>).toString()
                                 }`
                             );
                         }}
@@ -899,15 +891,14 @@ export function ConfigsListItem(props: ConfigListItemProps): JSX.SpecificElement
                         aria-hidden="true"
                         class="piximg nsel ndrg"
                         src={
-                            props.status === "error"
-                                ? "resource://images/ui/glyphs/ErrorGlyph_small.png"
-                                : props.status === "warning"
-                                ? "resource://images/ui/glyphs/WarningGlyph_small.png"
-                                : props.status === "update-available"
-                                ? "resource://images/ui/glyphs/UpdateGlyph_small.png"
-                                : props.status === "missing"
-                                ? "resource://images/ui/misc/loading_bar.gif"
-                                : "resource://images/ui/glyphs/infobulb.png"
+                            props.status === "error" ? "resource://images/ui/glyphs/ErrorGlyph_small.png"
+                            : props.status === "warning" ?
+                                "resource://images/ui/glyphs/WarningGlyph_small.png"
+                            : props.status === "update-available" ?
+                                "resource://images/ui/glyphs/UpdateGlyph_small.png"
+                            : props.status === "missing" ?
+                                "resource://images/ui/misc/loading_bar.gif"
+                            :   "resource://images/ui/glyphs/infobulb.png"
                         }
                         style={{
                             // width: "calc(14px * var(--gui-scale))",
@@ -1018,4 +1009,3 @@ export function DefaultConfigsListItem(): JSX.SpecificElement<"div"> {
         </div>
     );
 }
-

@@ -4,6 +4,7 @@
  * @description A file containing the PluginManager class.
  * @supports Renderer
  */
+// TODO: Add a development_plugins folder. The app should either watch the paths of the plugins in this folder, or reload the plugins in this folder before using them or accessing their data (even for the details overlay).
 import path from "node:path";
 import semver, { type SemVer } from "semver";
 import { APP_DATA_FOLDER_PATH, PLUGIN_FOLDER_PATH } from "./URLs.ts";
@@ -19,6 +20,9 @@ import type { MessageBoxReturnValue } from "electron";
 import "./zip.js";
 import { createToast } from "../../app/components/Toast.tsx";
 import { format_version } from "./ore-ui-customizer-api.ts";
+import type { CustomizerAppPage, SearchParamTypes } from "./pageList.ts";
+import { ThemeManager } from "./ThemeManager.ts";
+import { ConfigManager } from "./ConfigManager.ts";
 
 interface PluginManagerEventMap {
     pluginImported: [newPlugin: OreUICustomizerPlugin];
@@ -33,6 +37,7 @@ export type OreUICustomizerPluginNonModuleDependencyData = Exclude<OreUICustomiz
 
 export interface MissingOreUICustomizerPluginDependencyData extends OreUICustomizerPluginNonModuleDependencyData {
     missingType: "noMatchingUUID" | "noMatchingVersion";
+    packType?: "config" | "plugin" | "theme";
 }
 
 export interface OreUICustomizerPluginMessageInfo<T extends "info" | "warning" | "error" = "info" | "warning" | "error"> {
@@ -228,17 +233,38 @@ export class OreUICustomizerPlugin implements Omit<Plugin_Type, "actions"> {
         // IDEA: Maybe add a warning if the plugin's format_version is older than the current format_version, since that means the plugin may be broken, or maybe have a list of versions with breaking changes and only show the warning if a version with breaking changes is between the two versions.
         minEngineVerisonCheck: {
             if (this.min_engine_version === undefined) break minEngineVerisonCheck;
-            const v1: SemVer | null = semver.parse(format_version!);
+            const v1: SemVer | null = semver.parse(format_version);
             const v2: SemVer | null = semver.parse(this.min_engine_version);
             if (v1 !== null && v2 !== null && v1.version === v2.version && !v1.build.length !== !v2.build.length) {
                 if (v1.build.length === 0) break minEngineVerisonCheck;
-            } else if (semver.compareBuild(format_version!, this.min_engine_version) !== -1) break minEngineVerisonCheck;
+            } else if (semver.compareBuild(format_version, this.min_engine_version) !== -1) break minEngineVerisonCheck;
             messages.push({
                 message: `The property '/header/min_engine_version' has a version of '${this.min_engine_version}' which is too high. The highest value we accept is '${format_version}'.`,
                 messageFormat: "text",
                 plugin: this,
                 type: "error",
             });
+        }
+        missingDependenciesCheck: {
+            const missingDependencies = this.getMissingDependencies();
+            if (!missingDependencies) break missingDependenciesCheck;
+            messages.push(
+                ...missingDependencies.map(
+                    (missingDependency: MissingOreUICustomizerPluginDependencyData): OreUICustomizerPluginMessageInfo<"info" | "warning" | "error"> => ({
+                        message:
+                            missingDependency.missingType === "noMatchingUUID" ?
+                                missingDependency.version !== undefined ?
+                                    `Missing dependency with ID '${missingDependency.uuid}' and version '${missingDependency.version}'.`
+                                :   `Missing dependency with ID '${missingDependency.uuid}'.`
+                            : missingDependency.packType ?
+                                `Missing dependency with ID '${missingDependency.uuid}' and version '${missingDependency.version}'. A ${missingDependency.packType} with a matching UUID was found, but the version does not match.`
+                            :   `Missing dependency with ID '${missingDependency.uuid}' and version '${missingDependency.version}'. Another pack with a matching UUID was found, but the version does not match.`,
+                        messageFormat: "text",
+                        plugin: this,
+                        type: "warning",
+                    })
+                )
+            );
         }
         if (types === "all") return messages as OreUICustomizerPluginMessageInfo<T2>[];
         return messages.filter((message: OreUICustomizerPluginMessageInfo): message is OreUICustomizerPluginMessageInfo<T2> =>
@@ -249,39 +275,46 @@ export class OreUICustomizerPlugin implements Omit<Plugin_Type, "actions"> {
         if (!this.dependencies) return undefined;
         const list: MissingOreUICustomizerPluginDependencyData[] = this.dependencies
             .map((dependency: OreUICustomizerPluginDependencyData): MissingOreUICustomizerPluginDependencyData | undefined =>
+                // TODO: Add detection for missing built-in module dependencies, and proper error messages for them.
                 "uuid" in dependency ?
-                    PluginManager.getPluginFromUUIDAndVersion(dependency.uuid, dependency.version) ? undefined
-                    : PluginManager.getPluginFromUUID(dependency.uuid) ? { ...dependency, missingType: "noMatchingVersion" }
+                    dependency.version !== undefined ?
+                        ThemeManager.getThemeFromUUIDAndVersion(dependency.uuid, dependency.version) ? undefined
+                        : PluginManager.getPluginFromUUIDAndVersion(dependency.uuid, dependency.version) ? undefined
+                        : ConfigManager.getConfigFromUUIDAndVersion(dependency.uuid, dependency.version) ? undefined
+                        : ThemeManager.getThemeFromUUID(dependency.uuid) ? { ...dependency, missingType: "noMatchingVersion", packType: "theme" }
+                        : PluginManager.getPluginFromUUID(dependency.uuid) ? { ...dependency, missingType: "noMatchingVersion", packType: "plugin" }
+                        : ConfigManager.getConfigFromUUID(dependency.uuid) ? { ...dependency, missingType: "noMatchingVersion", packType: "config" }
+                        : { ...dependency, missingType: "noMatchingUUID" }
+                    : ThemeManager.getThemeFromUUID(dependency.uuid) ? undefined
+                    : PluginManager.getPluginFromUUID(dependency.uuid) ? undefined
+                    : ConfigManager.getConfigFromUUID(dependency.uuid) ? undefined
                     : { ...dependency, missingType: "noMatchingUUID" }
                 :   undefined
             )
             .filter(
-                (
-                    dependency:
-                        | (NonNullable<OreUICustomizerPlugin["dependencies"]>[number] & { missingType: "noMatchingUUID" | "noMatchingVersion" })
-                        | undefined
-                ): boolean => dependency !== undefined
-            ) as MissingOreUICustomizerPluginDependencyData[];
+                (dependency: MissingOreUICustomizerPluginDependencyData | undefined): dependency is MissingOreUICustomizerPluginDependencyData =>
+                    dependency !== undefined
+            );
         return list.length > 0 ? (list as [MissingOreUICustomizerPluginDependencyData, ...MissingOreUICustomizerPluginDependencyData[]]) : undefined;
     }
     public getContents(): Dirent<string>[] {
         return readdirSync(this.folderPath, { withFileTypes: true, recursive: true });
     }
-    public getAssets(): string[] {
-        return readdirSync(path.join(this.folderPath, "assets"), { withFileTypes: true, recursive: true })
-            .filter((content: Dirent<string>): boolean => content.isFile())
-            .map((content: Dirent<string>): string => path.join(path.relative(this.folderPath, content.parentPath), content.name));
-    }
-    public getStyleSheets(): string[] {
-        return readdirSync(path.join(this.folderPath, "stylesheets"), { withFileTypes: true, recursive: true })
-            .filter((content: Dirent<string>): boolean => content.isFile())
-            .map((content: Dirent<string>): string => path.join(path.relative(this.folderPath, content.parentPath), content.name));
-    }
-    public getColorReplacements(): OreUICustomizerSettings["colorReplacements"] | undefined {
-        return existsSync(path.join(this.folderPath, "color-replacements.json")) ?
-                (CommentJSON.parse(readFileSync(path.join(this.folderPath, "color-replacements.json"), { encoding: "utf-8" }), null, true) as any)
-            :   undefined;
-    }
+    // public getAssets(): string[] {
+    //     return readdirSync(path.join(this.folderPath, "assets"), { withFileTypes: true, recursive: true })
+    //         .filter((content: Dirent<string>): boolean => content.isFile())
+    //         .map((content: Dirent<string>): string => path.join(path.relative(this.folderPath, content.parentPath), content.name));
+    // }
+    // public getStyleSheets(): string[] {
+    //     return readdirSync(path.join(this.folderPath, "stylesheets"), { withFileTypes: true, recursive: true })
+    //         .filter((content: Dirent<string>): boolean => content.isFile())
+    //         .map((content: Dirent<string>): string => path.join(path.relative(this.folderPath, content.parentPath), content.name));
+    // }
+    // public getColorReplacements(): OreUICustomizerSettings["colorReplacements"] | undefined {
+    //     return existsSync(path.join(this.folderPath, "color-replacements.json")) ?
+    //             (CommentJSON.parse(readFileSync(path.join(this.folderPath, "color-replacements.json"), { encoding: "utf-8" }), null, true) as any)
+    //         :   undefined;
+    // }
     public async getZip(): Promise<Blob> {
         const zipFs = new zip.fs.FS();
         addFolderContents(zipFs.root, this.folderPath);
@@ -309,6 +342,9 @@ export class OreUICustomizerPlugin implements Omit<Plugin_Type, "actions"> {
             dependencies: this.dependencies,
             description: this.description,
             min_engine_version: this.min_engine_version,
+            checkForUpdatesDetails: this.checkForUpdatesDetails,
+            icon_data_uri: this.icon,
+            marketplaceDetails: this.marketplaceDetails,
         };
     }
     public toJSON(): PluginInfo {
@@ -511,6 +547,7 @@ export const PluginManager = new (class PluginManager extends EventEmitter<Plugi
                     dependencies: pluginData.dependencies,
                     icon_data_uri: pluginData.icon_data_uri,
                 };
+                // REVIEW: Maybe this should check themes and configs too.
                 if (this.getPluginFromUUIDAndVersion(manifestData.header.uuid, manifestData.header.version)) {
                     createToast({
                         image: manifestData.icon_data_uri || "resource://images/ui/glyphs/icon-settings.png",
@@ -600,6 +637,7 @@ export const PluginManager = new (class PluginManager extends EventEmitter<Plugi
                         dependencies: pluginData.dependencies,
                         icon_data_uri: pluginData.icon_data_uri,
                     };
+                    // REVIEW: Maybe this should check themes and configs too.
                     if (this.getPluginFromUUIDAndVersion(manifestData.header.uuid, manifestData.header.version)) {
                         createToast({
                             image: manifestData.icon_data_uri || "resource://images/ui/glyphs/icon-settings.png",
@@ -623,6 +661,7 @@ export const PluginManager = new (class PluginManager extends EventEmitter<Plugi
                     null,
                     true
                 ) as any;
+                // REVIEW: Maybe this should check themes and configs too.
                 if (this.getPluginFromUUIDAndVersion(manifest.header.uuid, manifest.header.version)) {
                     createToast({
                         image:
@@ -647,12 +686,29 @@ export const PluginManager = new (class PluginManager extends EventEmitter<Plugi
                  * The zip file system.
                  */
                 const zipFs: zip.FS = new zip.fs.FS();
-                await zipFs.importData64URI(dataURI);
+                try {
+                    await zipFs.importData64URI(dataURI);
+                } catch (e) {
+                    createToast({
+                        image: "resource://images/ui/misc/bug_pack_icon.png",
+                        title: "Failed to import plugin from data URI",
+                        message: "Not a valid zip archive",
+                        onClick(_event): void {
+                            router.history.push(
+                                `/plugin-details?${new URLSearchParams(
+                                    {} as const satisfies Partial<SearchParamTypes[CustomizerAppPage.PluginDetails]>
+                                ).toString()}`
+                            );
+                        },
+                    });
+                    throw e;
+                }
                 const manifest: PluginManifestJSON = CommentJSON.parse(
                     await (zipFs.getChildByName("manifest.json") as zip.ZipFileEntry<any, any>).getText(),
                     null,
                     true
                 ) as any;
+                // REVIEW: Maybe this should check themes and configs too.
                 if (this.getPluginFromUUIDAndVersion(manifest.header.uuid, manifest.header.version)) {
                     createToast({
                         image:
@@ -743,6 +799,7 @@ export const PluginManager = new (class PluginManager extends EventEmitter<Plugi
                     dependencies: pluginData.dependencies,
                     icon_data_uri: pluginData.icon_data_uri,
                 };
+                // REVIEW: Maybe this should check themes and configs too.
                 if (this.getPluginFromUUIDAndVersion(manifestData.header.uuid, manifestData.header.version)) {
                     createToast({
                         image: manifestData.icon_data_uri || "resource://images/ui/glyphs/icon-settings.png",
@@ -830,6 +887,7 @@ export const PluginManager = new (class PluginManager extends EventEmitter<Plugi
                         dependencies: pluginData.dependencies,
                         icon_data_uri: pluginData.icon_data_uri,
                     };
+                    // REVIEW: Maybe this should check themes and configs too.
                     if (this.getPluginFromUUIDAndVersion(manifestData.header.uuid, manifestData.header.version)) {
                         createToast({
                             image: manifestData.icon_data_uri || "resource://images/ui/glyphs/icon-settings.png",
@@ -853,6 +911,7 @@ export const PluginManager = new (class PluginManager extends EventEmitter<Plugi
                     null,
                     true
                 ) as any;
+                // REVIEW: Maybe this should check themes and configs too.
                 if (this.getPluginFromUUIDAndVersion(manifest.header.uuid, manifest.header.version)) {
                     createToast({
                         image:
@@ -877,12 +936,27 @@ export const PluginManager = new (class PluginManager extends EventEmitter<Plugi
                  * The zip file system.
                  */
                 const zipFs: zip.FS = new zip.fs.FS();
-                await zipFs.importReadable(response.body!);
+                try {
+                    await zipFs.importReadable(response.body!);
+                } catch (e) {
+                    createToast({
+                        image: "resource://images/ui/misc/bug_pack_icon.png",
+                        title: `Failed to import '${path.basename(new URL(url).pathname, path.extname(new URL(url).pathname))}'`,
+                        message: "Not a valid zip archive",
+                        onClick(_event): void {
+                            router.history.push(
+                                `/plugin-details?${new URLSearchParams({} as const satisfies Partial<SearchParamTypes[CustomizerAppPage.PluginDetails]>).toString()}`
+                            );
+                        },
+                    });
+                    throw e;
+                }
                 const manifest: PluginManifestJSON = CommentJSON.parse(
                     await (zipFs.getChildByName("manifest.json") as zip.ZipFileEntry<any, any>).getText(),
                     null,
                     true
                 ) as any;
+                // REVIEW: Maybe this should check themes and configs too.
                 if (this.getPluginFromUUIDAndVersion(manifest.header.uuid, manifest.header.version)) {
                     createToast({
                         image:
@@ -914,12 +988,29 @@ export const PluginManager = new (class PluginManager extends EventEmitter<Plugi
              */
             const zipFs: zip.FS = new zip.fs.FS();
             const dataURI = `data:application/octet-stream;base64,${readFileSync(filePath, { encoding: "base64" })}`;
-            await zipFs.importData64URI(dataURI);
+            try {
+                await zipFs.importData64URI(dataURI);
+            } catch (e) {
+                createToast({
+                    image: "resource://images/ui/misc/bug_pack_icon.png",
+                    title: `Failed to import '${path.basename(filePath, path.extname(filePath))}'`,
+                    message: "Not a valid zip archive",
+                    onClick(_event): void {
+                        router.history.push(
+                            `/plugin-details?${new URLSearchParams({
+                                folderPath: filePath,
+                            } as const satisfies Partial<SearchParamTypes[CustomizerAppPage.PluginDetails]>).toString()}`
+                        );
+                    },
+                });
+                throw e;
+            }
             const manifest: PluginManifestJSON = CommentJSON.parse(
                 await (zipFs.getChildByName("manifest.json") as zip.ZipFileEntry<any, any>).getText(),
                 null,
                 true
             ) as any;
+            // REVIEW: Maybe this should check themes and configs too.
             if (this.getPluginFromUUIDAndVersion(manifest.header.uuid, manifest.header.version)) {
                 createToast({
                     image:
@@ -998,6 +1089,7 @@ export const PluginManager = new (class PluginManager extends EventEmitter<Plugi
                 dependencies: pluginData.dependencies,
                 icon_data_uri: pluginData.icon_data_uri,
             };
+            // REVIEW: Maybe this should check themes and configs too.
             if (this.getPluginFromUUIDAndVersion(manifestData.header.uuid, manifestData.header.version)) {
                 createToast({
                     image: manifestData.icon_data_uri || "resource://images/ui/glyphs/icon-settings.png",

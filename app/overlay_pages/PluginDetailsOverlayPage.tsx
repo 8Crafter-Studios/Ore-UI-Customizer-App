@@ -1,12 +1,20 @@
 import type { JSX, RefObject } from "preact";
-import { OreUICustomizerPlugin, PluginManager, type OreUICustomizerPluginMessageInfo } from "../../src/utils/PluginManager";
+import {
+    OreUICustomizerPlugin,
+    PluginManager,
+    type MissingPluginInfo,
+    type OreUICustomizerPluginMessageInfo,
+    type PluginInfo,
+} from "../../src/utils/PluginManager";
 import { clipboard, dialog, shell } from "@electron/remote";
 import type { MessageBoxReturnValue } from "electron";
 import { createToast } from "../components/Toast";
 import { render, useEffect, useRef } from "preact/compat";
 
 export interface PluginDetailsOverlayPageProps {
-    folderPath: string;
+    folderPath: string | undefined;
+    /** @todo */
+    missingPluginDetails: PluginInfo | MissingPluginInfo | undefined;
 }
 
 let validLicenses: string[] = [];
@@ -17,7 +25,13 @@ let licensesBeingChecked: string[] = [];
 
 export default function PluginDetailsOverlayPage(props: PluginDetailsOverlayPageProps): JSX.SpecificElement<"div"> {
     const containerRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
-    const plugin: OreUICustomizerPlugin | undefined = PluginManager.getPluginFromFolderPath(props.folderPath);
+    let plugin: OreUICustomizerPlugin | undefined;
+    if (props.folderPath !== undefined) {
+        try {
+            plugin = PluginManager.getPluginFromFolderPath(props.folderPath);
+        } catch {}
+    }
+    const pluginOrMissingDetails = plugin ?? props.missingPluginDetails;
     function handleRefresh(refreshedPlugin: OreUICustomizerPlugin): void {
         if (!containerRef.current || refreshedPlugin !== plugin) return;
         render(<PluginDetailsOverlayPageContents />, containerRef.current);
@@ -26,8 +40,14 @@ export default function PluginDetailsOverlayPage(props: PluginDetailsOverlayPage
         const licenseRef: RefObject<HTMLDivElement> = useRef<HTMLDivElement>(null);
         useEffect((): (() => void) => {
             let hasBeenClosed: boolean = false;
-            const license: string | undefined = plugin?.metadata.license?.toLowerCase();
-            if (licenseRef.current && plugin && license && !invalidLicenses.includes(license) && !licensesBeingChecked.includes(license)) {
+            const license: string | undefined = pluginOrMissingDetails?.metadata?.license?.toLowerCase();
+            if (
+                licenseRef.current &&
+                pluginOrMissingDetails?.metadata &&
+                license &&
+                !invalidLicenses.includes(license) &&
+                !licensesBeingChecked.includes(license)
+            ) {
                 if (!validLicenses.includes(license)) {
                     licensesBeingChecked.push(license);
                     ipcRenderer.invoke<1>("get-is-404-response", `https://choosealicense.com/licenses/${license}/`).then((is404: boolean): void => {
@@ -114,7 +134,12 @@ export default function PluginDetailsOverlayPage(props: PluginDetailsOverlayPage
                                     height: "calc(50px * var(--gui-scale))",
                                     margin: "calc(1px * var(--gui-scale)) calc(3px * var(--gui-scale)) calc(1px * var(--gui-scale)) 0",
                                 }}
-                                src={plugin!.icon ?? "resource://images/ui/misc/missing_pack_icon.png"}
+                                src={
+                                    plugin ? (plugin.icon ?? "resource://images/ui/glyphs/Source.png")
+                                    : props.missingPluginDetails ?
+                                        "resource://images/ui/misc/missing_pack_icon.png"
+                                    :   "resource://images/ui/misc/bug_pack_icon.png"
+                                }
                             />
                             <div
                                 style={{
@@ -132,7 +157,7 @@ export default function PluginDetailsOverlayPage(props: PluginDetailsOverlayPage
                                         marginBottom: "calc(3px * var(--gui-scale))",
                                     }}
                                 >
-                                    {plugin!.name}
+                                    {pluginOrMissingDetails?.name ?? <span style={{ color: "#FF5555FF" }}>Unknown Pack Name</span>}
                                 </div>
                                 <div
                                     class="nsel ndrg"
@@ -149,67 +174,69 @@ export default function PluginDetailsOverlayPage(props: PluginDetailsOverlayPage
                                         fontFamily: "NotoSans-Regular",
                                     }}
                                 >
-                                    {plugin!.description}
+                                    {plugin?.description ?? <span style={{ color: "#FF5555FF" }}>Unknown Pack Description</span>}
                                 </div>
                             </div>
-                            <div
-                                style={{
-                                    display: "flex",
-                                    flexDirection: "column",
-                                    width: "calc(78px * var(--gui-scale))",
-                                    justifyContent: "space-around",
-                                    flexShrink: 0,
-                                }}
-                            >
-                                <button
-                                    type="button"
-                                    class="btn add-button-outline"
-                                    style={{ padding: "calc(4px * var(--gui-scale))", width: "100%" }}
-                                    onMouseDown={(event: JSX.TargetedMouseEvent<HTMLButtonElement>): void => {
-                                        event.preventDefault();
-                                        if (event.currentTarget.disabled) return;
-                                        SoundEffects.popB();
-                                    }}
-                                    onClick={async (event: JSX.TargetedMouseEvent<HTMLButtonElement>): Promise<void> => {
-                                        event.preventDefault();
-                                        event.currentTarget.blur();
-                                        if (event.currentTarget.disabled) return;
-                                        plugin!.refresh();
+                            {plugin && (
+                                <div
+                                    style={{
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        width: "calc(78px * var(--gui-scale))",
+                                        justifyContent: "space-around",
+                                        flexShrink: 0,
                                     }}
                                 >
-                                    Refresh
-                                </button>
-                                <button
-                                    type="button"
-                                    class="btn add-button-outline"
-                                    style={{ padding: "calc(4px * var(--gui-scale))", width: "100%" }}
-                                    onMouseDown={(event: JSX.TargetedMouseEvent<HTMLButtonElement>): void => {
-                                        event.preventDefault();
-                                        if (event.currentTarget.disabled) return;
-                                        SoundEffects.popB();
-                                    }}
-                                    onClick={async (event: JSX.TargetedMouseEvent<HTMLButtonElement>): Promise<void> => {
-                                        event.preventDefault();
-                                        event.currentTarget.blur();
-                                        if (event.currentTarget.disabled) return;
-                                        const result: MessageBoxReturnValue = await dialog.showMessageBox({
-                                            type: "question",
-                                            title: "Delete Plugin?",
-                                            message: "You are about to delete this plugin forever. Are you sure?",
-                                            buttons: ["Delete", "Go Back"],
-                                            defaultId: 1,
-                                            cancelId: 1,
-                                            noLink: true,
-                                            icon: "resource://images/ui/glyphs/trash_default.png",
-                                        });
-                                        if (result.response === 0) {
-                                            plugin!.delete();
-                                        }
-                                    }}
-                                >
-                                    Delete
-                                </button>
-                            </div>
+                                    <button
+                                        type="button"
+                                        class="btn add-button-outline"
+                                        style={{ padding: "calc(4px * var(--gui-scale))", width: "100%" }}
+                                        onMouseDown={(event: JSX.TargetedMouseEvent<HTMLButtonElement>): void => {
+                                            event.preventDefault();
+                                            if (event.currentTarget.disabled) return;
+                                            SoundEffects.popB();
+                                        }}
+                                        onClick={async (event: JSX.TargetedMouseEvent<HTMLButtonElement>): Promise<void> => {
+                                            event.preventDefault();
+                                            event.currentTarget.blur();
+                                            if (event.currentTarget.disabled) return;
+                                            plugin.refresh();
+                                        }}
+                                    >
+                                        Refresh
+                                    </button>
+                                    <button
+                                        type="button"
+                                        class="btn add-button-outline"
+                                        style={{ padding: "calc(4px * var(--gui-scale))", width: "100%" }}
+                                        onMouseDown={(event: JSX.TargetedMouseEvent<HTMLButtonElement>): void => {
+                                            event.preventDefault();
+                                            if (event.currentTarget.disabled) return;
+                                            SoundEffects.popB();
+                                        }}
+                                        onClick={async (event: JSX.TargetedMouseEvent<HTMLButtonElement>): Promise<void> => {
+                                            event.preventDefault();
+                                            event.currentTarget.blur();
+                                            if (event.currentTarget.disabled) return;
+                                            const result: MessageBoxReturnValue = await dialog.showMessageBox({
+                                                type: "question",
+                                                title: "Delete Plugin?",
+                                                message: "You are about to delete this plugin forever. Are you sure?",
+                                                buttons: ["Delete", "Go Back"],
+                                                defaultId: 1,
+                                                cancelId: 1,
+                                                noLink: true,
+                                                icon: "resource://images/ui/glyphs/trash_default.png",
+                                            });
+                                            if (result.response === 0) {
+                                                plugin.delete();
+                                            }
+                                        }}
+                                    >
+                                        Delete
+                                    </button>
+                                </div>
+                            )}
                         </div>
                         <div
                             style={{
@@ -230,7 +257,9 @@ export default function PluginDetailsOverlayPage(props: PluginDetailsOverlayPage
                             >
                                 PACK ID:
                             </span>
-                            <span style={{ fontFamily: "NotoSans-Regular", fontSize: "calc(8.4px * var(--gui-scale))" }}>{plugin!.uuid}</span>
+                            <span style={{ fontFamily: "NotoSans-Regular", fontSize: "calc(8.4px * var(--gui-scale))" }}>
+                                {pluginOrMissingDetails?.uuid ?? <span style={{ color: "#FF5555FF" }}>Unknown Pack ID</span>}
+                            </span>
                         </div>
                         <div
                             style={{
@@ -251,7 +280,9 @@ export default function PluginDetailsOverlayPage(props: PluginDetailsOverlayPage
                             >
                                 PACK VERSION:
                             </span>
-                            <span style={{ fontFamily: "NotoSans-Regular", fontSize: "calc(8.4px * var(--gui-scale))" }}>{plugin!.version}</span>
+                            <span style={{ fontFamily: "NotoSans-Regular", fontSize: "calc(8.4px * var(--gui-scale))" }}>
+                                {pluginOrMissingDetails?.version ?? <span style={{ color: "#FF5555FF" }}>Unknown Pack Version</span>}
+                            </span>
                         </div>
                         <div
                             style={{
@@ -259,7 +290,11 @@ export default function PluginDetailsOverlayPage(props: PluginDetailsOverlayPage
                                 display: "flex",
                                 flexDirection: "row",
                                 borderBottom:
-                                    plugin!.metadata.url || plugin!.metadata.license || plugin!.metadata.authors ?
+                                    (
+                                        pluginOrMissingDetails?.metadata?.url ||
+                                        pluginOrMissingDetails?.metadata?.license ||
+                                        pluginOrMissingDetails?.metadata?.authors
+                                    ) ?
                                         "calc(1px * var(--gui-scale)) solid #364343FF"
                                     :   undefined,
                             }}
@@ -283,27 +318,34 @@ export default function PluginDetailsOverlayPage(props: PluginDetailsOverlayPage
                                     fontSize: "calc(8.4px * var(--gui-scale))",
                                     textAlign: "left",
                                     overflowWrap: "anywhere",
-                                    cursor: "copy",
+                                    cursor: (plugin?.folderPath ?? props.folderPath) === undefined ? undefined : "copy",
                                 }}
                                 onClick={(event: JSX.TargetedMouseEvent<HTMLSpanElement>): void => {
                                     event.preventDefault();
                                     event.stopPropagation();
-                                    clipboard.writeText(plugin!.folderPath);
+                                    const folderPath: string | undefined = plugin?.folderPath ?? props.folderPath;
+                                    if (folderPath === undefined) return;
+                                    clipboard.writeText(folderPath);
                                     createToast({
                                         title: "Copied file location to clipboard.",
                                     });
                                 }}
                             >
-                                {plugin!.folderPath.replaceAll(/(?<!^|\s)(?!$|\s)/g, "\xAD")}
+                                {(plugin?.folderPath ?? props.folderPath)?.replaceAll(/(?<!^|\s)(?!$|\s)/g, "\xAD") ?? (
+                                    <span style={{ color: "#FF5555FF" }}>Unknown Pack Path</span>
+                                )}
                             </span>
                         </div>
-                        {plugin!.metadata.authors && (
+                        {pluginOrMissingDetails?.metadata?.authors && (
                             <div
                                 style={{
                                     padding: "calc(2px * var(--gui-scale)) 0",
                                     display: "flex",
                                     flexDirection: "row",
-                                    borderBottom: plugin!.metadata.url || plugin!.metadata.license ? "calc(1px * var(--gui-scale)) solid #364343FF" : undefined,
+                                    borderBottom:
+                                        pluginOrMissingDetails.metadata.url || pluginOrMissingDetails.metadata.license ?
+                                            "calc(1px * var(--gui-scale)) solid #364343FF"
+                                        :   undefined,
                                 }}
                             >
                                 <span
@@ -316,7 +358,7 @@ export default function PluginDetailsOverlayPage(props: PluginDetailsOverlayPage
                                         flexShrink: 0,
                                     }}
                                 >
-                                    AUTHOR{plugin!.metadata.authors.length !== 1 ? "S" : ""}:
+                                    AUTHOR{pluginOrMissingDetails.metadata.authors.length !== 1 ? "S" : ""}:
                                 </span>
                                 <span
                                     class="nsel ndrg"
@@ -330,23 +372,25 @@ export default function PluginDetailsOverlayPage(props: PluginDetailsOverlayPage
                                     onClick={(event: JSX.TargetedMouseEvent<HTMLSpanElement>): void => {
                                         event.preventDefault();
                                         event.stopPropagation();
-                                        clipboard.writeText(JSON.stringify(plugin!.metadata.authors));
+                                        clipboard.writeText(JSON.stringify(pluginOrMissingDetails.metadata!.authors));
                                         createToast({
                                             title: "Copied authors to clipboard.",
                                         });
                                     }}
                                 >
-                                    {plugin!.metadata.authors.map((author: string): string => author.replaceAll(/(?<!^|\s)(?!$|\s)/g, "\xAD")).join(", ")}
+                                    {pluginOrMissingDetails.metadata.authors
+                                        .map((author: string): string => author.replaceAll(/(?<!^|\s)(?!$|\s)/g, "\xAD"))
+                                        .join(", ")}
                                 </span>
                             </div>
                         )}
-                        {plugin!.metadata.license && (
+                        {pluginOrMissingDetails?.metadata?.license && (
                             <div
                                 style={{
                                     padding: "calc(2px * var(--gui-scale)) 0",
                                     display: "flex",
                                     flexDirection: "row",
-                                    borderBottom: plugin!.metadata.url ? "calc(1px * var(--gui-scale)) solid #364343FF" : undefined,
+                                    borderBottom: pluginOrMissingDetails.metadata.url ? "calc(1px * var(--gui-scale)) solid #364343FF" : undefined,
                                 }}
                             >
                                 <span
@@ -385,11 +429,11 @@ export default function PluginDetailsOverlayPage(props: PluginDetailsOverlayPage
                                         }
                                     }}
                                 >
-                                    {plugin!.metadata.license.replaceAll(/(?<!^|\s)(?!$|\s)/g, "\xAD")}
+                                    {pluginOrMissingDetails.metadata.license.replaceAll(/(?<!^|\s)(?!$|\s)/g, "\xAD")}
                                 </span>
                             </div>
                         )}
-                        {plugin!.metadata.url && (
+                        {pluginOrMissingDetails?.metadata?.url && (
                             <div
                                 style={{
                                     padding: "calc(2px * var(--gui-scale)) 0",
@@ -411,7 +455,7 @@ export default function PluginDetailsOverlayPage(props: PluginDetailsOverlayPage
                                     URL:
                                 </span>
                                 <a
-                                    href={plugin!.metadata.url}
+                                    href={pluginOrMissingDetails.metadata.url}
                                     class="nsel ndrg emerald-green-link"
                                     style={{
                                         fontFamily: "NotoSans-Regular",
@@ -426,11 +470,11 @@ export default function PluginDetailsOverlayPage(props: PluginDetailsOverlayPage
                                     onClick={(event: JSX.TargetedMouseEvent<HTMLAnchorElement>): void => {
                                         event.preventDefault();
                                         event.currentTarget.blur();
-                                        if (!plugin?.metadata.url) return;
-                                        shell.openExternal(plugin.metadata.url);
+                                        if (!pluginOrMissingDetails?.metadata?.url) return;
+                                        shell.openExternal(pluginOrMissingDetails.metadata.url);
                                     }}
                                 >
-                                    {plugin!.metadata.url}
+                                    {pluginOrMissingDetails.metadata.url}
                                 </a>
                             </div>
                         )}

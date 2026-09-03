@@ -1,6 +1,17 @@
 import semver from "semver";
+import json5 from "json5";
 import "./zip.js";
-import type { OreUICustomizerSettings, PluginManifestJSON, Plugin, PluginEntryScriptPlugin, BuiltInPluginID, EncodedPluginData } from "ore-ui-customizer-types";
+import type {
+    OreUICustomizerSettings,
+    PluginManifestJSON,
+    Plugin,
+    PluginEntryScriptPlugin,
+    BuiltInPluginID,
+    EncodedPluginData,
+    Theme,
+    ThemeManifestJSON,
+    ThemeColorReplacements,
+} from "ore-ui-customizer-types";
 import type {} from "@ore-ui-customizer-api/plugin-env/backend";
 
 /**
@@ -82,6 +93,7 @@ export const defaultOreUICustomizerSettings: OreUICustomizerSettings = {
         "add-max-player-count-to-servers-tab": true,
         "facet-spy": true,
         "make-export-world-button-visible": true,
+        "lite-play-screen-routes": true,
     },
     /**
      * These are replacements for the UI colors.
@@ -357,12 +369,16 @@ export function normalizePathForZipFS(path: string): string {
     return path.replace(/^\.?\/(?:\.?\.\/)*/, "");
 }
 
+// TODO: Add config validation.
+// TODO: Add min_engine_version checks to the OUIC website for plugins and themes, and maybe configs if min_engine_version is added to it.
+
 /**
  * Imports a plugin from a data URI.
  *
- * @param {string} dataURI The data URI to import the plugin from.
- * @param {"js" | "mcouicplugin"} [type="js"] The type of the plugin to import.
- * @returns {Promise<Plugin>} A promise resolving with the imported plugin.
+ * @param dataURI The data URI to import the plugin from.
+ * @param options Options for importing the plugin file.
+ * @param type The type of the plugin to import. Defaults to `"js"`.
+ * @returns A promise resolving with the imported plugin.
  *
  * @throws {TypeError} If the plugin type is not supported.
  *
@@ -380,10 +396,10 @@ export async function importPluginFromDataURI(
         case "mcouicplugin": {
             const zipFs = new zip.fs.FS();
             await zipFs.importData64URI(dataURI);
-            const manifest: PluginManifestJSON = JSON.parse(await (zipFs.getChildByName("manifest.json") as zip.ZipFileEntry<any, any>).getText());
+            const manifest: PluginManifestJSON = json5.parse(await (zipFs.getChildByName("manifest.json") as zip.ZipFileEntry<any, any>).getText());
             const entry: string = normalizePathForZipFS(manifest.entry);
             if (!options.pluginEnvID || !(globalThis as any)[options.pluginEnvID]) {
-                options.pluginEnvID ??= `__plugin_env_${manifest.header.id}_${manifest.header.version}_${Date.now()}_${Math.floor(Math.random() * 1000000)}__`;
+                options.pluginEnvID ??= `__plugin_env_${manifest.header.namespace}:${manifest.header.id}_${manifest.header.version}_${Date.now()}_${Math.floor(Math.random() * 1000000)}__`;
             }
             globalPluginEnvs.set(options.pluginEnvID, {
                 fetchFileContents(path: string): Promise<Uint8Array<ArrayBufferLike>> {
@@ -442,9 +458,7 @@ export async function importPluginFromDataURI(
                 return result;
             }
             let script: string = await loadScriptImports(await (zipFs.find(normalizePathForZipFS(entry)) as zip.ZipFileEntry<any, any>).getText()); */
-            const entryScriptTextContents = await (
-                zipFs.entries.find((currentEntry: zip.ZipEntry): boolean => currentEntry.data?.filename === entry) as zip.ZipFileEntry<any, any>
-            ).getText();
+            const entryScriptTextContents = await (zipFs.find(entry) as zip.ZipFileEntry<any, any>).getText();
             let data: { plugin: PluginEntryScriptPlugin } = await import(
                 /* @vite-ignore */
                 `data:application/javascript,${encodeURIComponent(
@@ -474,9 +488,10 @@ export async function importPluginFromDataURI(
 /**
  * Validates a plugin file.
  *
- * @param {Blob} plugin The plugin file to validate.
- * @param {"mcouicplugin" | "js"} type The type of the plugin file.
- * @returns {Promise<void>} A promise resolving to `void` when the plugin file is validated.
+ * @param plugin The plugin file to validate.
+ * @param options Options for validating the plugin file.
+ * @param type The type of the plugin file.
+ * @returns A promise resolving to `void` when the plugin file is validated.
  *
  * @throws {TypeError} If the plugin type is not supported.
  * @throws {TypeError | SyntaxError | ReferenceError | EvalError} If the plugin is not valid.
@@ -495,7 +510,7 @@ export async function validatePluginFile(
             await zipFs.importBlob(plugin);
             if (!zipFs.getChildByName("manifest.json")) throw new ReferenceError(`Plugin is missing required file "manifest.json".`);
             try {
-                var manifest: PluginManifestJSON = JSON.parse(await (zipFs.getChildByName("manifest.json") as zip.ZipFileEntry<any, any>).getText());
+                var manifest: PluginManifestJSON = json5.parse(await (zipFs.getChildByName("manifest.json") as zip.ZipFileEntry<any, any>).getText());
             } catch (e: any) {
                 throw new SyntaxError(`Plugin "manifest.json" is not valid JSON.`, { cause: e });
             }
@@ -506,7 +521,7 @@ export async function validatePluginFile(
             if (!zipFs.find(entry))
                 throw new ReferenceError(`Plugin is missing required entry file specified by "entry" field in "manifest.json": "${entry}".`);
             if (!options.pluginEnvID || !(globalThis as any)[options.pluginEnvID]) {
-                options.pluginEnvID ??= `__plugin_env_${manifest.header.id}_${manifest.header.version}_${Date.now()}_${Math.floor(Math.random() * 1000000)}__`;
+                options.pluginEnvID ??= `__plugin_env_${manifest.header.namespace}:${manifest.header.id}_${manifest.header.version}_${Date.now()}_${Math.floor(Math.random() * 1000000)}__`;
             }
             globalPluginEnvs.set(options.pluginEnvID, {
                 fetchFileContents(path: string): Promise<Uint8Array<ArrayBufferLike>> {
@@ -537,9 +552,7 @@ export async function validatePluginFile(
                 zipFs,
                 manifest: manifest as any,
             });
-            const entryScriptTextContents: string = await (
-                zipFs.entries.find((currentEntry: zip.ZipEntry): boolean => currentEntry.data?.filename === entry) as zip.ZipFileEntry<any, any>
-            ).getText();
+            const entryScriptTextContents: string = await (zipFs.find(entry) as zip.ZipFileEntry<any, any>).getText();
             try {
                 var data: { plugin: PluginEntryScriptPlugin } = await import(
                     /* @vite-ignore */ `data:application/javascript,${encodeURIComponent(
@@ -556,7 +569,7 @@ export async function validatePluginFile(
                 throw new EvalError(`Plugin entry file "${entry}" threw an error when imported: ${e.name}: ${e.message}`, { cause: e });
             }
             if (data?.plugin) {
-                validatePluginObject({ ...manifest, ...manifest.header, ...data.plugin } as Plugin);
+                validatePluginObject({ ...manifest, ...manifest.header, ...data.plugin } satisfies Plugin);
             } else {
                 throw new SyntaxError(`Plugin entry file "${entry}" is missing required variable export "plugin".`);
             }
@@ -581,8 +594,10 @@ export async function validatePluginFile(
 /**
  * Validates a plugin object.
  *
- * @param {any} plugin The plugin object to validate.
- * @returns {asserts plugin is Plugin} Asserts that the plugin object is valid. If it is not valid, throws an error. Otherwise, returns `void`.
+ * @param plugin The plugin object to validate.
+ * @returns Asserts that the plugin object is valid. If it is not valid, throws an error. Otherwise, returns `void`.
+ *
+ * @throws {TypeError | SyntaxError} If the plugin object is not valid.
  */
 export function validatePluginObject(plugin: any): asserts plugin is Plugin {
     if (typeof plugin !== "object") throw new TypeError(`Plugin must be an object.`);
@@ -605,16 +620,15 @@ export function validatePluginObject(plugin: any): asserts plugin is Plugin {
     if (typeof pluginObject.uuid !== "string") throw new SyntaxError(`Plugin property "uuid" must be a string.`);
     if (!/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.test(pluginObject.uuid))
         throw new SyntaxError(
-            `Plugin property "uuid" must be a valid UUID, it must match the following pattern: /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.`
+            `Plugin property "uuid" must be a valid UUID v4, it must match the following pattern: /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.`
         );
     // description
     if (typeof pluginObject.description !== "undefined" && typeof pluginObject.description !== "string")
         throw new SyntaxError(`Plugin property "description" must be a string or undefined.`);
-    // dependencies
-    if (typeof pluginObject.dependencies !== "undefined" && !(pluginObject.dependencies instanceof Array))
-        throw new SyntaxError(`Plugin property "description" must be an array or undefined.`);
     // -------- DEPENDENCY VALIDATION --------
+    // dependencies
     if (typeof pluginObject.dependencies !== "undefined") {
+        if (!(pluginObject.dependencies instanceof Array)) throw new SyntaxError(`Plugin property "description" must be an array or undefined.`);
         let dependencyIndex: number = -1;
         for (const dependency of pluginObject.dependencies) {
             dependencyIndex++;
@@ -628,7 +642,7 @@ export function validatePluginObject(plugin: any): asserts plugin is Plugin {
                 throw new SyntaxError(`Plugin dependency ${dependencyIndex} property "uuid" must be a string.`);
             if ("uuid" in dependency && !/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.test(dependency.uuid))
                 throw new SyntaxError(
-                    `Plugin dependency ${dependencyIndex} property "uuid" must be a valid UUID, it must match the following pattern: /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.`
+                    `Plugin dependency ${dependencyIndex} property "uuid" must be a valid UUID v4, it must match the following pattern: /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.`
                 );
             // module_name
             if ("module_name" in dependency && typeof dependency.module_name !== "string")
@@ -637,12 +651,14 @@ export function validatePluginObject(plugin: any): asserts plugin is Plugin {
             if (!("uuid" in dependency || "module_name" in dependency))
                 throw new SyntaxError(`Plugin dependency ${dependencyIndex} is missing required property "uuid" or "module_name".`);
             // version
-            if (!dependency.version) throw new SyntaxError(`Plugin dependency ${dependencyIndex} is missing required property "version".`);
-            if (typeof dependency.version !== "string") throw new SyntaxError(`Plugin dependency ${dependencyIndex} property "version" must be a string.`);
-            if (dependency.version.startsWith("v"))
-                throw new SyntaxError(`Plugin dependency ${dependencyIndex} property "version" must not include the leading "v".`);
-            if (semver.valid(dependency.version) === null)
-                throw new SyntaxError(`Plugin dependency ${dependencyIndex} property "version" must be a valid semver version.`);
+            if (dependency.version !== undefined) {
+                if (typeof dependency.version !== "string")
+                    throw new SyntaxError(`Plugin dependency ${dependencyIndex} property "version" must be a string or undefined.`);
+                if (dependency.version.startsWith("v"))
+                    throw new SyntaxError(`Plugin dependency ${dependencyIndex} property "version" must not include the leading "v".`);
+                if (semver.valid(dependency.version) === null)
+                    throw new SyntaxError(`Plugin dependency ${dependencyIndex} property "version" must be a valid semver version.`);
+            }
         }
     }
     // -------- PROPERTY VALIDATION --------
@@ -692,6 +708,300 @@ export function validatePluginObject(plugin: any): asserts plugin is Plugin {
         actionIndex++;
     }
     return;
+}
+
+/**
+ * Imports a theme from a data URI.
+ *
+ * @param dataURI The data URI to import the theme from.
+ * @param options Options for importing the theme file.
+ * @param type The type of the theme to import. Defaults to `"mcouictheme"`.
+ * @returns A promise resolving with the imported theme.
+ *
+ * @throws {TypeError} If the theme type is not supported.
+ *
+ * @todo Add support for relative script imports in the scripts of .mcouicplugin files, use RollupJS, also use the `rollup-plugin-typescript2` RollupJS plugin to allow for typescript. (NOTE: Maybe actually just use SystemJS instead.)
+ */
+export async function importThemeFromDataURI(dataURI: string, _options: { $TODO?: never }, type: "mcouictheme" = "mcouictheme"): Promise<Theme> {
+    switch (type) {
+        case "mcouictheme": {
+            const zipFs = new zip.fs.FS();
+            await zipFs.importData64URI(dataURI);
+            const manifest: ThemeManifestJSON = json5.parse(await (zipFs.getChildByName("manifest.json") as zip.ZipFileEntry<any, any>).getText());
+            const theme: Theme = { ...manifest, ...manifest.header, zip: zipFs };
+            return theme;
+        }
+        default: {
+            throw new TypeError(`Unsupported theme type "${type}".`);
+        }
+    }
+}
+
+/**
+ * Validates a theme file.
+ *
+ * @param theme The theme file to validate.
+ * @param options Options for validating the theme file.
+ * @param type The type of the theme file.
+ * @returns A promise resolving to `void` when the theme file is validated.
+ *
+ * @throws {TypeError} If the theme type is not supported.
+ * @throws {TypeError | SyntaxError | ReferenceError} If the theme is not valid.
+ *
+ * @todo Add a way to use this with a directory without having to ZIP it first, so that it can be used more efficiently in the Ore UI Customizer app.
+ * @todo Add a version of this that just outputs a list of the errors instead of only just throwing the first one.
+ */
+export async function validateThemeFile(theme: Blob, _options: { $TODO?: never }, type: "mcouictheme"): Promise<void> {
+    switch (type) {
+        case "mcouictheme": {
+            const zipFs: zip.FS = new zip.fs.FS();
+            await zipFs.importBlob(theme);
+            if (!zipFs.getChildByName("manifest.json")) throw new ReferenceError(`Theme is missing required file "manifest.json".`);
+            try {
+                var manifest: ThemeManifestJSON = json5.parse(await (zipFs.getChildByName("manifest.json") as zip.ZipFileEntry<any, any>).getText());
+            } catch (e: any) {
+                throw new SyntaxError(`Theme "manifest.json" is not valid JSON.`, { cause: e });
+            }
+            validateThemeObject({ ...manifest, ...manifest.header, zip: zipFs } satisfies Theme);
+            // IDEA: Maybe add file type validation for files in textures, videos, etc.
+            const colorReplacementsZipEntry = zipFs.find("color_replacements.json") as zip.ZipFileEntry<any, any> | zip.ZipDirectoryEntry;
+            if (colorReplacementsZipEntry) {
+                if (colorReplacementsZipEntry.directory) throw new ReferenceError(`Theme "color_replacements.json" file is a directory.`);
+                try {
+                    var colorReplacements: ThemeColorReplacements = json5.parse(await colorReplacementsZipEntry.getText());
+                } catch (e) {
+                    throw new SyntaxError(`Theme "color_replacements.json" is not valid JSON.`, { cause: e });
+                }
+                validateThemeColorReplacementsObject(colorReplacements);
+            }
+            return;
+        }
+        default: {
+            throw new TypeError(`Unsupported theme type "${type}".`);
+        }
+    }
+}
+
+/**
+ * Validates a theme object.
+ *
+ * @param theme The theme object to validate.
+ * @returns Asserts that the theme object is valid. If it is not valid, throws an error. Otherwise, returns `void`.
+ *
+ * @throws {TypeError | SyntaxError} If the theme object is not valid.
+ *
+ * @todo Add a way to make it show stuff like `Theme is missing required property "header/format_version".` instead of `Theme is missing required property "format_version".` when this is used by certain functions.
+ */
+export function validateThemeObject(theme: any): asserts theme is Theme {
+    if (typeof theme !== "object") throw new TypeError(`Theme must be an object.`);
+    const themeObject: Theme = theme;
+    // -------- PROPERTY VALIDATION --------
+    // zip
+    if (!themeObject.zip) throw new SyntaxError(`Theme is missing required property "zip".`);
+    if (!(themeObject.zip instanceof zip.fs.FS)) throw new SyntaxError(`Theme property "zip" must be an instance of zip.fs.FS.`);
+    // format_version
+    if (!themeObject.format_version) throw new SyntaxError(`Theme is missing required property "format_version".`);
+    if (typeof themeObject.format_version !== "string") throw new SyntaxError(`Theme property "format_version" must be a string.`);
+    if (themeObject.format_version.startsWith("v")) throw new SyntaxError(`Theme property "format_version" must not include the leading "v".`);
+    if (semver.valid(themeObject.format_version) === null) throw new SyntaxError(`Theme property "format_version" must be a valid semver version.`);
+    // // id
+    // if (!themeObject.id) throw new SyntaxError(`Theme is missing required property "id".`);
+    // if (typeof themeObject.id !== "string") throw new SyntaxError(`Theme property "id" must be a string.`);
+    // if (!/^[a-zA-Z0-9_\-.]+$/.test(themeObject.id)) throw new SyntaxError(`Theme property "id" does not match the pattern /^[a-zA-Z0-9_\\-.]+$/.`);
+    // uuid
+    if (!themeObject.uuid) throw new SyntaxError(`Theme is missing required property "uuid".`);
+    if (typeof themeObject.uuid !== "string") throw new SyntaxError(`Theme property "uuid" must be a string.`);
+    if (!/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.test(themeObject.uuid))
+        throw new SyntaxError(
+            `Theme property "uuid" must be a valid UUID v4, it must match the following pattern: /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.`
+        );
+    // description
+    if (typeof themeObject.description !== "undefined" && typeof themeObject.description !== "string")
+        throw new SyntaxError(`Theme property "description" must be a string or undefined.`);
+    // -------- DEPENDENCY VALIDATION --------
+    // dependencies
+    if (typeof themeObject.dependencies !== "undefined") {
+        if (!(themeObject.dependencies instanceof Array)) throw new SyntaxError(`Theme property "description" must be an array or undefined.`);
+        let dependencyIndex: number = -1;
+        for (const dependency of themeObject.dependencies) {
+            dependencyIndex++;
+            // -------- DEPENDENCY VALIDATION > TYPE VALIDATION --------
+            // dependency
+            if (typeof dependency === "undefined") continue;
+            if (typeof dependency !== "object") throw new SyntaxError(`Theme dependency ${dependencyIndex} must be an object.`);
+            // -------- DEPENDENCY VALIDATION > PROPERTY VALIDATION --------
+            // uuid
+            if (!("uuid" in dependency)) throw new SyntaxError(`Theme dependency ${dependencyIndex} is missing required property "uuid".`);
+            if (typeof dependency.uuid !== "string") throw new SyntaxError(`Theme dependency ${dependencyIndex} property "uuid" must be a string.`);
+            if (!/^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.test(dependency.uuid))
+                throw new SyntaxError(
+                    `Theme dependency ${dependencyIndex} property "uuid" must be a valid UUID v4, it must match the following pattern: /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.`
+                );
+            // version
+            if (dependency.version !== undefined) {
+                if (typeof dependency.version !== "string")
+                    throw new SyntaxError(`Theme dependency ${dependencyIndex} property "version" must be a string or undefined.`);
+                if (dependency.version.startsWith("v"))
+                    throw new SyntaxError(`Theme dependency ${dependencyIndex} property "version" must not include the leading "v".`);
+                if (semver.valid(dependency.version) === null)
+                    throw new SyntaxError(`Theme dependency ${dependencyIndex} property "version" must be a valid semver version.`);
+            }
+        }
+    }
+    // -------- PROPERTY VALIDATION --------
+    // metadata
+    if (typeof themeObject.metadata !== "undefined" && typeof themeObject.metadata !== "object")
+        throw new SyntaxError(`Theme property "metadata" must be an object or undefined.`);
+    // name
+    if (!themeObject.name) throw new SyntaxError(`Theme is missing required property "name".`);
+    if (typeof themeObject.name !== "string") throw new SyntaxError(`Theme property "name" must be a string.`);
+    // min_engine_version
+    if (typeof themeObject.min_engine_version !== "undefined") {
+        if (typeof themeObject.min_engine_version !== "string") throw new SyntaxError(`Theme property "min_engine_version" must be a string or undefined.`);
+        if (themeObject.min_engine_version.startsWith("v")) throw new SyntaxError(`Theme property "min_engine_version" must not include the leading "v".`);
+        if (semver.valid(themeObject.min_engine_version) === null)
+            throw new SyntaxError(`Theme property "min_engine_version" must be a valid semver version or undefined.`);
+    }
+    // // namespace
+    // if (!themeObject.namespace) throw new SyntaxError(`Theme is missing required property "namespace".`);
+    // if (themeObject.namespace === "built-in" && !builtInThemes.includes(themeObject as (typeof builtInThemes)[number]))
+    //     throw new SyntaxError(`Theme is using the reserved namespace "built-in" but is not a built-in theme.`);
+    // if (!/^[a-zA-Z0-9_\-.]+$/.test(themeObject.namespace))
+    //     throw new SyntaxError(`Theme property "namespace" does not match the pattern /^[a-zA-Z0-9_\\-.]+$/.`);
+    // version
+    if (!themeObject.version) throw new SyntaxError(`Theme is missing required property "version".`);
+    if (typeof themeObject.version !== "string") throw new SyntaxError(`Theme property "version" must be a string.`);
+    if (themeObject.version.startsWith("v")) throw new SyntaxError(`Theme property "version" must not include the leading "v".`);
+    if (semver.valid(themeObject.version) === null) throw new SyntaxError(`Theme property "version" must be a valid semver version.`);
+    return;
+}
+
+/**
+ * Validates a theme `color_replacements.json` JSON object.
+ *
+ * @param colorReplacements The theme color replacements object to validate.
+ * @returns Asserts that the theme color replacements object is valid. If it is not valid, throws an error. Otherwise, returns `void`.
+ */
+export function validateThemeColorReplacementsObject(colorReplacements: any): asserts colorReplacements is ThemeColorReplacements {
+    if (typeof colorReplacements !== "object") throw new TypeError(`Plugin must be an object.`);
+    const colorReplacementsObject: ThemeColorReplacements = colorReplacements;
+    if (!("format_version" in colorReplacementsObject))
+        throw new SyntaxError(`Theme "color_replacements.json" is missing required property "format_version".`, { cause: colorReplacementsObject });
+    if (typeof colorReplacementsObject.format_version !== "number")
+        throw new SyntaxError(`Theme "color_replacements.json" property "format_version" must be a number.`, { cause: colorReplacementsObject });
+    switch (colorReplacementsObject.format_version) {
+        case 1: {
+            // colorReplacements
+            if (typeof colorReplacementsObject.colorReplacements !== "undefined" && typeof colorReplacementsObject.colorReplacements !== "object")
+                throw new SyntaxError(`Theme "color_replacements.json" property "colorReplacements" must be an object or undefined.`);
+            if (colorReplacementsObject.colorReplacements)
+                throw new SyntaxError(`Theme "color_replacements.json" property "colorReplacements" must not be null.`);
+            // advancedColorReplacements
+            if (
+                typeof colorReplacementsObject.advancedColorReplacements !== "undefined" &&
+                typeof colorReplacementsObject.advancedColorReplacements !== "object"
+            )
+                throw new SyntaxError(`Theme "color_replacements.json" property "advancedColorReplacements" must be an object or undefined.`);
+            if (colorReplacementsObject.advancedColorReplacements)
+                throw new SyntaxError(`Theme "color_replacements.json" property "advancedColorReplacements" must not be null.`);
+            // TODO: Maybe add deeper validation for colorReplacements and advancedColorReplacements, to check the types of properties deeper in the tree.
+            break;
+        }
+        default:
+            throw new SyntaxError(`Unsupported "color_replacements.json" format_version: ${colorReplacementsObject.format_version}`, {
+                cause: colorReplacementsObject,
+            });
+    }
+}
+
+/**
+ * Gets the data from the `color_replacements.json` files of the provided themes.
+ *
+ * @param themes The themes to get the color replacements data for.
+ * @returns A promise that resolves with the color replacements data for the themes.
+ */
+export async function getColorReplacementsDataForThemes(themes: Theme[]): Promise<ThemeColorReplacements[]> {
+    return (
+        await Promise.all(
+            themes.map(async (theme: Theme): Promise<ThemeColorReplacements | undefined> => {
+                const zipEntry = theme.zip.getChildByName("color_replacements.json") as zip.ZipFileEntry<any, any> | undefined;
+                if (!zipEntry) return undefined;
+                const colorReplacementsData: ThemeColorReplacements = json5.parse(await zipEntry.getText()) as ThemeColorReplacements;
+                if (colorReplacementsData.format_version !== 1) {
+                    throw new Error(`Unsupported format version for color_replacements.json: ${colorReplacementsData.format_version}`);
+                }
+                return colorReplacementsData;
+            })
+        )
+    ).filter((v: ThemeColorReplacements | undefined): v is ThemeColorReplacements => v !== undefined);
+}
+
+/**
+ * An object containing details of an asset in a theme.
+ */
+export interface ThemeAssetItem {
+    theme: Theme;
+    filePathInTheme: string;
+    distFilePath: string;
+}
+
+/**
+ * The type of an asset in a theme.
+ */
+export type ThemeAssetType = "textures" | "videos" /* | "sounds" */ | "font";
+
+/**
+ * An object containing a list of assets for each type of asset in a theme.
+ */
+export interface ThemeAssetsData {
+    theme: Theme;
+    assets: Record<ThemeAssetType, ThemeAssetItem[]>;
+}
+
+/**
+ * Gets the assets of the provided themes.
+ *
+ * @param themes The themes to get the assets for.
+ * @returns The assets for the themes.
+ */
+export function getAssetsDataForThemes(themes: Theme[]): ThemeAssetsData[] {
+    const typeToValidFileExtensionsMap: Record<ThemeAssetType, `.${string}`[]> = {
+        textures: [".gif", ".svg", ".tga" /* REVIEW: See if .tga images are supported. */, ".png", ".jpg", ".jpeg"],
+        videos: [".webm"],
+        // sounds: [".ogg", ".mp3", ".wav", ".fsb"],
+        font: [".otf", ".ttf"],
+    };
+    const themeAssetsDataList: ThemeAssetsData[] = [];
+    for (const theme of themes) {
+        const themeAssetsData: ThemeAssetsData = {
+            theme,
+            assets: {
+                textures: [],
+                videos: [],
+                // sounds: [],
+                font: [],
+            },
+        };
+        for (const type of Object.keys(themeAssetsData.assets) as ThemeAssetType[]) {
+            const dirEntry = theme.zip.find("textures");
+            if (!dirEntry) continue;
+            if (!dirEntry.directory) throw new Error(`Theme ${JSON.stringify(type)} directory is not a directory.`, { cause: theme });
+            function recurseEntries(currentDirEntry: zip.ZipDirectoryEntry): void {
+                for (const child of currentDirEntry.children) {
+                    if (child.directory) return void recurseEntries(child);
+                    if (!typeToValidFileExtensionsMap[type].some((ext: `.${string}`): boolean => child.name.toLowerCase().endsWith(ext))) continue;
+                    themeAssetsData.assets[type].push({
+                        theme,
+                        filePathInTheme: child.getFullname(),
+                        distFilePath: `gui/dist/${child.getRelativeName(dirEntry as zip.ZipDirectoryEntry)}`,
+                    });
+                }
+            }
+            recurseEntries(dirEntry);
+        }
+        themeAssetsDataList.push(themeAssetsData);
+    }
+    return themeAssetsDataList;
 }
 
 /**
@@ -1595,7 +1905,7 @@ export const builtInPlugins = [
         name: "Add exact ping count to servers tab.",
         id: "add-exact-ping-count-to-servers-tab",
         namespace: "built-in",
-        version: "1.0.0",
+        version: "1.0.1",
         uuid: "a1ffa1f2-a8d1-4948-a307-4067d4a82880",
         description: "A built-in plugin that adds the exact ping count to the servers tab.",
         actions: [
@@ -1603,7 +1913,8 @@ export const builtInPlugins = [
                 id: "add-exact-ping-count-to-servers-tab",
                 context: "per_text_file",
                 action: async (currentFileContent: string, file: zip.ZipFileEntry<any, any>): Promise<string> => {
-                    if (!/index-[0-9a-f]{5,20}\.js$/.test(file.data?.filename!)) return currentFileContent;
+                    const fullFilename: string = file.getFullname();
+                    if (!/index-[0-9a-f]{5,20}\.js$/.test(fullFilename)) return currentFileContent;
                     const origData: string = await file.getText();
                     const bindingVaiableTarget = origData
                         .match(
@@ -1642,7 +1953,7 @@ export const builtInPlugins = [
         name: "Add max player count to servers tab.",
         id: "add-max-player-count-to-servers-tab",
         namespace: "built-in",
-        version: "1.0.0",
+        version: "1.0.1",
         uuid: "09b88cde-e265-4f42-b203-564f0df6ca1e",
         description: "A built-in plugin that adds the max player count to the servers tab.",
         actions: [
@@ -1650,7 +1961,8 @@ export const builtInPlugins = [
                 id: "add-max-player-count-to-servers-tab",
                 context: "per_text_file",
                 action: async (currentFileContent: string, file: zip.ZipFileEntry<any, any>): Promise<string> => {
-                    if (!/index-[0-9a-f]{5,20}\.js$/.test(file.data?.filename!)) return currentFileContent;
+                    const fullFilename: string = file.getFullname();
+                    if (!/index-[0-9a-f]{5,20}\.js$/.test(fullFilename)) return currentFileContent;
                     if (
                         !/function ([a-zA-Z0-9_$]{2})\(\{playerCount:([a-zA-Z0-9_$]),maximumCapacity:([a-zA-Z0-9_$])\}\)\{const ([a-zA-Z0-9_$])=\(0,([a-zA-Z0-9_$])\.useFacetMap\)\(\(\((?:[a-zA-Z0-9_$]),(?:[a-zA-Z0-9_$])\)=>0!==(?:[a-zA-Z0-9_$])&&(?:[a-zA-Z0-9_$])===(?:[a-zA-Z0-9_$])\),\[\],\[(?:[a-zA-Z0-9_$]),(?:[a-zA-Z0-9_$])\]\),\{(?:[a-zA-Z0-9_$]):([a-zA-Z0-9_$])\}=([a-zA-Z0-9_$]{2})\("PlayScreen\.serverCapacity"\);return ([a-zA-Z0-9_$])\.createElement\("div",\{className:"([^"]+?)"\},(?:[a-zA-Z0-9_$])\.createElement\(([a-zA-Z0-9_$]{2}),null\),(?:[a-zA-Z0-9_$])\.createElement\(([a-zA-Z0-9_$]{2}),\{size:1\}\),(?:[a-zA-Z0-9_$])\.createElement\(([a-zA-Z0-9_$]{2}),\{type:"body",variant:"dimmer"\},(?:[a-zA-Z0-9_$])\)/.test(
                             currentFileContent
@@ -1674,7 +1986,7 @@ export const builtInPlugins = [
         name: "Facet spy.",
         id: "facet-spy",
         namespace: "built-in",
-        version: "1.1.0",
+        version: "1.2.1",
         uuid: "e2355295-b202-4f4b-96b8-7bd7b6eaac23",
         description: "Facet spy.",
         actions: [
@@ -1682,14 +1994,15 @@ export const builtInPlugins = [
                 id: "inject-facet-spy",
                 context: "per_text_file",
                 async action(currentFileContent: string, file: zip.ZipFileEntry<any, any>): Promise<string> {
-                    if (!/(?:index|gameplay|editor(?:-menu|-project)?)-[0-9a-f]{5,20}\.js$/.test(file.data?.filename!)) return currentFileContent;
+                    const fullFilename: string = file.getFullname();
+                    if (!/(?:index|gameplay|editor(?:-menu|-project)?)-[0-9a-f]{5,20}\.js$/.test(fullFilename)) return currentFileContent;
                     const origData: string = await file.getText();
                     if (
                         !/inverse:\(0,([a-zA-Z0-9_$])\.useFacetMap\)\(\(([a-zA-Z0-9_$])=>"POP"===(?:[a-zA-Z0-9_$])\),\[\],\[([a-zA-Z0-9_$])\]\)\}\)\)\)/.test(
                             currentFileContent
                         )
                     ) {
-                        throw new Error(`Unable to find facet spy render injection location in file "${file.data?.filename}".`);
+                        throw new Error(`Unable to find facet spy render injection location in file "${fullFilename}".`);
                     }
                     /**
                      * The symbol name of the facet access holder.
@@ -1703,7 +2016,7 @@ export const builtInPlugins = [
                             /([a-zA-Z0-9_$])\.createElement\((?:[a-zA-Z0-9_$]),\{visible:(?:[a-zA-Z0-9_$]),alwaysMounted:(?:[a-zA-Z0-9_$]),/
                         )![1]!}.createElement(facetSpy,null)`
                     );
-                    const isEditorMode: boolean = /editor(?:-menu|-project)?-[0-9a-f]{5,20}\.js$/.test(file.data?.filename!);
+                    const isEditorMode: boolean = /editor(?:-menu|-project)?-[0-9a-f]{5,20}\.js$/.test(fullFilename);
                     /**
                      * The facet spy function that will be injected into the file.
                      */
@@ -1965,7 +2278,7 @@ export const builtInPlugins = [
             }
             function forceLoadFacet(facetName, timeout = 5000, ignoreAlreadyLoadedData = false) {
                 return new Promise((resolve, reject) => {
-                    const currentFacetData = ignoreAlreadyLoadedData ? undefined : (globalThis.facetSpyData.sharedFacets?.[facetName] ?? accessedFacets[facetName]?.())?.get();
+                    const currentFacetData = ignoreAlreadyLoadedData ? undefined : (globalThis.facetSpyData?.sharedFacets?.[facetName] ?? accessedFacets[facetName]?.())?.get();
                     if ((currentFacetData?.toString?.() ?? "Symbol(NoValue)") !== "Symbol(NoValue)") {
                         resolve(currentFacetData);
                         return;
@@ -2177,30 +2490,30 @@ export const builtInPlugins = [
                         // Brackets so that the 5 MiB variable is discarded immediately afterwards.
                         const preInjectionContent: string = currentFileContent;
                         const facetAccessHolderReplacementTarget: RegExp =
-                            /index-[0-9a-f]{5,20}\.js$/.test(file.data?.filename!) ?
+                            /index-[0-9a-f]{5,20}\.js$/.test(fullFilename) ?
                                 new RegExp(
                                     `(?<!\\(\\)=>(?:[a-zA-Z0-9_$])\\}\\);)var ([a-zA-Z0-9_$])=([a-zA-Z0-9_$])\\(([0-9]+)\\),${facetAccessHolderBindingVariableTarget}=\\2\\(([0-9]+)\\);(?=const (?:[a-zA-Z0-9_$])=\\(0,(?:[a-zA-Z0-9_$])\\.createContext\\))`
                                 )
-                            : /gameplay-[0-9a-f]{5,20}\.js$/.test(file.data?.filename!) ?
+                            : /gameplay-[0-9a-f]{5,20}\.js$/.test(fullFilename) ?
                                 new RegExp(`.URLSearchParams;var ${facetAccessHolderBindingVariableTarget}=([a-zA-Z0-9_$])\\(([0-9]+)\\);`)
                             :   new RegExp(`var ${facetAccessHolderBindingVariableTarget}=([a-zA-Z0-9_$])\\(([0-9]+)\\);`);
-                        let contextHolderNotInjected: boolean = !/index-[0-9a-f]{5,20}\.js$/.test(file.data?.filename!);
+                        let contextHolderNotInjected: boolean = !/index-[0-9a-f]{5,20}\.js$/.test(fullFilename);
                         if (!facetAccessHolderReplacementTarget.test(currentFileContent)) {
-                            throw new Error(`Unable to find facet spy facet access holder variable injection location in file "${file.data?.filename}".`);
+                            throw new Error(`Unable to find facet spy facet access holder variable injection location in file "${fullFilename}".`);
                         }
                         currentFileContent = currentFileContent.replace(
                             facetAccessHolderReplacementTarget,
                             getFacetSpyFunction(
-                                /index-[0-9a-f]{5,20}\.js$/.test(file.data?.filename!) ?
+                                /index-[0-9a-f]{5,20}\.js$/.test(fullFilename) ?
                                     `var $1 = (globalThis.contextHolder = $2($3)),
                 ${facetAccessHolderBindingVariableTarget} = (globalThis.facetAccessHolder = $2($4));`
-                                : /gameplay-[0-9a-f]{5,20}\.js$/.test(file.data?.filename!) ?
+                                : /gameplay-[0-9a-f]{5,20}\.js$/.test(fullFilename) ?
                                     `.URLSearchParams;
             var ${facetAccessHolderBindingVariableTarget} = (globalThis.facetAccessHolder = $1($2));`
                                 :   `var ${facetAccessHolderBindingVariableTarget} = (globalThis.facetAccessHolder = $1($2));`
                             )
                         );
-                        if (currentFileContent === preInjectionContent && /gameplay-[0-9a-f]{5,20}\.js$/.test(file.data?.filename!)) {
+                        if (currentFileContent === preInjectionContent && /gameplay-[0-9a-f]{5,20}\.js$/.test(fullFilename)) {
                             const preContextHolderReplacementFileContent: string = currentFileContent;
                             currentFileContent = currentFileContent.replace(
                                 new RegExp(
@@ -2212,11 +2525,11 @@ export const builtInPlugins = [
                             if (currentFileContent !== preContextHolderReplacementFileContent) contextHolderNotInjected = false;
                         }
                         if (currentFileContent === preInjectionContent) {
-                            throw new Error(`Failed to inject facetSpy function into file "${file.data?.filename}".`);
+                            throw new Error(`Failed to inject facetSpy function into file "${fullFilename}".`);
                         }
-                        // if (contextHolderNotInjected) throw new Error(`Facet spy context holder variable not injected into file "${file.data?.filename}".`);
+                        // if (contextHolderNotInjected) throw new Error(`Facet spy context holder variable not injected into file "${fullFilename}".`);
                         if (contextHolderNotInjected) {
-                            console.warn(new Error(`Facet spy context holder variable not injected into file "${file.data?.filename}".`));
+                            console.warn(new Error(`Facet spy context holder variable not injected into file "${fullFilename}".`));
                         }
                     }
                     {
@@ -2235,17 +2548,30 @@ export const builtInPlugins = [
                 };`
                         );
                         if (currentFileContent === preInjectionContent) {
-                            throw new Error(`Failed to inject into sharedFacet function into file "${file.data?.filename}".`);
+                            throw new Error(`Failed to inject into sharedFacet function into file "${fullFilename}".`);
                         }
                     }
                     return currentFileContent;
                 },
             },
+        ],
+        format_version: "1.0.0",
+        min_engine_version: "1.0.0",
+    },
+    {
+        name: "Lite play screen routes.",
+        id: "lite-play-screen-routes",
+        namespace: "built-in",
+        version: "1.0.1",
+        uuid: "61991c84-c751-4d48-8412-5acd690144f3",
+        description: "Injects the routes for the lite play screen into the routes.json and index.js files.",
+        actions: [
             {
                 id: "inject-into-routes",
                 context: "per_text_file",
                 async action(currentFileContent: string, file: zip.ZipFileEntry<any, any>): Promise<string> {
-                    if (/routes\.json$/.test(file.data?.filename!)) {
+                    const fullFilename: string = file.getFullname();
+                    if (/routes\.json$/.test(fullFilename)) {
                         if (
                             !/(?<="fileName"(?:[\s\n]*):([\s\n]*)"\/hbui\/index\.html",(?:[\s\n]*)"scope":(?:[\s\n]*)\[(?:[\s\n]*)"in-game"(?:[\s\n]*),(?:[\s\n]*)"out-of-game"(?:[\s\n]*)\](?:[\s\n]*),(?:[\s\n]*)(?:"defaultRoute"(?:[\s\n]*):(?:[\s\n]*)""(?:[\s\n]*),(?:[\s\n]*))?"supportedRoutes"(?:[\s\n]*):(?:[\s\n]*)\[([\s\n]*))(?=\{([\s\n]*)")/.test(
                                 currentFileContent
@@ -2258,7 +2584,7 @@ export const builtInPlugins = [
                             `{$3"route":$1"/ouic/:menu/:tab?",$3"modes":$1[],$3"regexp":$1"^\\\\/ouic\\\\/([^\\\\/]+?)(?:\\\\/([^\\\\/]+?))?(?:\\\\/)?$",$3"params":$1[{"name":"menu","prefix":"/","delimiter":"/","optional":false,"repeat":false,"pattern":"[^\\\\/]+?"},{"name":"tab","prefix":"/","delimiter":"/","optional":true,"repeat":false,"pattern":"[^\\\\/]+?"}],$3"transition":$1"RouteSlideTransition"$2},$2`
                         );
                         return currentFileContent;
-                    } else if (/index-[0-9a-f]{5,20}\.js$/.test(file.data?.filename!)) {
+                    } else if (/index-[0-9a-f]{5,20}\.js$/.test(fullFilename)) {
                         const origData: string = await file.getText();
                         /**
                          * The symbol name of the facet access holder.
@@ -2279,7 +2605,7 @@ export const builtInPlugins = [
                                 `(?<=([a-zA-Z0-9_$])\\.createElement\\(([a-zA-Z0-9_$]{2}),\\{route:"/play/servers/add",component:(?:[a-zA-Z0-9_$]{2})(?:\\.ExternalServerForm)?,transitionComponent:([a-zA-Z0-9_$]{2})\\}\\),)`
                             ).test(currentFileContent)
                         ) {
-                            throw new Error(`Unable to find routes in file "${file.data?.filename}".`);
+                            throw new Error(`Unable to find routes in file "${fullFilename}".`);
                         }
                         currentFileContent = currentFileContent.replace(
                             new RegExp(
@@ -2340,14 +2666,14 @@ export const builtInPlugins = [
                 },
             },
         ],
-        format_version: "1.0.0",
+        format_version: "1.17.0+BUILD.8",
         min_engine_version: "1.0.0",
     },
     {
         name: "Make export world button visible.",
         id: "make-export-world-button-visible",
         namespace: "built-in",
-        version: "1.0.0",
+        version: "1.0.1",
         uuid: "69e1926b-f1d6-4744-8fe7-a64aed9d6d91",
         description: "A built-in plugin that makes the export world button visible on non-Windows platforms, such as Android.",
         actions: [
@@ -2355,7 +2681,8 @@ export const builtInPlugins = [
                 id: "make-export-world-button-visible",
                 context: "per_text_file",
                 action: async (currentFileContent: string, file: zip.ZipFileEntry<any, any>): Promise<string> => {
-                    if (!/index-[0-9a-f]{5,20}\.js$/.test(file.data?.filename!)) return currentFileContent;
+                    const fullFilename: string = file.getFullname();
+                    if (!/index-[0-9a-f]{5,20}\.js$/.test(fullFilename)) return currentFileContent;
                     if (!/(?<=createElement\([a-zA-Z0-9_$]{3},\{[a-zA-Z0-9_$:,\s]*,showExportButton:)[a-zA-Z0-9_$]{1}(?=,|\})/g.test(currentFileContent)) {
                         throw new Error("Unable to find binding variable target.");
                     }
@@ -2367,9 +2694,15 @@ export const builtInPlugins = [
                 },
             },
         ],
-        format_version: "0.25.0",
+        format_version: "1.16.0",
         min_engine_version: "0.25.0",
     },
 ] as const satisfies (Plugin & { namespace: "built-in" })[];
+
+/**
+ * The built-in themes.
+ */
+// IDEA: Add some build-in themes here.
+export const builtInThemes = [] as const satisfies (Theme & { namespace: "built-in" })[];
 
 type __INTERNAL_DEV_MissingBuiltInPluginIDs__ = Exclude<(typeof builtInPlugins)[number]["id"], BuiltInPluginID>;

@@ -10,7 +10,7 @@ import semver, { type SemVer } from "semver";
 import { API_SOURCE_WEBSITE_URL, APP_DATA_FOLDER_PATH, CACHE_FOLDER_PATH, CACHE_FOLDER_SUBPATHS, OLD_APP_DATA_FOLDER_PATH } from "./URLs";
 import "./zip.js";
 import { ConfigManager } from "./ConfigManager.ts";
-import type { EncodedPluginData, OreUICustomizerSettings } from "ore-ui-customizer-types";
+import type { EncodedPluginData, EncodedThemeData, OreUICustomizerConfig_Settings, OreUICustomizerSettings } from "ore-ui-customizer-types";
 import { applyMods, format_version } from "./ore-ui-customizer-api.ts";
 import { addFolderContentsReversed, compareZips, compareZipsFull } from "./folderContentsUtils.ts";
 import { OreUICustomizerPlugin, PluginManager, type MissingPluginInfo } from "./PluginManager.ts";
@@ -23,6 +23,7 @@ import { exec } from "node:child_process";
 import { runCommmand } from "./miscUtils.ts";
 import * as ini from "ini";
 import type { BinaryXMLDocument } from "binary-xml";
+import { OreUICustomizerTheme, ThemeManager } from "./ThemeManager.ts";
 const BinaryXML = require("binary-xml") as typeof import("binary-xml");
 const { dialog } = require("@electron/remote") as typeof import("@electron/remote");
 
@@ -399,6 +400,7 @@ export class InstallationManager {
         versionFolderPath: string,
         includeInstallationStatus: boolean = false
     ): VersionFolderVersionDetails | Omit<VersionFolderVersionDetails, "installationStatus"> | undefined {
+        // FIXME: This detects newer dev preview/beta builds as Release rather than Preview or Beta.
         const details: Partial<VersionFolderVersionDetailsExtended> & VersionFolderVersionDetails = {
             version: [0, 0, 0, 0],
             channel: "Unknown",
@@ -457,7 +459,9 @@ export class InstallationManager {
                 const versionSegments = AppxManifestXMLVersion.split(".") as [`${number}`, `${number}`, `${number}`, `${number}`];
                 let version: `${number}.${number}.${number}.${number}`;
                 if (versionSegments[0] === "0") {
-                    if (versionSegments[1].length < 4) {
+                    if (versionSegments[1].length < 3) {
+                        version = `0.${Number(versionSegments[1])}.0.${Number(versionSegments[2])}` as const;
+                    } else if (versionSegments[1].length < 4) {
                         version = `0.${Number(versionSegments[1]?.slice(0, -1))}.${Number(versionSegments[1]?.slice(-1))}.${Number(
                             versionSegments[2]
                         )}` as const;
@@ -476,6 +480,38 @@ export class InstallationManager {
                     : AppxManifestXMLEdition === "microsoft.minecraftwindowsbeta" ? "Preview"
                     : "Unknown";
                 details.dev = AppxManifestPhonePublisherId === "00000000-0000-0000-0000-000000000000"; // TODO: Figure out how to check this for GDK builds.
+                const threePartVersion: string = version.split(".").slice(0, 3).join(".");
+                const versionPartFour: number = Number(version.split(".")[3]);
+                if (AppxManifestXMLEdition === "microsoft.minecraftuwp" /* && semver.gt("1.18.30", threePartVersion) */) {
+                    switch (true) {
+                        case semver.lt("1.17.0", threePartVersion):
+                            if (versionPartFour >= 20) details.channel = "Beta";
+                            break;
+                        case semver.lte("1.14.0", threePartVersion):
+                            if (versionPartFour >= 50) details.channel = "Beta";
+                            break;
+                        case threePartVersion === "1.15.0":
+                        case version === "1.14.25.1":
+                        case threePartVersion === "1.14.1" && versionPartFour < 5:
+                        case threePartVersion === "1.14.0" && versionPartFour < 9:
+                        case threePartVersion === "1.13.0" && versionPartFour < 34:
+                        case threePartVersion === "1.12.0" && versionPartFour < 28:
+                        case threePartVersion === "1.11.0" && versionPartFour < 23:
+                        case threePartVersion === "1.10.0" && versionPartFour < 7:
+                        case threePartVersion === "1.9.0" && versionPartFour < 15:
+                        case threePartVersion === "1.8.0" && versionPartFour < 24:
+                        case threePartVersion === "1.7.0" && versionPartFour < 13:
+                        case threePartVersion === "1.6.0" && versionPartFour !== 14:
+                        case threePartVersion === "1.5.0" && versionPartFour < 14:
+                        case threePartVersion === "1.4.0" && versionPartFour < 5:
+                        case semver.lt("1.2.13", threePartVersion) && semver.gt("1.4.0", threePartVersion):
+                        case threePartVersion === "1.2.5" && versionPartFour < 52:
+                        case threePartVersion === "1.2.3" && versionPartFour < 6:
+                        case threePartVersion === "1.2.0":
+                            details.channel = "Beta";
+                            break;
+                    }
+                }
                 if (includeInstallationStatus) details.installationStatus = InstallationManager.getInstallationStatusOfVersionFolder(versionFolderPath);
                 else delete details.installationStatus;
                 details.rawVersion = AppxManifestXMLVersion;
@@ -1133,11 +1169,21 @@ export class VersionFolder implements Omit<VersionFolderVersionDetailsExtended, 
                 }
             }
             /**
+             * The themes to use.
+             */
+            const themes: EncodedThemeData[] = [];
+            for (const theme of ThemeManager.getActiveThemes()) {
+                if (theme instanceof OreUICustomizerTheme) {
+                    themes.push(await theme.toEncodedThemeData());
+                }
+            }
+            /**
              * The config data to use.
              */
-            const configData: OreUICustomizerSettings | undefined = {
+            const configData: (OreUICustomizerConfig_Settings & Omit<OreUICustomizerSettings, keyof OreUICustomizerConfig_Settings>) | undefined = {
                 ...ConfigManager.currentConfig.oreUICustomizerConfig,
                 plugins,
+                themes,
             };
             /**
              * Whether or not to enable debug logging.

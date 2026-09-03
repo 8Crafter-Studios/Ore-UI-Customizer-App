@@ -1,6 +1,7 @@
 {
     "$schema": "https://unpkg.com/vscode-html-languageservice@4.2.0/docs/customData.schema.json",
-    "$comment": "// TODO: Copy the schema and modify it to include the secret internal properties.",
+    "$comment": "Ore UI Custom HTML Properties v1.0.0",
+    "$comment2": "// TODO: Copy the schema and modify it to include the secret internal properties.",
     "version": 1.1,
     "globalAttributes": [
         {

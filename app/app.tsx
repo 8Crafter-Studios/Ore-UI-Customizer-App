@@ -17,6 +17,7 @@ import DebugOverlay from "./components/DebugOverlay";
 import { Cubemap } from "../src/libs/@hatchibombotar-cubemap/index.ts";
 import "../src/libs/@hatchibombotar-cubemap/index.css";
 import SelectVersionFolderOverlayPage from "./overlay_pages/SelectVersionFolderOverlayPage.tsx";
+import ThemeDetailsOverlayPage from "./overlay_pages/ThemeDetailsOverlayPage.tsx";
 
 let isClosing: boolean = false;
 let closeCanceled: boolean = false;
@@ -436,11 +437,26 @@ export function OverlayPageContents(props: OverlayPageContentsProps): JSX.Elemen
     const route = router.getRouteForLocation(props.routerHistoryLocation);
     switch (route?.route) {
         case "/config-details":
-            return <ConfigDetailsOverlayPage filePath={props.routerHistoryLocation.searchParams.get("filePath")!} />;
+            return (
+                <ConfigDetailsOverlayPage
+                    filePath={props.routerHistoryLocation.searchParams.get("filePath") ?? undefined}
+                    missingConfigDetails={JSON.parse(props.routerHistoryLocation.searchParams.get("missingConfigDetails") ?? "null") ?? undefined}
+                />
+            );
         case "/plugin-details":
-            return <PluginDetailsOverlayPage folderPath={props.routerHistoryLocation.searchParams.get("folderPath")!} />;
+            return (
+                <PluginDetailsOverlayPage
+                    folderPath={props.routerHistoryLocation.searchParams.get("folderPath") ?? undefined}
+                    missingPluginDetails={JSON.parse(props.routerHistoryLocation.searchParams.get("missingPluginDetails") ?? "null") ?? undefined}
+                />
+            );
         case "/theme-details":
-            return <>The theme details page is not implemented yet.</>;
+            return (
+                <ThemeDetailsOverlayPage
+                    folderPath={props.routerHistoryLocation.searchParams.get("folderPath") ?? undefined}
+                    missingThemeDetails={JSON.parse(props.routerHistoryLocation.searchParams.get("missingThemeDetails") ?? "null") ?? undefined}
+                />
+            );
         case "/select-version-folder":
             return <SelectVersionFolderOverlayPage id={props.routerHistoryLocation.searchParams.get("id")!} />;
         default:
