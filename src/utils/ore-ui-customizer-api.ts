@@ -30,8 +30,8 @@ import json5 from "json5";
 /**
  * The version of the Ore UI Customizer API.
  */
-// BUILD 8
-export const format_version = "1.17.0+BUILD.8";
+// BUILD 9
+export const format_version = "1.17.0+BUILD.9";
 
 /**
  * The result of the {@link applyMods} function.
@@ -1295,7 +1295,8 @@ export async function applyMods(file: Blob, options: ApplyModsOptions = {}): Pro
                     p = (0, ${extractedSymbolNames.facetHolder}.useFacetMap)((e) => $3), [], [s]),
                     f = (0, ${extractedSymbolNames.facetHolder}.useFacetMap)((e, t) => $4(e, (e) => e.dimension === t), [], [p, m]),
                     g = (0, ${extractedSymbolNames.facetHolder}.useFacetMap)((e) => e.spawnBiomeId, [], [c]),
-                    E = (0, ${extractedSymbolNames.facetHolder}.useFacetMap)((e) => e.defaultSpawnBiome || e.isBiomeOverrideActive, [], [c]),
+                    E = (0, ${extractedSymbolNames.facetHolder}.useFacetMap)((e) => e.defaultSpawnBiome /* || e.isBiomeOverrideActive */, [], [c]),
+                    E2 = (0, r.useFacetMap)((e, t, m) => e.defaultSpawnBiome || (e.isBiomeOverrideActive && m === 0) || t.length === 0, [], [c, f, m]),
                     h = (0, ${extractedSymbolNames.facetHolder}.useSharedFacet)($5),
                     v = (0, ${extractedSymbolNames.facetHolder}.useFacetMap)((e) => true /* $6(e.platform) */ /* Makes the export world button always visible. */, [], [h]),
                     b = (0, ${extractedSymbolNames.contextHolder}.useContext)($7) !== $8.CREATE,
@@ -1319,6 +1320,7 @@ export async function applyMods(file: Blob, options: ApplyModsOptions = {}): Pro
                             null,
                             ${extractedSymbolNames.contextHolder}.createElement($12, {
                                 title: "Flat nether",
+                                description: "(this is not functional)",
                                 gamepad: { index: 0 },
                                 value: (0, ${extractedSymbolNames.facetHolder}.useFacetMap)((e) => e.flatNether, [], [c]),
                                 onChange: (0, ${extractedSymbolNames.facetHolder}.useFacetCallback)(
@@ -1335,6 +1337,8 @@ export async function applyMods(file: Blob, options: ApplyModsOptions = {}): Pro
                             null,
                             ${extractedSymbolNames.contextHolder}.createElement($12, {
                                 title: "Enable game version override",
+                                // TODO: Add a config option to remove this extra information from the vanilla debug options.
+                                description: "(this can only be set while creating the world)",
                                 gamepad: { index: 1 },
                                 value: (0, ${extractedSymbolNames.facetHolder}.useFacetMap)((e) => e.enableGameVersionOverride, [], [c]),
                                 onChange: (0, ${extractedSymbolNames.facetHolder}.useFacetCallback)(
@@ -1351,6 +1355,7 @@ export async function applyMods(file: Blob, options: ApplyModsOptions = {}): Pro
                             null,
                             ${extractedSymbolNames.contextHolder}.createElement($13, {
                                 label: "Game version override",
+                                description: "(this can only be set while creating the world)",
                                 gamepadIndex: 2,
                                 placeholder: "0.0.0",
                                 maxLength: 30000,
@@ -1368,9 +1373,9 @@ export async function applyMods(file: Blob, options: ApplyModsOptions = {}): Pro
                         ${extractedSymbolNames.contextHolder}.createElement($11, null, ${extractedSymbolNames.contextHolder}.createElement($14, { title: "World biome settings" })),
                         ${extractedSymbolNames.contextHolder}.createElement($12, {
                             title: "Default spawn biome",
-                            description: "Using the default spawn biome will mean a random overworld spawn is selected",
+                            description: "Using the default spawn biome will mean a random overworld spawn is selected (this can only be set while creating the world)",
                             gamepad: { index: 3 },
-                            disabled: (0, ${extractedSymbolNames.facetHolder}.useFacetMap)((e) => e.isBiomeOverrideActive, [], [c]),
+                            disabled: (0, ${extractedSymbolNames.facetHolder}.useFacetMap)((e) => false /* e.isBiomeOverrideActive */, [], [c]),
                             value: (0, ${extractedSymbolNames.facetHolder}.useFacetMap)((e) => e.defaultSpawnBiome, [], [c]),
                             onChange: (0, ${extractedSymbolNames.facetHolder}.useFacetCallback)(
                                 (e) => (t) => {
@@ -1386,11 +1391,14 @@ export async function applyMods(file: Blob, options: ApplyModsOptions = {}): Pro
                             ${extractedSymbolNames.contextHolder}.createElement($15, {
                                 onMountComplete: (0, $16)(),
                                 title: "Spawn dimension filter",
+                                description: "(this can only be set while creating the world)",
                                 disabled: E,
                                 wrapToggleText: !0,
                                 options: [
+                                    // TEST: See if custom dimension IDs work here, also see what happens if I put a non-existent dimension ID, like -1, -2, 3, or 1000 (when no custom dimensions are defined). If so maybe add a number text box to allow inputting a custom dimension ID.
                                     { label: "Overworld", value: 0 },
                                     { label: "Nether", value: 1 },
+                                    { label: "The End", value: 2 },
                                 ],
                                 value: m,
                                 onChange: (0, ${extractedSymbolNames.facetHolder}.useFacetCallback)(
@@ -1407,16 +1415,17 @@ export async function applyMods(file: Blob, options: ApplyModsOptions = {}): Pro
                             null,
                             ${extractedSymbolNames.contextHolder}.createElement($17, {
                                 title: "Spawn biome",
+                                description: "(this can only be set while creating the world)",
                                 options: f,
                                 onItemSelect: (0, ${extractedSymbolNames.facetHolder}.useFacetCallback)((e) => (t) => (e.spawnBiomeId = t), [], [c]),
-                                disabled: E,
-                                value: (0, ${extractedSymbolNames.facetHolder}.useFacetMap)((e, t) => (t.filter((t) => t.value === e).length > 0 ? e : t[0].value), [], [g, f]),
+                                disabled: E2,
+                                value: (0, ${extractedSymbolNames.facetHolder}.useFacetMap)((e, t) => (t.filter((t) => t.value === e).length > 0 ? e : t[0]?.value), [], [g, f]),
                                 focusOnSelectedItem: !0,
                             })
                         ),
                         ${extractedSymbolNames.contextHolder}.createElement($12, {
                             title: "Biome override",
-                            description: "Set the world to a selected biome. This will override the Spawn biome!",
+                            description: "Set the world to a selected biome. This will override the Spawn biome! (if your spawn biome is in a different dimension, it will still work) (this can only be set while creating the world)",
                             gamepad: { index: 6 },
                             value: (0, ${extractedSymbolNames.facetHolder}.useFacetMap)((e) => e.isBiomeOverrideActive, [], [c]),
                             onChange: (0, ${extractedSymbolNames.facetHolder}.useFacetCallback)(
@@ -1429,7 +1438,9 @@ export async function applyMods(file: Blob, options: ApplyModsOptions = {}): Pro
                         }),
                         ${extractedSymbolNames.contextHolder}.createElement($17, {
                             title: "Biome override",
-                            description: "Select biome to be used in the entire world",
+                            description: "Select biome to be used in the entire world (this can only be set while creating the world)",
+                            // TODO: Add a config option to remove this extra information from the vanilla debug options, then add the BWE information to the description.
+                            // description: "Select biome to be used in the entire world (this does not include cave biomes or The End biome, if you want to make the world into one of those biomes, you can do that using 8Crafter's Bedrock World Editor)",
                             options: p,
                             disabled: (0, ${extractedSymbolNames.facetHolder}.useFacetMap)((e) => !e.isBiomeOverrideActive, [], [c]),
                             onItemSelect: (0, ${extractedSymbolNames.facetHolder}.useFacetCallback)(
@@ -1626,7 +1637,7 @@ export async function applyMods(file: Blob, options: ApplyModsOptions = {}): Pro
                         }),
                         ${extractedSymbolNames.contextHolder}.createElement($13, {
                             label: "simulationDistance",
-                            description: "?. (advanced.simulationDistance)",
+                            description: "The simulation distance. Sadly this cannot be set lower or higher than the option in the Advanced tab allows. However, this can be set to odd numbers within that range. (advanced.simulationDistance)",
                             gamepadIndex: 1,
                             placeholder: typeof rawData.get().advanced.simulationDistance,
                             maxLength: 3000,
@@ -1638,7 +1649,7 @@ export async function applyMods(file: Blob, options: ApplyModsOptions = {}): Pro
                         ${extractedSymbolNames.contextHolder}.createElement($12, {
                             title: "achievementsDisabled (read-only)",
                             disabled: true,
-                            description: "Whether or not achievements are disabled. (read-only)",
+                            description: "Whether or not achievements are disabled. (it is not possible to change this through the UI)",
                             value: (0, ${extractedSymbolNames.facetHolder}.useFacetMap)((/** @type {ReturnType<RawWorldData["get"]>} */ e) => e.achievementsDisabled, [], [eAA]),
                             onChange: (0, ${extractedSymbolNames.facetHolder}.useFacetCallback)(
                                 (/** @type {ReturnType<RawWorldData["get"]>} */ e) => (t) => (e.achievementsDisabled = t),
@@ -1650,7 +1661,7 @@ export async function applyMods(file: Blob, options: ApplyModsOptions = {}): Pro
                             title: "achievementsPermanentlyDisabled (read-only)",
                             soundEffectPressed: "ui.hardcore_toggle_press",
                             disabled: true,
-                            description: "Whether or not achievements are permanently disabled. (read-only)",
+                            description: "Whether or not achievements are permanently disabled. (it is not possible to change this through the UI)",
                             value: (0, ${extractedSymbolNames.facetHolder}.useFacetMap)((/** @type {ReturnType<RawWorldData["get"]>} */ e) => e.achievementsPermanentlyDisabled, [], [eAA]),
                             onChange: (0, ${extractedSymbolNames.facetHolder}.useFacetCallback)(
                                 (/** @type {ReturnType<RawWorldData["get"]>} */ e) => (t) => (e.achievementsPermanentlyDisabled = t),
@@ -1661,7 +1672,7 @@ export async function applyMods(file: Blob, options: ApplyModsOptions = {}): Pro
                         ${extractedSymbolNames.contextHolder}.createElement($12, {
                             title: "isUsingTemplate (read-only)",
                             disabled: true,
-                            description: "isUsingTemplate (read-only)",
+                            description: "isUsingTemplate (it is not possible to change this through the UI)",
                             value: (0, ${extractedSymbolNames.facetHolder}.useFacetMap)((/** @type {ReturnType<RawWorldData["get"]>} */ e) => e.isUsingTemplate, [], [eAA]),
                             onChange: (0, ${extractedSymbolNames.facetHolder}.useFacetCallback)(
                                 (/** @type {ReturnType<RawWorldData["get"]>} */ e) => (t) => (e.isUsingTemplate = t),
@@ -1683,7 +1694,7 @@ export async function applyMods(file: Blob, options: ApplyModsOptions = {}): Pro
                         ${extractedSymbolNames.contextHolder}.createElement($12, {
                             title: "playerHasDied (read-only)",
                             disabled: true,
-                            description: "readonly general.playerHasDied",
+                            description: "readonly general.playerHasDied (it is not possible to change this through the UI)",
                             value: (0, ${extractedSymbolNames.facetHolder}.useFacetMap)((e) => e.playerHasDied, [], [p]),
                             onChange: (0, ${extractedSymbolNames.facetHolder}.useFacetCallback)((e) => (t) => (e.playerHasDied = t), [], [p]),
                         })
