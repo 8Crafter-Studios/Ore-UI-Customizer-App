@@ -60,23 +60,23 @@ class PurpleBorderBackgroundElement extends HTMLElement {
         this.attachShadow({ mode: "open" });
         this.shadowRoot!.innerHTML = `
     <img src="resource://images/ui/backgrounds/purpleBorder_sliceL.png" style="height: calc(100% - 1.75vw); width: 1vw; left: 0px; top: 0.875vw; z-index: -5;
-    position: absolute; image-rendering: pixelated;">
+    position: absolute; image-rendering: pixelated;" class="nsel ndrg">
     <img src="resource://images/ui/backgrounds/purpleBorder_sliceR.png" style="height: calc(100% - 1.75vw); width: 1vw; right: 0px; top: 0.875vw; z-index: -5;
-    position: absolute; image-rendering: pixelated;">
+    position: absolute; image-rendering: pixelated;" class="nsel ndrg">
     <img src="resource://images/ui/backgrounds/purpleBorder_sliceT.png" style="height: 1vw; width: calc(100% - 1.75vw); left: 0.875vw; top: 0px; z-index: -5;
-    position: absolute; image-rendering: pixelated;">
+    position: absolute; image-rendering: pixelated;" class="nsel ndrg">
     <img src="resource://images/ui/backgrounds/purpleBorder_sliceB.png" style="height: 1vw; width: calc(100% - 1.75vw); left: 0.875vw; bottom: 0px; z-index: -5;
-    position: absolute; image-rendering: pixelated;">
+    position: absolute; image-rendering: pixelated;" class="nsel ndrg">
     <img src="resource://images/ui/backgrounds/purpleBorder_sliceTL.png" style="height: 1vw; width: 1vw; left: 0px; top: 0px; z-index: -4;
-    position: absolute; image-rendering: pixelated;">
+    position: absolute; image-rendering: pixelated;" class="nsel ndrg">
     <img src="resource://images/ui/backgrounds/purpleBorder_sliceTR.png" style="height: 1vw; width: 1vw; right: 0px; top: 0px; z-index: -4;
-    position: absolute; image-rendering: pixelated;">
+    position: absolute; image-rendering: pixelated;" class="nsel ndrg">
     <img src="resource://images/ui/backgrounds/purpleBorder_sliceBL.png" style="height: 1vw; width: 1vw; left: 0px; bottom: 0px; z-index: -4;
-    position: absolute; image-rendering: pixelated;">
+    position: absolute; image-rendering: pixelated;" class="nsel ndrg">
     <img src="resource://images/ui/backgrounds/purpleBorder_sliceBR.png" style="height: 1vw; width: 1vw; right: 0px; bottom: 0px; z-index: -4;
-    position: absolute; image-rendering: pixelated;">
+    position: absolute; image-rendering: pixelated;" class="nsel ndrg">
     <img src="resource://images/ui/backgrounds/purpleBorder_sliceC.png" style="height: calc(100% - 1.75vw); width: calc(100% - 1.75vw); right: 0.875vw; bottom: 0.875vw; z-index: -6;
-    position: absolute; image-rendering: pixelated;">
+    position: absolute; image-rendering: pixelated;" class="nsel ndrg">
     <slot></slot>`;
     }
 }

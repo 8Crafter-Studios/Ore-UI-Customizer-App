@@ -783,6 +783,7 @@ export function VersionFolderSearchLocationsOption(): JSX.SpecificElement<"div">
                 <img
                     title="Help"
                     src="resource://images/ui/glyphs/Information_9x9.png"
+                    class="nsel ndrg"
                     style={{
                         width: "calc(9px * var(--gui-scale))",
                         imageRendering: "pixelated",
@@ -1021,6 +1022,7 @@ export function LiveUIPreviewDefaultVersionFolderOption(): JSX.SpecificElement<"
                     <img
                         title="Help"
                         src="resource://images/ui/glyphs/Information_9x9.png"
+                        class="nsel ndrg"
                         style={{
                             width: "calc(9px * var(--gui-scale))",
                             imageRendering: "pixelated",

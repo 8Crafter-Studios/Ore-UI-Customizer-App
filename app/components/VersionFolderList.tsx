@@ -60,15 +60,17 @@ export default function VersionFolderList(
                         installationStatus={
                             versionFolder.installationStatus +
                             ((
-                                [
-                                    "Installed",
-                                    "Partially Failed Installation",
-                                    "Corrupted (By Minecraft Update)",
-                                    "Corrupted (By Minecraft Update) (Backup Available)",
-                                ] as InstallationStatus[]
-                            ).includes(versionFolder.installationStatus)
-                                ? ` (v${versionFolder.installedVersion})` + (versionFolder.getIsUpdateAvailable() ? " (Update Available)" : "")
-                                : "")
+                                (
+                                    [
+                                        "Installed",
+                                        "Partially Failed Installation",
+                                        "Corrupted (By Minecraft Update)",
+                                        "Corrupted (By Minecraft Update) (Backup Available)",
+                                    ] as InstallationStatus[]
+                                ).includes(versionFolder.installationStatus)
+                            ) ?
+                                ` (v${versionFolder.installedVersion})` + (versionFolder.getIsUpdateAvailable() ? " (Update Available)" : "")
+                            :   "")
                         }
                         onOptionsButtonMouseDown={(): void => {
                             SoundEffects.popB();
@@ -133,6 +135,7 @@ export function VersionFolderListItem(
                             width="16"
                             height="16"
                             src="resource://images/ui/glyphs/Options-Horizontal.png"
+                            class="nsel ndrg"
                             style="image-rendering: pixelated; filter: invert(); width: calc(8px * var(--gui-scale)); height: calc(8px * var(--gui-scale));"
                             aria-hidden="true"
                         ></img>
@@ -142,6 +145,7 @@ export function VersionFolderListItem(
                             width="16"
                             height="16"
                             src="resource://images/ui/glyphs/Options-Horizontal.png"
+                            class="nsel ndrg"
                             style="image-rendering: pixelated; width: calc(8px * var(--gui-scale)); height: calc(8px * var(--gui-scale));"
                             aria-hidden="true"
                         ></img>

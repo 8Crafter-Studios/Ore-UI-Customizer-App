@@ -58,13 +58,13 @@ export default function CollapsibleSection(props: CollapsibleSectionProps): JSX.
                     <img
                         aria-hidden="true"
                         src="resource://images/ui/glyphs/dark_plus.png"
-                        class="piximg collapsible-section-closed-icon invert_on_dark_theme"
+                        class="nsel ndrg piximg collapsible-section-closed-icon invert_on_dark_theme"
                         style={{ width: "calc(10px * var(--gui-scale))", height: "calc(10px * var(--gui-scale))", float: "right" }}
                     />
                     <img
                         aria-hidden="true"
                         src="resource://images/ui/glyphs/dark_minus.png"
-                        class="piximg collapsible-section-open-icon invert_on_dark_theme"
+                        class="nsel ndrg piximg collapsible-section-open-icon invert_on_dark_theme"
                         style={{ width: "calc(10px * var(--gui-scale))", height: "calc(10px * var(--gui-scale))", float: "right" }}
                     />
                 </button>

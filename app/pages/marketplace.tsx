@@ -65,7 +65,7 @@ export function MarketplacePage_Loading(): JSX.SpecificElement<"center"> {
     return (
         <center>
             <h1>Loading...</h1>
-            <img aria-hidden="true" src="resource://images/ui/misc/loading_bar.gif" />
+            <img class="nsel ndrg" aria-hidden="true" src="resource://images/ui/misc/loading_bar.gif" />
         </center>
     );
 }

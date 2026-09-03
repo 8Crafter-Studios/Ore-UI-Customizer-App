@@ -1416,6 +1416,7 @@ export default function ConfigEditorPage(): JSX.SpecificElement<"center"> {
                                 width="16"
                                 height="16"
                                 src="resource://images/ui/glyphs/Options-Horizontal.png"
+                                class="nsel ndrg"
                                 style="image-rendering: pixelated; filter: invert(); width: calc(8px * var(--gui-scale)); height: calc(8px * var(--gui-scale));"
                                 aria-hidden="true"
                             ></img>
@@ -1425,6 +1426,7 @@ export default function ConfigEditorPage(): JSX.SpecificElement<"center"> {
                                 width="16"
                                 height="16"
                                 src="resource://images/ui/glyphs/Options-Horizontal.png"
+                                class="nsel ndrg"
                                 style="image-rendering: pixelated; width: calc(8px * var(--gui-scale)); height: calc(8px * var(--gui-scale));"
                                 aria-hidden="true"
                             ></img>

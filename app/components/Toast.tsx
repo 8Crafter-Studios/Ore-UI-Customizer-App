@@ -329,6 +329,7 @@ export default function Toast(props: ToastProps): JSX.SpecificElement<"div"> {
             {props.image && (
                 <img
                     aria-hidden="true"
+                    class="nsel ndrg"
                     style={{
                         width: "calc(13px * var(--gui-scale))",
                         height: "calc(13px * var(--gui-scale))",

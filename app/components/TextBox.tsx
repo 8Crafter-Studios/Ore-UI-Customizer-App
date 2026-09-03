@@ -57,6 +57,7 @@ export default function TextBox(props: TextBoxProps): JSX.SpecificElement<"div">
                     <img
                         title="Help"
                         src="resource://images/ui/glyphs/Information_9x9.png"
+                        class="nsel ndrg"
                         style={{
                             width: "calc(9px * var(--gui-scale))",
                             imageRendering: "pixelated",
@@ -102,13 +103,11 @@ export default function TextBox(props: TextBoxProps): JSX.SpecificElement<"div">
                 aria-autocomplete="none"
                 {...props.inputProperties}
             />
-            {props.description && typeof props.description === "string" ? (
+            {props.description && typeof props.description === "string" ?
                 <div>{props.description}</div>
-            ) : props.description instanceof Array ? (
+            : props.description instanceof Array ?
                 props.description
-            ) : (
-                props.description
-            )}
+            :   props.description}
             <div class="text-box-error-message" style={{ display: "none", color: "red", fontFamily: "Monocraft" }}></div>
         </label>
     );

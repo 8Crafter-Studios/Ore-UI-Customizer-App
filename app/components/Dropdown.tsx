@@ -123,14 +123,14 @@ export default function Dropdown<T extends string = string>(props: DropdownProps
                     data-dropdown-component="cv"
                     src="resource://images/ui/dropdown/dropdown_chevron.png"
                     inert
-                    class="nsel"
+                    class="nsel ndrg"
                     style="right: calc((9 * var(--gui-scale) * 1px) - (var(--gui-scale) * 1px - 1px)); top: round(down, calc((calc(calc((29 * var(--gui-scale)) - 2) * 1px) - (11px * var(--gui-scale))) / 2) - 2px, 1px); position: absolute; width: calc(11px * var(--gui-scale))"
                 />
                 <img
                     data-dropdown-component="cvsel"
                     src="resource://images/ui/dropdown/dropdown_chevron_up.png"
                     inert
-                    class="nsel"
+                    class="nsel ndrg"
                     style="right: calc((9 * var(--gui-scale) * 1px) - (var(--gui-scale) * 1px - 1px)); top: round(down, calc((calc(calc((29 * var(--gui-scale)) - 2) * 1px) - (11px * var(--gui-scale))) / 2) - 2px, 1px); position: absolute; width: calc(11px * var(--gui-scale))"
                     hidden
                 />
