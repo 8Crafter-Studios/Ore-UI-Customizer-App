@@ -1086,7 +1086,7 @@ export function getExtractedSymbolNames(fileContents: string, fileName?: string)
         facetHolder: "r",
     };
 
-    const showWarnings: boolean = /(?:index|gameplay|editor(?:-menu|-project)?)-[0-9a-f]{5,20}\.js$/.test(fileName!);
+    const showWarnings: boolean = /^(gui\/)?dist\/hbui\/(?:index|gameplay|editor(?:-menu|-project)?)-[0-9a-f]{5,20}\.js$/.test(fileName!);
 
     let failures: string[] = [];
 
@@ -1914,7 +1914,7 @@ export const builtInPlugins = [
                 context: "per_text_file",
                 action: async (currentFileContent: string, file: zip.ZipFileEntry<any, any>): Promise<string> => {
                     const fullFilename: string = file.getFullname();
-                    if (!/index-[0-9a-f]{5,20}\.js$/.test(fullFilename)) return currentFileContent;
+                    if (!/^(gui\/)?dist\/hbui\/index-[0-9a-f]{5,20}\.js$/.test(fullFilename)) return currentFileContent;
                     const origData: string = await file.getText();
                     const bindingVaiableTarget = origData
                         .match(
@@ -1962,7 +1962,7 @@ export const builtInPlugins = [
                 context: "per_text_file",
                 action: async (currentFileContent: string, file: zip.ZipFileEntry<any, any>): Promise<string> => {
                     const fullFilename: string = file.getFullname();
-                    if (!/index-[0-9a-f]{5,20}\.js$/.test(fullFilename)) return currentFileContent;
+                    if (!/^(gui\/)?dist\/hbui\/index-[0-9a-f]{5,20}\.js$/.test(fullFilename)) return currentFileContent;
                     if (
                         !/function ([a-zA-Z0-9_$]{2})\(\{playerCount:([a-zA-Z0-9_$]),maximumCapacity:([a-zA-Z0-9_$])\}\)\{const ([a-zA-Z0-9_$])=\(0,([a-zA-Z0-9_$])\.useFacetMap\)\(\(\((?:[a-zA-Z0-9_$]),(?:[a-zA-Z0-9_$])\)=>0!==(?:[a-zA-Z0-9_$])&&(?:[a-zA-Z0-9_$])===(?:[a-zA-Z0-9_$])\),\[\],\[(?:[a-zA-Z0-9_$]),(?:[a-zA-Z0-9_$])\]\),\{(?:[a-zA-Z0-9_$]):([a-zA-Z0-9_$])\}=([a-zA-Z0-9_$]{2})\("PlayScreen\.serverCapacity"\);return ([a-zA-Z0-9_$])\.createElement\("div",\{className:"([^"]+?)"\},(?:[a-zA-Z0-9_$])\.createElement\(([a-zA-Z0-9_$]{2}),null\),(?:[a-zA-Z0-9_$])\.createElement\(([a-zA-Z0-9_$]{2}),\{size:1\}\),(?:[a-zA-Z0-9_$])\.createElement\(([a-zA-Z0-9_$]{2}),\{type:"body",variant:"dimmer"\},(?:[a-zA-Z0-9_$])\)/.test(
                             currentFileContent
@@ -1995,7 +1995,7 @@ export const builtInPlugins = [
                 context: "per_text_file",
                 async action(currentFileContent: string, file: zip.ZipFileEntry<any, any>): Promise<string> {
                     const fullFilename: string = file.getFullname();
-                    if (!/(?:index|gameplay|editor(?:-menu|-project)?)-[0-9a-f]{5,20}\.js$/.test(fullFilename)) return currentFileContent;
+                    if (!/^(gui\/)?dist\/hbui\/(?:index|gameplay|editor(?:-menu|-project)?)-[0-9a-f]{5,20}\.js$/.test(fullFilename)) return currentFileContent;
                     const origData: string = await file.getText();
                     if (
                         !/inverse:\(0,([a-zA-Z0-9_$])\.useFacetMap\)\(\(([a-zA-Z0-9_$])=>"POP"===(?:[a-zA-Z0-9_$])\),\[\],\[([a-zA-Z0-9_$])\]\)\}\)\)\)/.test(
@@ -2016,7 +2016,7 @@ export const builtInPlugins = [
                             /([a-zA-Z0-9_$])\.createElement\((?:[a-zA-Z0-9_$]),\{visible:(?:[a-zA-Z0-9_$]),alwaysMounted:(?:[a-zA-Z0-9_$]),/
                         )![1]!}.createElement(facetSpy,null)`
                     );
-                    const isEditorMode: boolean = /editor(?:-menu|-project)?-[0-9a-f]{5,20}\.js$/.test(fullFilename);
+                    const isEditorMode: boolean = /^(gui\/)?dist\/hbui\/editor(?:-menu|-project)?-[0-9a-f]{5,20}\.js$/.test(fullFilename);
                     /**
                      * The facet spy function that will be injected into the file.
                      */
@@ -2490,30 +2490,30 @@ export const builtInPlugins = [
                         // Brackets so that the 5 MiB variable is discarded immediately afterwards.
                         const preInjectionContent: string = currentFileContent;
                         const facetAccessHolderReplacementTarget: RegExp =
-                            /index-[0-9a-f]{5,20}\.js$/.test(fullFilename) ?
+                            /^(gui\/)?dist\/hbui\/index-[0-9a-f]{5,20}\.js$/.test(fullFilename) ?
                                 new RegExp(
                                     `(?<!\\(\\)=>(?:[a-zA-Z0-9_$])\\}\\);)var ([a-zA-Z0-9_$])=([a-zA-Z0-9_$])\\(([0-9]+)\\),${facetAccessHolderBindingVariableTarget}=\\2\\(([0-9]+)\\);(?=const (?:[a-zA-Z0-9_$])=\\(0,(?:[a-zA-Z0-9_$])\\.createContext\\))`
                                 )
-                            : /gameplay-[0-9a-f]{5,20}\.js$/.test(fullFilename) ?
+                            : /^(gui\/)?dist\/hbui\/gameplay-[0-9a-f]{5,20}\.js$/.test(fullFilename) ?
                                 new RegExp(`.URLSearchParams;var ${facetAccessHolderBindingVariableTarget}=([a-zA-Z0-9_$])\\(([0-9]+)\\);`)
                             :   new RegExp(`var ${facetAccessHolderBindingVariableTarget}=([a-zA-Z0-9_$])\\(([0-9]+)\\);`);
-                        let contextHolderNotInjected: boolean = !/index-[0-9a-f]{5,20}\.js$/.test(fullFilename);
+                        let contextHolderNotInjected: boolean = !/^(gui\/)?dist\/hbui\/index-[0-9a-f]{5,20}\.js$/.test(fullFilename);
                         if (!facetAccessHolderReplacementTarget.test(currentFileContent)) {
                             throw new Error(`Unable to find facet spy facet access holder variable injection location in file "${fullFilename}".`);
                         }
                         currentFileContent = currentFileContent.replace(
                             facetAccessHolderReplacementTarget,
                             getFacetSpyFunction(
-                                /index-[0-9a-f]{5,20}\.js$/.test(fullFilename) ?
+                                /^(gui\/)?dist\/hbui\/index-[0-9a-f]{5,20}\.js$/.test(fullFilename) ?
                                     `var $1 = (globalThis.contextHolder = $2($3)),
                 ${facetAccessHolderBindingVariableTarget} = (globalThis.facetAccessHolder = $2($4));`
-                                : /gameplay-[0-9a-f]{5,20}\.js$/.test(fullFilename) ?
+                                : /^(gui\/)?dist\/hbui\/gameplay-[0-9a-f]{5,20}\.js$/.test(fullFilename) ?
                                     `.URLSearchParams;
             var ${facetAccessHolderBindingVariableTarget} = (globalThis.facetAccessHolder = $1($2));`
                                 :   `var ${facetAccessHolderBindingVariableTarget} = (globalThis.facetAccessHolder = $1($2));`
                             )
                         );
-                        if (currentFileContent === preInjectionContent && /gameplay-[0-9a-f]{5,20}\.js$/.test(fullFilename)) {
+                        if (currentFileContent === preInjectionContent && /^(gui\/)?dist\/hbui\/gameplay-[0-9a-f]{5,20}\.js$/.test(fullFilename)) {
                             const preContextHolderReplacementFileContent: string = currentFileContent;
                             currentFileContent = currentFileContent.replace(
                                 new RegExp(
@@ -2571,7 +2571,7 @@ export const builtInPlugins = [
                 context: "per_text_file",
                 async action(currentFileContent: string, file: zip.ZipFileEntry<any, any>): Promise<string> {
                     const fullFilename: string = file.getFullname();
-                    if (/routes\.json$/.test(fullFilename)) {
+                    if (/^(gui\/)?dist\/hbui\/routes\.json$/.test(fullFilename)) {
                         if (
                             !/(?<="fileName"(?:[\s\n]*):([\s\n]*)"\/hbui\/index\.html",(?:[\s\n]*)"scope":(?:[\s\n]*)\[(?:[\s\n]*)"in-game"(?:[\s\n]*),(?:[\s\n]*)"out-of-game"(?:[\s\n]*)\](?:[\s\n]*),(?:[\s\n]*)(?:"defaultRoute"(?:[\s\n]*):(?:[\s\n]*)""(?:[\s\n]*),(?:[\s\n]*))?"supportedRoutes"(?:[\s\n]*):(?:[\s\n]*)\[([\s\n]*))(?=\{([\s\n]*)")/.test(
                                 currentFileContent
@@ -2584,7 +2584,7 @@ export const builtInPlugins = [
                             `{$3"route":$1"/ouic/:menu/:tab?",$3"modes":$1[],$3"regexp":$1"^\\\\/ouic\\\\/([^\\\\/]+?)(?:\\\\/([^\\\\/]+?))?(?:\\\\/)?$",$3"params":$1[{"name":"menu","prefix":"/","delimiter":"/","optional":false,"repeat":false,"pattern":"[^\\\\/]+?"},{"name":"tab","prefix":"/","delimiter":"/","optional":true,"repeat":false,"pattern":"[^\\\\/]+?"}],$3"transition":$1"RouteSlideTransition"$2},$2`
                         );
                         return currentFileContent;
-                    } else if (/index-[0-9a-f]{5,20}\.js$/.test(fullFilename)) {
+                    } else if (/^(gui\/)?dist\/hbui\/index-[0-9a-f]{5,20}\.js$/.test(fullFilename)) {
                         const origData: string = await file.getText();
                         /**
                          * The symbol name of the facet access holder.
@@ -2682,7 +2682,7 @@ export const builtInPlugins = [
                 context: "per_text_file",
                 action: async (currentFileContent: string, file: zip.ZipFileEntry<any, any>): Promise<string> => {
                     const fullFilename: string = file.getFullname();
-                    if (!/index-[0-9a-f]{5,20}\.js$/.test(fullFilename)) return currentFileContent;
+                    if (!/^(gui\/)?dist\/hbui\/index-[0-9a-f]{5,20}\.js$/.test(fullFilename)) return currentFileContent;
                     if (!/(?<=createElement\([a-zA-Z0-9_$]{3},\{[a-zA-Z0-9_$:,\s]*,showExportButton:)[a-zA-Z0-9_$]{1}(?=,|\})/g.test(currentFileContent)) {
                         throw new Error("Unable to find binding variable target.");
                     }

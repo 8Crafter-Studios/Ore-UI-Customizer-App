@@ -19,19 +19,18 @@ import type {
     Plugin,
     Theme,
     ThemeColorReplacements,
-    ThemeManifestJSON,
 } from "ore-ui-customizer-types";
 import type {} from "@ore-ui-customizer-api/plugin-env/backend";
 import "./zip.js";
-import json5 from "json5";
+// import json5 from "json5";
 
 // IDEA: Add supports for the texts folder for translation strings for plugins, configs, and themes.
 
 /**
  * The version of the Ore UI Customizer API.
  */
-// BUILD 9
-export const format_version = "1.17.0+BUILD.9";
+// BUILD 10
+export const format_version = "1.17.0+BUILD.10";
 
 /**
  * The result of the {@link applyMods} function.
@@ -380,7 +379,7 @@ export function resolveOreUICustomizerSettings(
  * Applies color replacements to the provided file contents.
  *
  * @param distData The file contents.
- * @param _filePath The file path.
+ * @param filePath The file path, relative to the `gui/dist` folder, with a prepended `/`.
  * @param settings The Ore UI Customizer settings.
  * @returns The modified file contents.
  *
@@ -803,7 +802,7 @@ export async function applyMods(file: Blob, options: ApplyModsOptions = {}): Pro
                         break;
                     }
                 }
-                if (/index-[0-9a-f]{5,20}\.js$/.test(filePath) && !successfullyReplaced) {
+                if (/^(gui\/)?dist\/hbui\/index-[0-9a-f]{5,20}\.js$/.test(filePath) && !successfullyReplaced) {
                     failedReplaces.push("hardcoreModeToggleAlwaysClickable");
                 }
             }
@@ -875,7 +874,7 @@ export async function applyMods(file: Blob, options: ApplyModsOptions = {}): Pro
                         break;
                     }
                 }
-                if (/index-[0-9a-f]{5,20}\.js$/.test(filePath) && !successfullyReplaced) {
+                if (/^(gui\/)?dist\/hbui\/index-[0-9a-f]{5,20}\.js$/.test(filePath) && !successfullyReplaced) {
                     failedReplaces.push("allowDisablingEnabledExperimentalToggles");
                 }
             }
@@ -1050,7 +1049,7 @@ export async function applyMods(file: Blob, options: ApplyModsOptions = {}): Pro
                         break;
                     }
                 }
-                if (/index-[0-9a-f]{5,20}\.js$/.test(filePath)) {
+                if (/^(gui\/)?dist\/hbui\/index-[0-9a-f]{5,20}\.js$/.test(filePath)) {
                     if (!successfullyReplacedA) {
                         failedReplaces.push("addMoreDefaultGameModes_dropdown");
                     }
@@ -1147,7 +1146,7 @@ export async function applyMods(file: Blob, options: ApplyModsOptions = {}): Pro
                         break;
                     }
                 }
-                if (/index-[0-9a-f]{5,20}\.js$/.test(filePath)) {
+                if (/^(gui\/)?dist\/hbui\/index-[0-9a-f]{5,20}\.js$/.test(filePath)) {
                     if (!successfullyReplacedA) {
                         failedReplaces.push("addGeneratorTypeDropdown_dropdown");
                     }
@@ -1225,7 +1224,7 @@ export async function applyMods(file: Blob, options: ApplyModsOptions = {}): Pro
                         break;
                     }
                 }
-                if (/index-[0-9a-f]{5,20}\.js$/.test(filePath) && !successfullyReplaced) {
+                if (/^(gui\/)?dist\/hbui\/index-[0-9a-f]{5,20}\.js$/.test(filePath) && !successfullyReplaced) {
                     failedReplaces.push("allowForChangingSeeds");
                 }
             }
@@ -1249,7 +1248,7 @@ export async function applyMods(file: Blob, options: ApplyModsOptions = {}): Pro
                         break;
                     }
                 }
-                if (/index-[0-9a-f]{5,20}\.js$/.test(filePath) && origData.includes("flatWorldPreset")) {
+                if (/^(gui\/)?dist\/hbui\/index-[0-9a-f]{5,20}\.js$/.test(filePath) && origData.includes("flatWorldPreset")) {
                     if (!successfullyReplacedA) {
                         failedReplaces.push("allowForChangingFlatWorldPreset_enableToggleAndPresetSelector");
                     }
@@ -1257,7 +1256,7 @@ export async function applyMods(file: Blob, options: ApplyModsOptions = {}): Pro
                         failedReplaces.push("allowForChangingFlatWorldPreset_makePresetSelectorDropdownVisible");
                     }
                 }
-                if (/index-[0-9a-f]{5,20}\.js$/.test(filePath) && origData.includes("flatWorldPreset") && !successfullyReplacedA) {
+                if (/^(gui\/)?dist\/hbui\/index-[0-9a-f]{5,20}\.js$/.test(filePath) && origData.includes("flatWorldPreset") && !successfullyReplacedA) {
                     failedReplaces.push("allowForChangingFlatWorldPreset");
                 }
             }
@@ -1713,7 +1712,7 @@ export async function applyMods(file: Blob, options: ApplyModsOptions = {}): Pro
                         break;
                     }
                 }
-                if (/index-[0-9a-f]{5,20}\.js$/.test(filePath)) {
+                if (/^(gui\/)?dist\/hbui\/index-[0-9a-f]{5,20}\.js$/.test(filePath)) {
                     if (!successfullyReplacedA) {
                         failedReplaces.push("addDebugTab_replaceTab");
                     }
@@ -1790,7 +1789,7 @@ export async function applyMods(file: Blob, options: ApplyModsOptions = {}): Pro
                         }`
                     );
                 }
-                if (/index-[0-9a-f]{5,20}\.js$/.test(filePath) && distData === origDistData) {
+                if (/^(gui\/)?dist\/hbui\/index-[0-9a-f]{5,20}\.js$/.test(filePath) && distData === origDistData) {
                     failedReplaces.push("maxTextLengthOverride");
                 }
             } else {
@@ -1878,7 +1877,7 @@ export async function applyMods(file: Blob, options: ApplyModsOptions = {}): Pro
                         break;
                     }
                 }
-                if (/index-[0-9a-f]{5,20}\.js$/.test(filePath) && !successfullyReplaced) {
+                if (/^(gui\/)?dist\/hbui\/index-[0-9a-f]{5,20}\.js$/.test(filePath) && !successfullyReplaced) {
                     failedReplaces.push("add8CrafterUtilitiesMainMenuButton");
                 }
             }
