@@ -26,7 +26,7 @@ A clear and concise description of what you expected to happen.
 If applicable, add screenshots to help explain your problem. It is recommended to press F3 twice to show the "basic" debug overlay so that helpful debugging information is included in your screenshot.
 
 **Desktop (please complete the following information):**
- - OS: [e.g. iOS/Android/Windows 10/Windows 11]
+ - OS: [e.g. Windows 10/Windows 11/Ubuntu/macOS]
  - App Version: [e.g. 1.0.0-beta.14]
 
 **Smartphone (please complete the following information):**
