@@ -11504,7 +11504,14 @@ Pixels Per Millimeter: ${pixelsPerMillimeter ?? "Loading..."}`;
                     <div style="white-space: pre-wrap;"><b>Config:</b></div>
                     <span style="white-space: pre-wrap; font-family: Consolas;">${
                         typeof oreUICustomizerConfig !== "undefined" ?
-                            JSON.stringify(oreUICustomizerConfig, undefined, 4)
+                            JSON.stringify(
+                                oreUICustomizerConfig,
+                                (k: string, v: unknown) => {
+                                    if (k === "icon_data_uri" && typeof v === "string" && v.length > 10) return "...";
+                                    return v;
+                                },
+                                4
+                            )
                         :   '<em style="color: red;"><strong>&lt;MISSING CONFIG!&gt;</strong></em>'
                     }</span>
                 </p>
