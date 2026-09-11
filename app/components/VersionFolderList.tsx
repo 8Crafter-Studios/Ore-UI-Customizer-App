@@ -43,13 +43,20 @@ export default function VersionFolderList(
             ]}
             wrapperId={options.wrapperId}
         >
+            {/* TODO: Add a notice for when users are using GDK straight from the store that they should use something like LeviLauncher instead. */}
             {options.versionFolders.length === 0 && (
                 <>
                     No Minecraft versions detected.
                     <br />
-                    Please verify you are using a custom launcher such as <a href="https://bedrocklauncher.github.io/">bedrock launcher</a>. If you have another
-                    launcher, please go to <code>{"Preferences > Installing"}</code> and add the folder containing all of your Minecraft version folders to the{" "}
-                    <code>Version Folder Search Locations</code> list.
+                    Please verify Minecraft is installed.{" "}
+                    {process.platform === "win32" && (
+                        <>
+                            If you are using a Minecraft UWP version (1.21.114 and earlier), Please verify you are using a custom launcher such as{" "}
+                            <a href="https://bedrocklauncher.github.io/">Minecraft Bedrock Launcher</a>.{" "}
+                        </>
+                    )}
+                    If you have another launcher, please go to <code>{"Preferences > Installing"}</code> and add the folder containing all of your Minecraft
+                    version folders to the <code>Version Folder Search Locations</code> list.
                 </>
             )}
             {...options.versionFolders.map(
