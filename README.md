@@ -12,6 +12,8 @@ All custom launchers are supported, in addition to the official one, or no launc
 
 This app supports Windows, Linux, and macOS (Darwin).
 
+[Changelog](https://github.com/8Crafter-Studios/Ore-UI-Customizer-App/blob/main/Changelog.md)
+
 ### Basic usage
 
 1. Open the app.
