@@ -39,8 +39,9 @@
         // "@typescript-eslint/no-inferrable-types": "off",
         "@typescript-eslint/no-empty-function": ["warn", { "allow": ["arrowFunctions", "constructors", "decoratedFunctions"] }],
         "@typescript-eslint/no-empty-interface": "off",
+        "@typescript-eslint/no-empty-object-type": ["warn", { "allowInterfaces": "with-single-extends" }],
         "@typescript-eslint/ban-ts-comment": [
-            "off",
+            "warn",
             {
                 "ts-check": false,
                 "ts-expect-error": "allow-with-description",
