@@ -898,7 +898,7 @@ if (!startup && !started) {
         }
     });
 
-    app.on("open-url", (_event: Electron.Event, url: string): void => {
+    function handleURL(url: string): void {
         const parsedURL: URL = new URL(url);
         if (parsedURL.protocol === "ore-ui-customizer:") {
             switch (parsedURL.hostname + parsedURL.pathname) {
@@ -1001,6 +1001,11 @@ if (!startup && !started) {
                 }
             }
         }
+    }
+
+    // REVIEW: See if this works on Linux, and if it works on macOS.
+    app.on("open-url", (_event: Electron.Event, url: string): void => {
+        handleURL(url);
     });
 
     // eslint-disable-next-line prefer-const
@@ -1087,7 +1092,20 @@ if (!startup && !started) {
         }
     });
     function handleArgv(originalArgv: string[], secondInstance: boolean = false): void {
+        console.log("handleArgv", originalArgv, "secondInstance:", secondInstance); // DEBUG
         const argv: string[] = originalArgv.slice(1 + +(originalArgv[1] === "--process-start-args"));
+        // TODO: Add support for handling URIs on Linux.
+        // Handle URIs on Windows.
+        if (argv.includes("--allow-file-access-from-files")) {
+            const restArgv: string[] = argv.slice(argv.indexOf("--allow-file-access-from-files") + 1);
+            if (restArgv[0]?.startsWith("ore-ui-customizer:")) {
+                handleURL(restArgv[0]);
+                return;
+            } else if (restArgv[1]?.startsWith("ore-ui-customizer:")) {
+                handleURL(restArgv[1]);
+                return;
+            }
+        }
         const nonAllowFileAccessFromFilesParams: string[] = argv.filter((arg: string): boolean => arg !== "--allow-file-access-from-files");
         if (
             nonAllowFileAccessFromFilesParams.length === 0 ||

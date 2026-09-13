@@ -39,6 +39,7 @@
 -   Fixed the GUI Scale being missing from the Top debug overlay.
 -   Fixed a typo where the `Trails & Tales` panorama was called `Trails and Tales`.
 -   Fixed a bug where many images in the UI of the app were draggable when they shouldn't be.
+-   Fixed a bug where the app's URI protocol was not functional for any purpose other than opening the app on Windows ([#24](https://github.com/8Crafter-Studios/Bedrock-World-Editor/issues/24)).
 
 # - Customizer Changelog
 

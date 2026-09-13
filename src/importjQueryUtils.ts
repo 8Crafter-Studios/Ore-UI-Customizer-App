@@ -1,5 +1,4 @@
 import "./correctlyImportjQuery.ts";
-// @ts-expect-error This is a valid import.
 import "./spectrum.css";
 import "./spectrum.js";
 
