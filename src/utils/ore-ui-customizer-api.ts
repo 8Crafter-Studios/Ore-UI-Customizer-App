@@ -29,8 +29,8 @@ import "./zip.js";
 /**
  * The version of the Ore UI Customizer API.
  */
-// BUILD 12
-export const format_version = "1.17.0+BUILD.12";
+// BUILD 13
+export const format_version = "1.17.0+BUILD.13";
 
 /**
  * The result of the {@link applyMods} function.
@@ -2204,7 +2204,7 @@ const oreUICustomizerVersion = ${JSON.stringify(format_version)};`
                                         { cause: asset }
                                     );
                                 }
-                                const existingEntry = zipFs.find(asset.distFilePath);
+                                const existingEntry = zipFs.find(asset.distFilePath) ?? zipFs.getChildByName(asset.distFilePath);
                                 if (existingEntry) {
                                     if (existingEntry.directory) {
                                         throw new ReferenceError(
