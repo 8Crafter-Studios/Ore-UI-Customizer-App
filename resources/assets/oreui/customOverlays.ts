@@ -1043,6 +1043,87 @@ globalThis.unloadForceLoadedFacets ??= function unloadForceLoadedFacets(): [face
 // queueMicrotask((): void => void globalThis.forceLoadFacet("core.router"));
 //#endregion
 
+globalThis.currentRouterV2Data = undefined;
+globalThis.routerV2Actions = undefined;
+{
+    const onRouterV2DataLoad: () => void = (): void => {
+        if (routerV2Actions) return;
+        routerV2Actions = {
+            go(distance: number): void {
+                (globalThis.EngineInterceptor?.originalEngineMethods?.trigger?.bind(engine) ?? engine.trigger)("core:router:go", distance);
+            },
+            goBack(): void {
+                (globalThis.EngineInterceptor?.originalEngineMethods?.trigger?.bind(engine) ?? engine.trigger)("core:router:back");
+            },
+            goForward(): void {
+                (globalThis.EngineInterceptor?.originalEngineMethods?.trigger?.bind(engine) ?? engine.trigger)("core:router:go", 1);
+            },
+            push(route: string): void {
+                (globalThis.EngineInterceptor?.originalEngineMethods?.trigger?.bind(engine) ?? engine.trigger)("core:router:push", route);
+            },
+            replace(route: string): void {
+                (globalThis.EngineInterceptor?.originalEngineMethods?.trigger?.bind(engine) ?? engine.trigger)("core:router:replace", route);
+            },
+            observe(callback: (...args: EngineEvent<"core:router:changed">) => void): void {
+                (globalThis.EngineInterceptor?.originalEngineMethods?.on?.bind(engine) ?? engine.on)("core:router:changed", callback);
+            },
+            unobserve(callback: (...args: EngineEvent<"core:router:changed">) => void): void {
+                (globalThis.EngineInterceptor?.originalEngineMethods?.off?.bind(engine) ?? engine.off)("core:router:changed", callback);
+            },
+            [Symbol.toStringTag]: "RouterV2Actions",
+        };
+    };
+    engine.on("core:router:changed", (data): void => {
+        globalThis.currentRouterV2Data = data;
+        onRouterV2DataLoad();
+    });
+    engine.trigger("core:router:requestState");
+    requestAnimationFrame((): void => {
+        if (currentRouterV2Data === undefined) {
+            currentRouterV2Data = null;
+            routerV2Actions = null;
+            engine.off("core:router:changed", console.info);
+            return;
+        }
+    });
+}
+
+globalThis.getRouterV1PolyfillFromRouterV2 = function getRouterV1PolyfillFromRouterV2(): FacetTypeMap["core.router"] | undefined {
+    if (!(currentRouterV2Data && routerV2Actions)) return undefined;
+    return {
+        history: {
+            ...routerV2Actions,
+            ...currentRouterV2Data,
+            get location(): EngineEvent<"core:router:changed">[0]["location"] {
+                return currentRouterV2Data!.location;
+            },
+            set location(value: unknown) {
+                void value;
+            },
+            get list(): EngineEvent<"core:router:changed">[0]["history"] {
+                return currentRouterV2Data!.history;
+            },
+            set list(value: unknown) {
+                void value;
+            },
+            get length(): NonNullable<EngineEvent<"core:router:changed">[0]["length"]> {
+                return currentRouterV2Data!.length!;
+            },
+            set length(value: unknown) {
+                void value;
+            },
+            get action(): NonNullable<EngineEvent<"core:router:changed">[0]["action"]> {
+                return currentRouterV2Data!.action!;
+            },
+            set action(value: unknown) {
+                void value;
+            },
+            [Symbol.toStringTag]: "RouterHistoryV2ToV1Polyfill",
+        },
+        [Symbol.toStringTag]: "RouterV2ToV1Polyfill",
+    } satisfies FacetTypeMap["core.router"] & { [Symbol.toStringTag]: string; history: { [Symbol.toStringTag]: string } } as FacetTypeMap["core.router"];
+};
+
 interface EngineInterceptorEventMap {
     beforeMethodCall: EngineInterceptorBeforeMethodCallEvent;
     methodCall: EngineInterceptorAfterMethodCallEvent;
@@ -5010,11 +5091,14 @@ var consoleExpansionArrowID = 0n;
  * Stringifies a symbol if it is not unique (eg. `Symbol.toStringTag` or `Symbol.for("foo")`).
  *
  * If the symbol is unique, it returns `undefined`.
+ *
+ * @param symbol The symbol to stringify.
+ * @returns The stringified symbol, or `undefined` if the symbol is unique.
  */
 function stringifyNonUniqueSymbol(symbol: symbol): string | undefined {
     if (Symbol.keyFor(symbol) !== undefined) return `Symbol.for(${JSON.stringify(Symbol.keyFor(symbol))})`;
-    const wellKnownSymbol = Object.getOwnPropertyNames(Symbol).find(
-        (key) => typeof Symbol[key as keyof typeof Symbol] === "symbol" && symbol === Symbol[key as keyof typeof Symbol]
+    const wellKnownSymbol: string | undefined = Object.getOwnPropertyNames(Symbol).find(
+        (key: string): boolean => typeof Symbol[key as keyof typeof Symbol] === "symbol" && symbol === Symbol[key as keyof typeof Symbol]
     );
     if (wellKnownSymbol !== undefined) {
         return propertyIdentifierRegex.test(wellKnownSymbol) ? `Symbol.${wellKnownSymbol}` : `Symbol[${JSON.stringify(wellKnownSymbol)}]`;
@@ -8305,7 +8389,7 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
      *
      * @type {FacetTypeMap["core.router"] | undefined}
      */
-    const router: FacetTypeMap["core.router"] | undefined = globalThis.getAccessibleFacetSpyFacets?.()["core.router"];
+    const router: FacetTypeMap["core.router"] | undefined = globalThis.getAccessibleFacetSpyFacets?.()["core.router"] ?? getRouterV1PolyfillFromRouterV2();
     if (!router) {
         throw new ReferenceError("core.router facet not found");
     }
@@ -8495,7 +8579,7 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
         currentPage = page;
         currentTab = tab;
         if (!router) throw new ReferenceError("The router facet has become unavailable.");
-        getAccessibleFacetSpyFacets()["core.router"]?.history.replace(
+        (getAccessibleFacetSpyFacets()["core.router"] ?? getRouterV1PolyfillFromRouterV2())?.history.replace(
             `/ouic/play/${tab}?${[
                 ...router.history.location.search
                     .replace("?", "")
@@ -8669,7 +8753,8 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                             // eslint-disable-next-line @typescript-eslint/no-misused-promises -- This is intentional.
                             editWorldButton.addEventListener("click", async () => {
                                 getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
-                                const router = getAccessibleFacetSpyFacets()["core.router"] ?? (await forceLoadFacet("core.router"));
+                                const router =
+                                    getAccessibleFacetSpyFacets()["core.router"] ?? getRouterV1PolyfillFromRouterV2() ?? (await forceLoadFacet("core.router"));
                                 if (router) {
                                     router.history.push(`/edit-world/${worldID}`);
                                 }
@@ -8713,7 +8798,7 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                     if (!rightButtons) throw new ReferenceError("Could not find right buttons.");
                     rightButtons.children[0]!.addEventListener("click", () => {
                         getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
-                        const router = getAccessibleFacetSpyFacets()["core.router"];
+                        const router = getAccessibleFacetSpyFacets()["core.router"] ?? getRouterV1PolyfillFromRouterV2();
                         if (router) {
                             router.history.push(`/start-from-template`);
                         }
@@ -8970,7 +9055,7 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                                 });
                                 // realmOptionsOverlayElement.querySelector("#realmOptionsOverlayElement_realmsStoriesButton")!.addEventListener("click", () => {
                                 //     getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
-                                //     const router = getAccessibleFacetSpyFacets()["core.router"];
+                                //     const router = getAccessibleFacetSpyFacets()["core.router"] ?? getRouterV1PolyfillFromRouterV2();
                                 //     openRoute: if (router) {
                                 //         const previousPathname: string = router.history.location.pathname;
                                 //         router.history.push(`/realms/${realmID}/hub`);
@@ -8980,7 +9065,7 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                                 // });
                                 realmOptionsOverlayElement.querySelector("#realmOptionsOverlayElement_realmsStoriesButton")!.addEventListener("click", () => {
                                     getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
-                                    const router = getAccessibleFacetSpyFacets()["core.router"];
+                                    const router = getAccessibleFacetSpyFacets()["core.router"] ?? getRouterV1PolyfillFromRouterV2();
                                     if (router) {
                                         router.history.push(`/realms-story-entry-route/feed/${realmID}`);
                                         realmOptionsOverlayElement.remove();
@@ -8988,7 +9073,7 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                                 });
                                 realmOptionsOverlayElement.querySelector("#realmOptionsOverlayElement_realmHubButton")!.addEventListener("click", () => {
                                     getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
-                                    const router = getAccessibleFacetSpyFacets()["core.router"];
+                                    const router = getAccessibleFacetSpyFacets()["core.router"] ?? getRouterV1PolyfillFromRouterV2();
                                     if (router) {
                                         router.history.push(`/realms/${realmID}/hub`);
                                         realmOptionsOverlayElement.remove();
@@ -9023,7 +9108,7 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                                 const realmID = realm.world.id;
                                 editRealmButton.addEventListener("click", () => {
                                     getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
-                                    const router = getAccessibleFacetSpyFacets()["core.router"];
+                                    const router = getAccessibleFacetSpyFacets()["core.router"] ?? getRouterV1PolyfillFromRouterV2();
                                     if (router) {
                                         router.history.push(`/realm-settings/${realmID}`);
                                     }
@@ -9067,7 +9152,7 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                     if (!rightButtons) throw new ReferenceError("Could not find right buttons.");
                     rightButtons.children[0]!.addEventListener("click", () => {
                         getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
-                        const router = getAccessibleFacetSpyFacets()["core.router"];
+                        const router = getAccessibleFacetSpyFacets()["core.router"] ?? getRouterV1PolyfillFromRouterV2();
                         if (router) {
                             router.history.push(`/join-realms-server`);
                         }
@@ -9288,7 +9373,7 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                     if (!rightButtons) throw new ReferenceError("Could not find right buttons.");
                     rightButtons.children[0]!.addEventListener("click", () => {
                         getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
-                        const router = getAccessibleFacetSpyFacets()["core.router"];
+                        const router = getAccessibleFacetSpyFacets()["core.router"] ?? getRouterV1PolyfillFromRouterV2();
                         if (router) {
                             // router.history.push(`/ouic/friends/friends?page=0&tab=friends`);
                             router.history.push(`/friends-drawer`);
@@ -9473,7 +9558,7 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                                             (await forceLoadFacet("vanilla.networkWorldDetails"))
                                         )?.loadNetworkWorldDetails(serverID, 1);
                                         getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
-                                        const router = getAccessibleFacetSpyFacets()["core.router"];
+                                        const router = getAccessibleFacetSpyFacets()["core.router"] ?? getRouterV1PolyfillFromRouterV2();
                                         if (router) {
                                             router.history.push(`/play/servers/${serverID}/external/edit`);
                                         }
@@ -9517,7 +9602,7 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                     if (!rightButtons) throw new ReferenceError("Could not find right buttons.");
                     rightButtons.children[0]!.addEventListener("click", () => {
                         getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
-                        const router = getAccessibleFacetSpyFacets()["core.router"];
+                        const router = getAccessibleFacetSpyFacets()["core.router"] ?? getRouterV1PolyfillFromRouterV2();
                         if (router) {
                             router.history.push(`/play/servers/add`);
                         }
@@ -9712,7 +9797,7 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                                             (await forceLoadFacet("vanilla.networkWorldDetails"))
                                         )?.loadNetworkWorldDetails(serverID, 0);
                                         getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
-                                        const router = getAccessibleFacetSpyFacets()["core.router"];
+                                        const router = getAccessibleFacetSpyFacets()["core.router"] ?? getRouterV1PolyfillFromRouterV2();
                                         if (router) {
                                             router.history.push(`/play/servers/${serverID}/external/edit`);
                                         }
@@ -10020,7 +10105,7 @@ async function litePlayScreen_friendsMenu(): Promise<void> {
      *
      * @type {FacetTypeMap["core.router"] | undefined}
      */
-    const router: FacetTypeMap["core.router"] | undefined = globalThis.getAccessibleFacetSpyFacets?.()["core.router"];
+    const router: FacetTypeMap["core.router"] | undefined = globalThis.getAccessibleFacetSpyFacets?.()["core.router"] ?? getRouterV1PolyfillFromRouterV2();
     if (!router) {
         throw new ReferenceError("core.router facet not found");
     }
@@ -10117,7 +10202,7 @@ async function litePlayScreen_friendsMenu(): Promise<void> {
     function changePage(page: number, tab: (typeof tabIDs)[number], clickTab = true): void {
         currentPage = page;
         currentTab = tab;
-        getAccessibleFacetSpyFacets()["core.router"]?.history.replace(
+        (getAccessibleFacetSpyFacets()["core.router"]?.history ?? routerV2Actions)?.replace(
             `/ouic/friends/${tab}?${[
                 ...router!.history.location.search
                     .replace("?", "")
@@ -10421,7 +10506,7 @@ queueMicrotask(
                      * @type {FacetTypeMap["core.router"] | undefined}
                      */
                     const router: FacetTypeMap["core.router"] | undefined =
-                        /* globalThis.facetSpyData && */ globalThis.getAccessibleFacetSpyFacets?.()["core.router"];
+                        /* globalThis.facetSpyData && */ globalThis.getAccessibleFacetSpyFacets?.()["core.router"] ?? getRouterV1PolyfillFromRouterV2();
                     if (!router) {
                         // If the router facet is not available, wait for a short time and try again.
                         await new Promise((resolve): void => void setTimeout(resolve, 10));
@@ -10454,7 +10539,8 @@ queueMicrotask(
                             /** @returns {RouteHistoryItem | undefined} */ (v, i): RouteHistoryItem | undefined =>
                                 !v.pathname.startsWith("/ouic/") || i === router.history.list.length - 1 ? { ...v } : undefined
                         );
-                    const routerObserveCallback = (async (router: FacetTypeMap["core.router"]) => {
+                    const routerObserveCallback = (async (router1: FacetTypeMap["core.router"] | EngineEvent<"core:router:changed">[0]) => {
+                        const router = "location" in router1 ? getRouterV1PolyfillFromRouterV2()! : router1;
                         if (router.history.list.length < loadedRouterPositions.length) {
                             loadedRouterPositions.splice(router.history.list.length, loadedRouterPositions.length - router.history.list.length);
                         } else if (router.history.list.length > loadedRouterPositions.length) {
@@ -10509,13 +10595,13 @@ queueMicrotask(
                                                 return;
                                             }
                                             try {
-                                                FacetManager.unobserveFacetData("core.router", routerObserveCallback);
+                                                if ("location" in router1) FacetManager.unobserveFacetData("core.router", routerObserveCallback);
                                             } catch {}
                                             throw e;
                                         }
                                     }
                                     try {
-                                        FacetManager.unobserveFacetData("core.router", routerObserveCallback);
+                                        if ("location" in router1) FacetManager.unobserveFacetData("core.router", routerObserveCallback);
                                     } catch {}
                                     throw e;
                                 }
@@ -10553,8 +10639,15 @@ queueMicrotask(
                                 // continue;
                             }
                         }
-                    }) as (router: FacetTypeMap["core.router"]) => void;
-                    FacetManager.observeFacetData("core.router", routerObserveCallback);
+                    }) as (router: FacetTypeMap["core.router"] | EngineEvent<"core:router:changed">[0]) => void;
+                    if (routerV2Actions) routerV2Actions?.observe(routerObserveCallback);
+                    else if (routerV2Actions === null) FacetManager.observeFacetData("core.router", routerObserveCallback);
+                    else {
+                        requestAnimationFrame((): void => {
+                            if (routerV2Actions) routerV2Actions?.observe(routerObserveCallback);
+                            else FacetManager.observeFacetData("core.router", routerObserveCallback);
+                        });
+                    }
                     const localForceLoadedFacets: FacetList[number][] = [];
                     try {
                         let forceLoadedExternalServerWorldListFacet = false;
@@ -10584,13 +10677,13 @@ queueMicrotask(
                                     return;
                                 }
                                 try {
-                                    FacetManager.unobserveFacetData("core.router", routerObserveCallback);
+                                    if (FacetManager.facetData["core.router"]) FacetManager.unobserveFacetData("core.router", routerObserveCallback);
                                 } catch {}
                                 throw e;
                             }
                         }
                         try {
-                            FacetManager.unobserveFacetData("core.router", routerObserveCallback);
+                            if (FacetManager.facetData["core.router"]) FacetManager.unobserveFacetData("core.router", routerObserveCallback);
                         } catch {}
                         throw e;
                     }
@@ -10652,7 +10745,7 @@ async function copyTextToClipboard_old(text: string): Promise<boolean> {
             return true;
         }
     } catch {}
-    const routerFacet = getAccessibleFacetSpyFacets()["core.router"];
+    const routerFacet = getAccessibleFacetSpyFacets()["core.router"] ?? getRouterV1PolyfillFromRouterV2();
     if (!routerFacet) throw new ReferenceError("Router facet not available.");
     // If the current route is in the index file, we can open the add friend page in the current context, otherwise it will open in a different context.
     routerFacet.history.push("/add-friend");
@@ -10761,7 +10854,7 @@ async function copyTextToClipboardAsync(
                         /**
                          * The router facet.
                          */
-                        var routerFacet = getAccessibleFacetSpyFacets()["core.router"];
+                        var routerFacet = getAccessibleFacetSpyFacets()["core.router"] ?? getRouterV1PolyfillFromRouterV2();
                         if (!routerFacet) {
                             // If the router facet is not available, wait for a short time and try again.
                             await new Promise((resolve): void => void setTimeout(resolve, 10));
@@ -10801,8 +10894,7 @@ async function copyTextToClipboardAsync(
                 localStorage.setItem("clipboardCopyStatus", "failed");
 
                 // Close the add friend page and return to the previous page and context.
-                //@ts-ignore
-                getAccessibleFacetSpyFacets()["core.router"].history.goBack();
+                (getAccessibleFacetSpyFacets()["core.router"]?.history ?? routerV2Actions)!.goBack();
                 return false;
             })();
         });
@@ -11469,7 +11561,14 @@ Pixels Per Millimeter: ${pixelsPerMillimeter ?? "Loading..."}`;
 
     // setInterval(()=>console.log(consoleOverlayInputFieldElement.value), 1000)
 
-    forceLoadFacet("core.router").catch((e: unknown): void => void console.error(new Error("Error while force loading core.router facet."), e));
+    if (currentRouterV2Data === null) {
+        forceLoadFacet("core.router").catch((e: unknown): void => void console.error(new Error("Error while force loading core.router facet."), e));
+    } else if (currentRouterV2Data === undefined) {
+        requestAnimationFrame((): void => {
+            if (currentRouterV2Data !== null) return;
+            forceLoadFacet("core.router").catch((e: unknown): void => void console.error(new Error("Error while force loading core.router facet."), e));
+        });
+    }
 
     // 8Crafter Utilities Main Menu, accessed with CTRL+M.
     const mainMenu8CrafterUtilitiesTempContainer = document.createElement("div");
@@ -11613,13 +11712,13 @@ Pixels Per Millimeter: ${pixelsPerMillimeter ?? "Loading..."}`;
                 <center>
                     <h1>Router</h1>
                 </center>
-                <button type="button" class="btn nsel" style="overflow-wrap: anywhere; white-space: pre-wrap; font-size: 0.5in; line-height: 0.7142857143in;" id="8CrafterUtilitiesMenu_button_router_goBack" onclick="getAccessibleFacetSpyFacets()['core.router'].history.goBack(); event.preventDefault();">Go Back</button>
-                <button type="button" class="btn nsel" style="overflow-wrap: anywhere; white-space: pre-wrap; font-size: 0.5in; line-height: 0.7142857143in;" id="8CrafterUtilitiesMenu_button_router_goForward" onclick="getAccessibleFacetSpyFacets()['core.router'].history.goForward(); event.preventDefault();">Go Forward</button>
+                <button type="button" class="btn nsel" style="overflow-wrap: anywhere; white-space: pre-wrap; font-size: 0.5in; line-height: 0.7142857143in;" id="8CrafterUtilitiesMenu_button_router_goBack" onclick="(getAccessibleFacetSpyFacets()['core.router']?.history ?? routerV2Actions).goBack(); event.preventDefault();">Go Back</button>
+                <button type="button" class="btn nsel" style="overflow-wrap: anywhere; white-space: pre-wrap; font-size: 0.5in; line-height: 0.7142857143in;" id="8CrafterUtilitiesMenu_button_router_goForward" onclick="(getAccessibleFacetSpyFacets()['core.router']?.history ?? routerV2Actions).goForward(); event.preventDefault();">Go Forward</button>
                 <hr />
                 <label for="8CrafterUtilitiesMenu_input_router_path">Route</label>
                 <input type="text" style="overflow-wrap: anywhere; white-space: pre-wrap; font-size: 0.5in; line-height: 0.7142857143in; width: 100%;" id="8CrafterUtilitiesMenu_input_router_path" placeholder="/example/route?p1=v1&amp;p2=v2#anchor" />
-                <button type="button" class="btn nsel" style="overflow-wrap: anywhere; white-space: pre-wrap; font-size: 0.5in; line-height: 0.7142857143in;" id="8CrafterUtilitiesMenu_button_replaceRoute" onclick="getAccessibleFacetSpyFacets()['core.router'].history.replace(document.getElementById('8CrafterUtilitiesMenu_input_router_path').value); event.preventDefault();">Replace</button>
-                <button type="button" class="btn nsel" style="overflow-wrap: anywhere; white-space: pre-wrap; font-size: 0.5in; line-height: 0.7142857143in;" id="8CrafterUtilitiesMenu_button_pushRoute" onclick="getAccessibleFacetSpyFacets()['core.router'].history.push(document.getElementById('8CrafterUtilitiesMenu_input_router_path').value); event.preventDefault();">Push</button>
+                <button type="button" class="btn nsel" style="overflow-wrap: anywhere; white-space: pre-wrap; font-size: 0.5in; line-height: 0.7142857143in;" id="8CrafterUtilitiesMenu_button_replaceRoute" onclick="(getAccessibleFacetSpyFacets()['core.router']?.history ?? routerV2Actions).replace(document.getElementById('8CrafterUtilitiesMenu_input_router_path').value); event.preventDefault();">Replace</button>
+                <button type="button" class="btn nsel" style="overflow-wrap: anywhere; white-space: pre-wrap; font-size: 0.5in; line-height: 0.7142857143in;" id="8CrafterUtilitiesMenu_button_pushRoute" onclick="(getAccessibleFacetSpyFacets()['core.router']?.history ?? routerV2Actions).push(document.getElementById('8CrafterUtilitiesMenu_input_router_path').value); event.preventDefault();">Push</button>
                 <hr />
                 <center>
                     <h2>Current Router Stack</h2>
@@ -11662,10 +11761,8 @@ Pixels Per Millimeter: ${pixelsPerMillimeter ?? "Loading..."}`;
 </div>`; // IDEA: Add a facets list, with backround colors indicating the status of each facet (ex. green for loaded, yellow for unloaded, red for non-existent).
     //@ts-ignore
     mainMenu8CrafterUtilities = document.body.appendChild(mainMenu8CrafterUtilitiesTempContainer.children[0]);
-    /**
-     * @param {FacetTypeMap["core.router"]} router
-     */
-    function routerObserveCallback(router: FacetTypeMap["core.router"]): void {
+    function routerObserveCallback(router1: FacetTypeMap["core.router"] | EngineEvent<"core:router:changed">[0]): void {
+        const router = "location" in router1 ? getRouterV1PolyfillFromRouterV2()! : router1;
         try {
             const routerStack: HTMLElement | null = document.getElementById("8CrafterUtilitiesMenu_div_router_stack");
             if (routerStack) {
@@ -11676,7 +11773,7 @@ Pixels Per Millimeter: ${pixelsPerMillimeter ?? "Loading..."}`;
                     const route = router.history.list[i]!;
                     const div = document.createElement("div");
                     div.onclick = (event: MouseEvent): void => {
-                        const router = getAccessibleFacetSpyFacets()["core.router"];
+                        const router = getAccessibleFacetSpyFacets()["core.router"] ?? getRouterV1PolyfillFromRouterV2();
                         router?.history.go(i - (router.history.list.length - 1));
                         event.preventDefault();
                     };
@@ -11689,7 +11786,14 @@ Pixels Per Millimeter: ${pixelsPerMillimeter ?? "Loading..."}`;
             console.error(e);
         }
     }
-    FacetManager.observeFacetData("core.router", routerObserveCallback);
+    if (routerV2Actions) routerV2Actions?.observe(routerObserveCallback);
+    else if (routerV2Actions === null) FacetManager.observeFacetData("core.router", routerObserveCallback);
+    else {
+        requestAnimationFrame((): void => {
+            if (routerV2Actions) routerV2Actions?.observe(routerObserveCallback);
+            else FacetManager.observeFacetData("core.router", routerObserveCallback);
+        });
+    }
     // FacetManager.observeFacetData("core.router", routerObserveCallback);
     // FacetManager.observeFacetData("vanilla.connectionErrorInfoFacet", console.log);
     // forceLoadFacet("vanilla.connectionErrorInfoFacet");

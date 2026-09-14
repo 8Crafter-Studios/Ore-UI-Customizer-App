@@ -1058,6 +1058,9 @@ declare var consoleExpansionArrowID: bigint;
  * Stringifies a symbol if it is not unique (eg. `Symbol.toStringTag` or `Symbol.for("foo")`).
  *
  * If the symbol is unique, it returns `undefined`.
+ *
+ * @param symbol The symbol to stringify.
+ * @returns The stringified symbol, or `undefined` if the symbol is unique.
  */
 declare function stringifyNonUniqueSymbol(symbol: symbol): string | undefined;
 /**

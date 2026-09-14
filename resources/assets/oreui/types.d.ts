@@ -407,6 +407,49 @@ declare global {
          */
         var notedNewFacets: string[];
         /**
+         * The current router v2 data.
+         *
+         * If this is `null`, that means the current Minecraft version does not support router v2.
+         *
+         * If this is `undefined`, that means it has not yet been determined whether router v2 is supported, you can call {@link requestAnimationFrame},
+         * and when that completes, this will have changed to either `null` or the router data.
+         */
+        var currentRouterV2Data: EngineEvent<"core:router:changed">[0] | null | undefined;
+        /**
+         * This variable contains custom polyfilled router v1 actions defined by the Ore UI Customizer.
+         *
+         * If this is `null`, that means the current Minecraft version does not support router v2.
+         *
+         * If this is `undefined`, that means it has not yet been determined whether router v2 is supported, you can call {@link requestAnimationFrame},
+         * and when that completes, this will have changed to either `null` or the polyfilled data.
+         */
+        var routerV2Actions:
+            | (Pick<FacetTypeMap["core.router"]["history"], "replace" | "go" | "goBack" | "goForward" | "push"> & {
+                  /**
+                   * Registers the provided callback to be called when the router data changes.
+                   *
+                   * @param callback The callback to call when the router data changes.
+                   */
+                  observe(callback: (...args: EngineEvent<"core:router:changed">) => void): void;
+                  /**
+                   * Unregisters the provided callback from being called when the router data changes.
+                   *
+                   * @param callback The callback to unregister.
+                   */
+                  unobserve(callback: (...args: EngineEvent<"core:router:changed">) => void): void;
+                  [Symbol.toStringTag]: "RouterV2Actions";
+              })
+            | null
+            | undefined;
+        /**
+         * Gets a polyfill for router v1, based on the new router v2 data.
+         *
+         * Note: This only works on versions with the new `core:router:*` engine events, on older versions this returns `undefined`.
+         *
+         * @todo Add the version range this supports here.
+         */
+        function getRouterV1PolyfillFromRouterV2(): FacetTypeMap["core.router"] | undefined;
+        /**
          * Forcefully loads a facet that is not loaded (meaning it is not accessible through the {@link getAccessibleFacetSpyFacets} function).
          *
          * @param facetName The name of the facet to load.

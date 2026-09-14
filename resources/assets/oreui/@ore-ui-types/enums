@@ -1,4 +1,4 @@
-// Copied from @ore-ui-types/enums v1.8.0
+// Copied from @ore-ui-types/enums v1.9.0
 // TODO: Switch all the constants to actual enums.
 export const JoinRealmsServerError = {
     RealmsAPIUnavailable: 0,
@@ -595,6 +595,25 @@ export const PlayerPermissionsActionState = {
     Success: 0,
     Error: 1,
     Idle: 2,
+};
+/**
+ * @deprecated This was removed in a 1.21.80 preview.
+ * @todo Figure out what 1.21.80 preview this was removed in.
+ */
+export const VRMode = {
+    NoVR: 0,
+    VRFull3DWorld: 1,
+    VRVirtual2DScreen: 2,
+};
+export const ProfanityFilterContext = {
+    NONE: 0,
+    UI_FRONT_END: 1,
+    UI_IN_GAME: 2,
+    ALL_UI: 3,
+    IN_GAME_CHAT: 4,
+    IN_GAME_ITEMS: 8,
+    IN_GAME_NAME: 16,
+    ALL: 31,
 };
 /**
  * Reverses a numeric enum mapping.

@@ -14,6 +14,7 @@ import {
 } from "./ore-ui-customizer-assets.js";
 import type {
     EncodedPluginData,
+    EncodedThemeData,
     OreUICustomizerConfig_Settings,
     OreUICustomizerSettings,
     Plugin,
@@ -29,8 +30,8 @@ import "./zip.js";
 /**
  * The version of the Ore UI Customizer API.
  */
-// BUILD 13
-export const format_version = "1.17.0+BUILD.13";
+// BUILD 17
+export const format_version = "1.17.0+BUILD.17";
 
 /**
  * The result of the {@link applyMods} function.
@@ -2091,6 +2092,34 @@ export async function applyMods(file: Blob, options: ApplyModsOptions = {}): Pro
                         })) ?? []),
                     ],
                     plugins: options.settings?.bundleEncodedPluginDataInConfigFile ? options.settings?.plugins : undefined,
+                    activeThemesDetails: [
+                        ...(options.settings?.themes?.map((theme: EncodedThemeData): NonNullable<OreUICustomizerSettings["activeThemesDetails"]>[number] => ({
+                            format_version: theme.format_version,
+                            name: theme.name,
+                            uuid: theme.uuid,
+                            version: theme.version,
+                            checkForUpdatesDetails: theme.checkForUpdatesDetails,
+                            dependencies: theme.dependencies,
+                            description: theme.description,
+                            icon_data_uri: theme.icon_data_uri,
+                            min_engine_version: theme.min_engine_version,
+                            marketplaceDetails: theme.marketplaceDetails,
+                            metadata: theme.metadata,
+                        })) ?? []),
+                        ...(options.settings?.preloadedThemes?.map((theme: Theme): NonNullable<OreUICustomizerSettings["activeThemesDetails"]>[number] => ({
+                            format_version: theme.format_version,
+                            name: theme.name,
+                            uuid: theme.uuid,
+                            version: theme.version,
+                            checkForUpdatesDetails: theme.checkForUpdatesDetails,
+                            dependencies: theme.dependencies,
+                            description: theme.description,
+                            icon_data_uri: theme.icon_data_uri,
+                            min_engine_version: theme.min_engine_version,
+                            marketplaceDetails: theme.marketplaceDetails,
+                            metadata: theme.metadata ?? { product_type: "theme" },
+                        })) ?? []),
+                    ],
                     themes: options.settings?.bundleEncodedThemeDataInConfigFile ? options.settings?.themes : undefined,
                 } as OreUICustomizerSettings,
                 undefined,
