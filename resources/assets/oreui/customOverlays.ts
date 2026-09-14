@@ -8602,7 +8602,7 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
             const renderId = ++currentRenderId;
             if (tabListButtons[index]!.getAttribute("data-tab-id") !== currentTab) {
                 if (!silentClick) {
-                    getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                    (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.("random.click", 1, 1);
                 }
                 currentPage = 0;
                 for (const tabListButton of tabListButtons) {
@@ -8737,7 +8737,11 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                             worldButton.appendChild(worldButtonInner);
                             // eslint-disable-next-line @typescript-eslint/no-misused-promises -- This is intentional.
                             worldButton.addEventListener("click", async () => {
-                                getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                                (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                                    "random.click",
+                                    1,
+                                    1
+                                );
                                 const worldStartup = getAccessibleFacetSpyFacets()["vanilla.worldStartup"] ?? (await forceLoadFacet("vanilla.worldStartup"));
                                 if (worldStartup) {
                                     worldStartup.startLocalWorld(world.id);
@@ -8752,7 +8756,11 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                             const worldID = world.id;
                             // eslint-disable-next-line @typescript-eslint/no-misused-promises -- This is intentional.
                             editWorldButton.addEventListener("click", async () => {
-                                getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                                (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                                    "random.click",
+                                    1,
+                                    1
+                                );
                                 const router =
                                     getAccessibleFacetSpyFacets()["core.router"] ?? getRouterV1PolyfillFromRouterV2() ?? (await forceLoadFacet("core.router"));
                                 if (router) {
@@ -8784,20 +8792,32 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                     }
                     leftButtons.children[0]!.addEventListener("click", () => {
                         if (currentPage > 0) {
-                            getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                            (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                                "random.click",
+                                1,
+                                1
+                            );
                         }
                         changePage(Math.max(currentPage - 1, 0), currentTab);
                     });
                     leftButtons.children[1]!.addEventListener("click", () => {
                         if (currentPage < pageCount - 1) {
-                            getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                            (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                                "random.click",
+                                1,
+                                1
+                            );
                         }
                         changePage(Math.min(currentPage + 1, pageCount - 1), currentTab);
                     });
                     const rightButtons = document.getElementById("litePlayScreen_worldsTabButtonBar_rightButtons");
                     if (!rightButtons) throw new ReferenceError("Could not find right buttons.");
                     rightButtons.children[0]!.addEventListener("click", () => {
-                        getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                        (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                            "random.click",
+                            1,
+                            1
+                        );
                         const router = getAccessibleFacetSpyFacets()["core.router"] ?? getRouterV1PolyfillFromRouterV2();
                         if (router) {
                             router.history.push(`/start-from-template`);
@@ -8805,7 +8825,11 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                     });
                     // eslint-disable-next-line @typescript-eslint/no-misused-promises -- This is intentional.
                     rightButtons.children[1]!.addEventListener("click", async () => {
-                        getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                        (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                            "random.click",
+                            1,
+                            1
+                        );
                         const worldTransfer = getAccessibleFacetSpyFacets()["vanilla.worldTransfer"] ?? (await forceLoadFacet("vanilla.worldTransfer"));
                         if (worldTransfer) {
                             worldTransfer.importWorld.run();
@@ -8979,7 +9003,11 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                             const realmID = realm.world.id;
                             // eslint-disable-next-line @typescript-eslint/no-misused-promises -- This is intentional.
                             realmButton.addEventListener("click", async () => {
-                                getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                                (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                                    "random.click",
+                                    1,
+                                    1
+                                );
                                 const networkWorldJoiner =
                                     getAccessibleFacetSpyFacets()["vanilla.networkWorldJoiner"] ?? (await forceLoadFacet("vanilla.networkWorldJoiner"));
                                 if (networkWorldJoiner) {
@@ -8994,7 +9022,11 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                             realmOptionsButton.style = "font-size: 2vw; line-height: 2.8571428572vw; width: 6vw; font-family: Minecraft Seven v2;";
                             realmOptionsButton.id = `litePlayScreen_realmsTabRealmList_realmListContainer_realmButton_editRealmButton_${realm.world.id}`;
                             realmOptionsButton.addEventListener("click", () => {
-                                getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                                (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                                    "random.click",
+                                    1,
+                                    1
+                                );
                                 const realmOptionsOverlayElement = document.createElement("div");
                                 realmOptionsOverlayElement.id = "realmOptionsOverlayElement";
                                 realmOptionsOverlayElement.style =
@@ -9045,7 +9077,11 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                                 }
                                 // eslint-disable-next-line @typescript-eslint/no-misused-promises -- This is intentional.
                                 realmOptionsOverlayElement.querySelector("#realmOptionsOverlayElement_joinRealmButton")!.addEventListener("click", async () => {
-                                    getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                                    (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                                        "random.click",
+                                        1,
+                                        1
+                                    );
                                     const networkWorldJoiner =
                                         getAccessibleFacetSpyFacets()["vanilla.networkWorldJoiner"] ?? (await forceLoadFacet("vanilla.networkWorldJoiner"));
                                     if (networkWorldJoiner) {
@@ -9054,7 +9090,7 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                                     }
                                 });
                                 // realmOptionsOverlayElement.querySelector("#realmOptionsOverlayElement_realmsStoriesButton")!.addEventListener("click", () => {
-                                //     getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                                //     (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.("random.click", 1, 1);
                                 //     const router = getAccessibleFacetSpyFacets()["core.router"] ?? getRouterV1PolyfillFromRouterV2();
                                 //     openRoute: if (router) {
                                 //         const previousPathname: string = router.history.location.pathname;
@@ -9064,7 +9100,11 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                                 //     }
                                 // });
                                 realmOptionsOverlayElement.querySelector("#realmOptionsOverlayElement_realmsStoriesButton")!.addEventListener("click", () => {
-                                    getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                                    (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                                        "random.click",
+                                        1,
+                                        1
+                                    );
                                     const router = getAccessibleFacetSpyFacets()["core.router"] ?? getRouterV1PolyfillFromRouterV2();
                                     if (router) {
                                         router.history.push(`/realms-story-entry-route/feed/${realmID}`);
@@ -9072,7 +9112,11 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                                     }
                                 });
                                 realmOptionsOverlayElement.querySelector("#realmOptionsOverlayElement_realmHubButton")!.addEventListener("click", () => {
-                                    getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                                    (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                                        "random.click",
+                                        1,
+                                        1
+                                    );
                                     const router = getAccessibleFacetSpyFacets()["core.router"] ?? getRouterV1PolyfillFromRouterV2();
                                     if (router) {
                                         router.history.push(`/realms/${realmID}/hub`);
@@ -9107,7 +9151,11 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                                 editRealmButton.id = `litePlayScreen_realmsTabRealmList_realmListContainer_realmButton_editRealmButton_${realm.world.id}`;
                                 const realmID = realm.world.id;
                                 editRealmButton.addEventListener("click", () => {
-                                    getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                                    (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                                        "random.click",
+                                        1,
+                                        1
+                                    );
                                     const router = getAccessibleFacetSpyFacets()["core.router"] ?? getRouterV1PolyfillFromRouterV2();
                                     if (router) {
                                         router.history.push(`/realm-settings/${realmID}`);
@@ -9138,20 +9186,32 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                     }
                     leftButtons.children[0]!.addEventListener("click", () => {
                         if (currentPage > 0) {
-                            getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                            (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                                "random.click",
+                                1,
+                                1
+                            );
                         }
                         changePage(Math.max(currentPage - 1, 0), currentTab);
                     });
                     leftButtons.children[1]!.addEventListener("click", () => {
                         if (currentPage < pageCount - 1) {
-                            getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                            (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                                "random.click",
+                                1,
+                                1
+                            );
                         }
                         changePage(Math.min(currentPage + 1, pageCount - 1), currentTab);
                     });
                     const rightButtons = document.getElementById("litePlayScreen_realmsTabButtonBar_rightButtons");
                     if (!rightButtons) throw new ReferenceError("Could not find right buttons.");
                     rightButtons.children[0]!.addEventListener("click", () => {
-                        getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                        (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                            "random.click",
+                            1,
+                            1
+                        );
                         const router = getAccessibleFacetSpyFacets()["core.router"] ?? getRouterV1PolyfillFromRouterV2();
                         if (router) {
                             router.history.push(`/join-realms-server`);
@@ -9259,7 +9319,11 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                             const friendWorldID = world.id;
                             // eslint-disable-next-line @typescript-eslint/no-misused-promises -- This is intentional.
                             friendWorldButton.addEventListener("click", async () => {
-                                getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                                (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                                    "random.click",
+                                    1,
+                                    1
+                                );
                                 const networkWorldJoiner =
                                     getAccessibleFacetSpyFacets()["vanilla.networkWorldJoiner"] ?? (await forceLoadFacet("vanilla.networkWorldJoiner"));
                                 if (networkWorldJoiner) {
@@ -9276,7 +9340,11 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                             friendWorldOptionsButton.id = `litePlayScreen_friendsTabFriendWorldList_friendWorldListContainer_friendWorldButton_editFriendWorldButton_${world.id}`;
                             friendWorldOptionsButton.addEventListener("click", () => {
                                 try {
-                                    getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                                    (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                                        "random.click",
+                                        1,
+                                        1
+                                    );
                                     const friendWorldOptionsOverlayElement = document.createElement("div");
                                     friendWorldOptionsOverlayElement.id = "friendWorldOptionsOverlayElement";
                                     friendWorldOptionsOverlayElement.setAttribute("data-friend-world-id", friendWorldID);
@@ -9321,7 +9389,11 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                                         .querySelector("#friendWorldOptionsOverlayElement_joinFriendWorldButton")!
                                         // eslint-disable-next-line @typescript-eslint/no-misused-promises -- This is intentional.
                                         .addEventListener("click", async () => {
-                                            getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                                            (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                                                "random.click",
+                                                1,
+                                                1
+                                            );
                                             const networkWorldJoiner =
                                                 getAccessibleFacetSpyFacets()["vanilla.networkWorldJoiner"] ??
                                                 (await forceLoadFacet("vanilla.networkWorldJoiner"));
@@ -9359,20 +9431,32 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                     }
                     leftButtons.children[0]!.addEventListener("click", () => {
                         if (currentPage > 0) {
-                            getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                            (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                                "random.click",
+                                1,
+                                1
+                            );
                         }
                         changePage(Math.max(currentPage - 1, 0), currentTab);
                     });
                     leftButtons.children[1]!.addEventListener("click", () => {
                         if (currentPage < pageCount - 1) {
-                            getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                            (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                                "random.click",
+                                1,
+                                1
+                            );
                         }
                         changePage(Math.min(currentPage + 1, pageCount - 1), currentTab);
                     });
                     const rightButtons = document.getElementById("litePlayScreen_friendsTabButtonBar_rightButtons");
                     if (!rightButtons) throw new ReferenceError("Could not find right buttons.");
                     rightButtons.children[0]!.addEventListener("click", () => {
-                        getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                        (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                            "random.click",
+                            1,
+                            1
+                        );
                         const router = getAccessibleFacetSpyFacets()["core.router"] ?? getRouterV1PolyfillFromRouterV2();
                         if (router) {
                             // router.history.push(`/ouic/friends/friends?page=0&tab=friends`);
@@ -9461,7 +9545,11 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                             const serverID = server.id;
                             // eslint-disable-next-line @typescript-eslint/no-misused-promises -- This is intentional.
                             serverButton.addEventListener("click", async () => {
-                                getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                                (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                                    "random.click",
+                                    1,
+                                    1
+                                );
                                 const networkWorldJoiner =
                                     getAccessibleFacetSpyFacets()["vanilla.networkWorldJoiner"] ?? (await forceLoadFacet("vanilla.networkWorldJoiner"));
                                 if (networkWorldJoiner) {
@@ -9478,7 +9566,11 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                             // eslint-disable-next-line @typescript-eslint/no-misused-promises -- This is intentional.
                             serverOptionsButton.addEventListener("click", async () => {
                                 try {
-                                    getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                                    (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                                        "random.click",
+                                        1,
+                                        1
+                                    );
                                     const serverOptionsOverlayElement = document.createElement("div");
                                     serverOptionsOverlayElement.id = "serverOptionsOverlayElement";
                                     serverOptionsOverlayElement.setAttribute("data-server-id", serverID);
@@ -9518,7 +9610,11 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                                         .querySelector("#serverOptionsOverlayElement_joinServerButton")
                                         // eslint-disable-next-line @typescript-eslint/no-misused-promises -- This is intentional.
                                         .addEventListener("click", async () => {
-                                            getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                                            (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                                                "random.click",
+                                                1,
+                                                1
+                                            );
                                             const networkWorldJoiner =
                                                 getAccessibleFacetSpyFacets()["vanilla.networkWorldJoiner"] ??
                                                 (await forceLoadFacet("vanilla.networkWorldJoiner"));
@@ -9557,7 +9653,11 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                                             getAccessibleFacetSpyFacets()["vanilla.networkWorldDetails"] ??
                                             (await forceLoadFacet("vanilla.networkWorldDetails"))
                                         )?.loadNetworkWorldDetails(serverID, 1);
-                                        getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                                        (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                                            "random.click",
+                                            1,
+                                            1
+                                        );
                                         const router = getAccessibleFacetSpyFacets()["core.router"] ?? getRouterV1PolyfillFromRouterV2();
                                         if (router) {
                                             router.history.push(`/play/servers/${serverID}/external/edit`);
@@ -9588,20 +9688,32 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                     }
                     leftButtons.children[0]!.addEventListener("click", () => {
                         if (currentPage > 0) {
-                            getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                            (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                                "random.click",
+                                1,
+                                1
+                            );
                         }
                         changePage(Math.max(currentPage - 1, 0), currentTab);
                     });
                     leftButtons.children[1]!.addEventListener("click", () => {
                         if (currentPage < pageCount - 1) {
-                            getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                            (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                                "random.click",
+                                1,
+                                1
+                            );
                         }
                         changePage(Math.min(currentPage + 1, pageCount - 1), currentTab);
                     });
                     const rightButtons = document.getElementById("litePlayScreen_serversTabButtonBar_rightButtons");
                     if (!rightButtons) throw new ReferenceError("Could not find right buttons.");
                     rightButtons.children[0]!.addEventListener("click", () => {
-                        getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                        (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                            "random.click",
+                            1,
+                            1
+                        );
                         const router = getAccessibleFacetSpyFacets()["core.router"] ?? getRouterV1PolyfillFromRouterV2();
                         if (router) {
                             router.history.push(`/play/servers/add`);
@@ -9702,7 +9814,11 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                             const serverID = server.id;
                             // eslint-disable-next-line @typescript-eslint/no-misused-promises -- This is intentional.
                             serverButton.addEventListener("click", async () => {
-                                getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                                (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                                    "random.click",
+                                    1,
+                                    1
+                                );
                                 const networkWorldJoiner =
                                     getAccessibleFacetSpyFacets()["vanilla.networkWorldJoiner"] ?? (await forceLoadFacet("vanilla.networkWorldJoiner"));
                                 if (networkWorldJoiner) {
@@ -9718,7 +9834,11 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                             serverOptionsButton.id = `litePlayScreen_featuredTabServerList_serverListContainer_serverButton_editServerButton_${server.id}`;
                             serverOptionsButton.addEventListener("click", (async () => {
                                 try {
-                                    getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                                    (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                                        "random.click",
+                                        1,
+                                        1
+                                    );
                                     const serverOptionsOverlayElement = document.createElement("div");
                                     serverOptionsOverlayElement.id = "serverOptionsOverlayElement";
                                     serverOptionsOverlayElement.setAttribute("data-server-id", serverID);
@@ -9757,7 +9877,11 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                                     serverOptionsOverlayElement
                                         .querySelector("#serverOptionsOverlayElement_joinServerButton")
                                         .addEventListener("click", (async () => {
-                                            getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                                            (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                                                "random.click",
+                                                1,
+                                                1
+                                            );
                                             const networkWorldJoiner =
                                                 getAccessibleFacetSpyFacets()["vanilla.networkWorldJoiner"] ??
                                                 (await forceLoadFacet("vanilla.networkWorldJoiner"));
@@ -9796,7 +9920,11 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                                             getAccessibleFacetSpyFacets()["vanilla.networkWorldDetails"] ??
                                             (await forceLoadFacet("vanilla.networkWorldDetails"))
                                         )?.loadNetworkWorldDetails(serverID, 0);
-                                        getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                                        (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                                            "random.click",
+                                            1,
+                                            1
+                                        );
                                         const router = getAccessibleFacetSpyFacets()["core.router"] ?? getRouterV1PolyfillFromRouterV2();
                                         if (router) {
                                             router.history.push(`/play/servers/${serverID}/external/edit`);
@@ -9827,13 +9955,21 @@ async function enableLitePlayScreen(noReload = false): Promise<void> {
                     }
                     leftButtons.children[0]!.addEventListener("click", () => {
                         if (currentPage > 0) {
-                            getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                            (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                                "random.click",
+                                1,
+                                1
+                            );
                         }
                         changePage(Math.max(currentPage - 1, 0), currentTab);
                     });
                     leftButtons.children[1]!.addEventListener("click", () => {
                         if (currentPage < pageCount - 1) {
-                            getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                            (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                                "random.click",
+                                1,
+                                1
+                            );
                         }
                         changePage(Math.min(currentPage + 1, pageCount - 1), currentTab);
                     });
@@ -10232,7 +10368,7 @@ async function litePlayScreen_friendsMenu(): Promise<void> {
         tabListButtons[index]!.addEventListener("click", (async (): Promise<void> => {
             if (tabListButtons[index]!.getAttribute("data-tab-id") !== currentTab) {
                 if (!silentClick) {
-                    getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                    (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.("random.click", 1, 1);
                 }
                 currentPage = 0;
                 for (const tabListButton of tabListButtons) {
@@ -10340,7 +10476,11 @@ async function litePlayScreen_friendsMenu(): Promise<void> {
                             friendWorldButton.appendChild(friendWorldButton_friendWorldDetails);
                             const friendWorldID = world.id;
                             friendWorldButton.addEventListener("click", (async () => {
-                                getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                                (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                                    "random.click",
+                                    1,
+                                    1
+                                );
                                 const networkWorldJoiner =
                                     getAccessibleFacetSpyFacets()["vanilla.networkWorldJoiner"] ?? (await forceLoadFacet("vanilla.networkWorldJoiner"));
                                 if (networkWorldJoiner) {
@@ -10356,7 +10496,11 @@ async function litePlayScreen_friendsMenu(): Promise<void> {
                             friendWorldOptionsButton.style = "font-size: 2vw; line-height: 2.8571428572vw; width: 6vw; font-family: Minecraft Seven v2;";
                             friendWorldOptionsButton.id = `litePlayScreen_friendsTabFriendWorldList_friendWorldListContainer_friendWorldButton_editFriendWorldButton_${world.id}`;
                             friendWorldOptionsButton.addEventListener("click", () => {
-                                getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                                (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                                    "random.click",
+                                    1,
+                                    1
+                                );
                                 const friendWorldOptionsOverlayElement = document.createElement("div");
                                 friendWorldOptionsOverlayElement.id = "friendWorldOptionsOverlayElement";
                                 friendWorldOptionsOverlayElement.setAttribute("data-friend-id", friendWorldID);
@@ -10396,7 +10540,11 @@ async function litePlayScreen_friendsMenu(): Promise<void> {
                                 friendWorldOptionsOverlayElement
                                     .querySelector("#friendWorldOptionsOverlayElement_joinFriendWorldButton")!
                                     .addEventListener("click", (async () => {
-                                        getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                                        (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                                            "random.click",
+                                            1,
+                                            1
+                                        );
                                         const networkWorldJoiner =
                                             getAccessibleFacetSpyFacets()["vanilla.networkWorldJoiner"] ?? (await forceLoadFacet("vanilla.networkWorldJoiner"));
                                         if (networkWorldJoiner) {
@@ -10430,13 +10578,21 @@ async function litePlayScreen_friendsMenu(): Promise<void> {
                     }
                     leftButtons.children[0]!.addEventListener("click", () => {
                         if (currentPage > 0) {
-                            getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                            (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                                "random.click",
+                                1,
+                                1
+                            );
                         }
                         changePage(Math.max(currentPage - 1, 0), currentTab);
                     });
                     leftButtons.children[1]!.addEventListener("click", () => {
                         if (currentPage < pageCount - 1) {
-                            getAccessibleFacetSpyFacets()["core.sound"]?.play("random.click", 1, 1);
+                            (getAccessibleFacetSpyFacets()["core.sound"]?.play ?? globalThis.__commands__?.soundCommandGroup?.play?.callable)?.(
+                                "random.click",
+                                1,
+                                1
+                            );
                         }
                         changePage(Math.min(currentPage + 1, pageCount - 1), currentTab);
                     });
