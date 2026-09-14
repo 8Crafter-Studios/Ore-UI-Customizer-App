@@ -99,5 +99,10 @@
         "shiki-codegen": "^3.20.0",
         "update-electron-app": "^3.1.1",
         "v8-compile-cache": "^2.4.0"
+    },
+    "allowScripts": {
+        "electron@40.10.6": true,
+        "electron-winstaller@5.4.0": true,
+        "esbuild@0.21.5": true
     }
 }
