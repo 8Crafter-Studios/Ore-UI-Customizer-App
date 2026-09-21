@@ -6,7 +6,7 @@ This app is still in beta, so please report any issues to you find [here](https:
 
 ## Prerequisites
 
-All custom launchers are supported, in addition to the official one, or no launcher at all, but if you are using a launcher other than the Windows or Linux bedrock launchers, then you must set where the app should look for the Minecraft versions in preferences, instructions for this will be on the installations tab if the app is unable to find any Minecraft versions.
+All custom launchers are supported, in addition to the official one, or no launcher at all, but if you are using a launcher other than the Windows Bedrock Launcher, Linux/macOS MCPELauncher/Minecraft Bedrock Launcher, or Windows LeviLauncher, then you must set where the app should look for the Minecraft versions in preferences, instructions for this will be on the installations tab if the app is unable to find any Minecraft versions.
 
 ## Overview
 
