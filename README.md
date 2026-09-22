@@ -8,6 +8,10 @@ This app is still in beta, so please report any issues to you find [here](https:
 
 All custom launchers are supported, in addition to the official one, or no launcher at all, but if you are using a launcher other than the Windows Bedrock Launcher, Linux/macOS MCPELauncher/Minecraft Bedrock Launcher, or Windows LeviLauncher, then you must set where the app should look for the Minecraft versions in preferences, instructions for this will be on the installations tab if the app is unable to find any Minecraft versions.
 
+## Important
+
+If you see an error about a "Partially Failed Installation", all that means is that some features aren't supported foe that version of Minecraft *yet*, but everything other than the features listed in the error will still work.
+
 ## Overview
 
 This app supports Windows, Linux, and macOS (Darwin).
